@@ -876,7 +876,7 @@ td.note-cell{max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:
   .mkt-bar{display:none}
 }
 </style>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
 
@@ -5907,8 +5907,21 @@ let syncUser = null;
 let pendingConflict = null;
 let conflictChoice = null;
 let syncInFlight = false;
+let supabaseInitAttempts = 0;
 
 function initSupabase() {
+  if (typeof window.supabase === 'undefined' || !window.supabase.createClient) {
+    supabaseInitAttempts++;
+    if (supabaseInitAttempts <= 20) {
+      // SDK still loading from CDN, retry shortly
+      setTimeout(initSupabase, 250);
+      return;
+    } else {
+      console.error('Supabase SDK failed to load after retries');
+      updateSyncButton('error');
+      return;
+    }
+  }
   try {
     sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
     sb.auth.onAuthStateChange((event, session) => {
@@ -5929,6 +5942,7 @@ function initSupabase() {
     });
   } catch(e) {
     console.error('Supabase init error:', e);
+    updateSyncButton('error');
   }
 }
 
@@ -5959,7 +5973,15 @@ function closeSyncModal() { $('syncModalOverlay').classList.remove('open'); }
 $('syncModalOverlay').addEventListener('click', e => { if (e.target === $('syncModalOverlay')) closeSyncModal(); });
 
 async function signInWithGitHub() {
-  if (!sb) { showToast('Supabase no está inicializado', 'err'); return; }
+  if (!sb) {
+    // Give it one more chance in case SDK just finished loading
+    initSupabase();
+    await new Promise(r => setTimeout(r, 400));
+  }
+  if (!sb) {
+    showToast('La conexión con Supabase está tardando. Probá de nuevo en unos segundos.', 'err', 4000);
+    return;
+  }
   try {
     const { data, error } = await sb.auth.signInWithOAuth({
       provider: 'github',
