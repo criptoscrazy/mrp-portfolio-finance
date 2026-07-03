@@ -237,13 +237,14 @@ button{cursor:pointer}
 }
 .tabs::-webkit-scrollbar{height:0;display:none}
 .tab{
-  padding:10px 12px;font-size:10px;font-weight:500;
+  padding:13px 16px;font-size:12px;font-weight:500;
   color:var(--tx3);cursor:pointer;
   border-bottom:2px solid transparent;
   transition:all .2s;letter-spacing:.02em;
-  display:flex;align-items:center;gap:6px;white-space:nowrap;
+  display:flex;align-items:center;gap:7px;white-space:nowrap;
   position:relative;
 }
+.tab i{font-size:15px}
 .tab:hover{color:var(--tx2)}
 .tab.active{
   color:var(--cv3);
@@ -388,7 +389,8 @@ td.note-cell{max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:
   box-shadow:0 0 0 3px rgba(124,58,237,.15), 0 0 0 1px var(--cv);
   background:var(--bg2);
 }
-.form-row input::placeholder,.form-row textarea::placeholder{color:var(--tx4)}
+.form-row input::placeholder,.form-row textarea::placeholder{color:var(--tx4);opacity:.6}
+input::placeholder,textarea::placeholder,select::placeholder{color:var(--tx4);opacity:.6;font-weight:400}
 .form-row select option{background:var(--bg2)}
 .form-row textarea{resize:vertical;min-height:36px;line-height:1.5}
 .inp-h{height:34px}
@@ -1174,25 +1176,13 @@ td.note-cell{max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:
     <div class="f ac-wrap"><label>Sector</label>
   <input id="sSec" class="inp-h" placeholder="Tecnología" oninput="acSearchBySector(this,'stock')" onfocus="acSearchBySector(this,'stock')" autocomplete="off">
 </div>
-    <div class="f"><label>Cantidad</label><input id="sQ" class="inp-h" type="number" placeholder="10" min="0" step="any"></div>
-    <div class="f"><label>Precio compra (USD)</label><input id="sP" class="inp-h" type="number" placeholder="182.50" min="0" step="0.01"></div>
+    <div class="f"><label>Cantidad</label><input id="sQ" class="inp-h" type="number" placeholder="0.00" min="0" step="any"></div>
+    <div class="f"><label>Precio compra (USD)</label><input id="sP" class="inp-h" type="number" placeholder="0.00" min="0" step="0.01"></div>
     <div class="f"><label>Fecha compra</label><input id="sD" class="inp-h" type="date"></div>
-    <div class="f"><label>Stop Loss</label><input id="sSL" class="inp-h" type="number" placeholder="150.00" step="0.01"></div>
-    <div class="f"><label>Target</label><input id="sTG" class="inp-h" type="number" placeholder="220.00" step="0.01"></div>
+    <div class="f"><label>Stop Loss</label><input id="sSL" class="inp-h" type="number" placeholder="0.00" step="0.01"></div>
+    <div class="f"><label>Target</label><input id="sTG" class="inp-h" type="number" placeholder="0.00" step="0.01"></div>
       <div class="f"><label>Broker / Custodio</label>
-        <select id="sBroker" style="height:34px;background:var(--input-bg);border:1px solid var(--br2);border-radius:8px;color:var(--tx1);padding:0 10px;width:100%">
-          <option value="">Sin especificar</option>
-          <option value="Interactive Brokers">Interactive Brokers</option>
-          <option value="TD Ameritrade">TD Ameritrade</option>
-          <option value="Schwab">Schwab</option>
-          <option value="Fidelity">Fidelity</option>
-          <option value="eToro">eToro</option>
-          <option value="Balanz">Balanz</option>
-          <option value="IOL">IOL (InvertirOnline)</option>
-          <option value="PPI">PPI</option>
-          <option value="Bull Market">Bull Market Brokers</option>
-          <option value="Otro">Otro</option>
-        </select>
+        <input id="sBroker" class="inp-h" list="platformsList" placeholder="Elegí o escribí uno...">
       </div>
     <div style="width:100%"><label>Notas (por qué compraste, contexto, estrategia...)</label><textarea id="sNote" placeholder="Ej: Compré con el dinero de la venta del auto. Creo en el potencial de IA a largo plazo." style="height:42px"></textarea></div>
     <div><span class="lph">.</span><button class="btn-add" onclick="addAsset('stock')"><i class="ti ti-plus"></i> Agregar</button></div>
@@ -1223,8 +1213,8 @@ td.note-cell{max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:
     <div class="f ac-wrap"><label>Nombre</label>
   <input id="cN" class="inp-h" placeholder="Bitcoin" oninput="acSearch(this,'crypto')" autocomplete="off">
 </div>
-    <div class="f"><label>Cantidad</label><input id="cQ" class="inp-h" type="number" placeholder="0.5" min="0" step="any"></div>
-    <div class="f"><label>Precio compra (USD)</label><input id="cP" class="inp-h" type="number" placeholder="34500" min="0" step="0.01"></div>
+    <div class="f"><label>Cantidad</label><input id="cQ" class="inp-h" type="number" placeholder="0.00" min="0" step="any"></div>
+    <div class="f"><label>Precio compra (USD)</label><input id="cP" class="inp-h" type="number" placeholder="0.00" min="0" step="0.01"></div>
     <div class="f"><label>Fecha compra</label><input id="cD" class="inp-h" type="date"></div>
     <div class="f"><label>Tipo custodia</label>
       <select id="cCust" style="height:34px;background:var(--input-bg);border:1px solid var(--br2);border-radius:8px;color:var(--tx1);padding:0 10px;width:100%">
@@ -1234,7 +1224,7 @@ td.note-cell{max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:
         <option value="defi">DeFi / Staking</option>
       </select>
     </div>
-    <div class="f"><label>Exchange / Wallet</label><input id="cW" class="inp-h" placeholder="Binance, Ledger..."></div>
+    <div class="f"><label>Exchange / Wallet</label><input id="cW" class="inp-h" list="platformsList" placeholder="Binance, Ledger..."></div>
     <div class="f"><label>Dirección (opcional)</label><input id="cAddr" class="inp-h" placeholder="0x..."></div>
     <div style="width:100%"><label>Notas</label><textarea id="cNote" placeholder="Ej: Compré BTC como reserva de valor a largo plazo. Guardado en cold wallet." style="height:42px"></textarea></div>
     <div><span class="lph">.</span><button class="btn-add" onclick="addAsset('crypto')"><i class="ti ti-plus"></i> Agregar</button></div>
@@ -1286,11 +1276,11 @@ td.note-cell{max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:
         </select>
       </div>
       <div class="f"><label>Índice que replica</label><input id="etfIndex" class="inp-h" placeholder="S&amp;P 500, NASDAQ 100..."></div>
-      <div class="f"><label>Cantidad</label><input id="etfQty" class="inp-h" type="number" step="any" placeholder="10"></div>
-      <div class="f"><label>Precio compra (USD)</label><input id="etfBuy" class="inp-h" type="number" step="0.01" placeholder="450.00"></div>
+      <div class="f"><label>Cantidad</label><input id="etfQty" class="inp-h" type="number" step="any" placeholder="0.00"></div>
+      <div class="f"><label>Precio compra (USD)</label><input id="etfBuy" class="inp-h" type="number" step="0.01" placeholder="0.00"></div>
       <div class="f"><label>Fecha compra</label><input id="etfDate" class="inp-h" type="date"></div>
-      <div class="f"><label>TER / Expense ratio (%)</label><input id="etfTer" class="inp-h" type="number" step="0.01" placeholder="0.03"></div>
-      <div class="f"><label>Broker / Custodio</label><input id="etfBroker" class="inp-h" placeholder="Interactive Brokers..."></div>
+      <div class="f"><label>TER / Expense ratio (%)</label><input id="etfTer" class="inp-h" type="number" step="0.01" placeholder="0.00"></div>
+      <div class="f"><label>Broker / Custodio</label><input id="etfBroker" class="inp-h" list="platformsList" placeholder="Interactive Brokers..."></div>
       <div class="f"><label>Notas</label><input id="etfNote" class="inp-h" placeholder="Core holding, largo plazo..."></div>
       <div><span class="lph">.</span><button class="btn-add" onclick="addOtro('etf')"><i class="ti ti-plus"></i> Agregar ETF</button></div>
     </div>
@@ -1314,14 +1304,14 @@ td.note-cell{max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:
         <div class="ac-drop" id="acCED"></div>
       </div>
       <div class="f"><label>Nombre</label><input id="cedName" class="inp-h" placeholder="Apple Inc."></div>
-      <div class="f"><label>Cantidad de CEDEARs</label><input id="cedQty" class="inp-h" type="number" step="any" placeholder="10"></div>
+      <div class="f"><label>Cantidad de CEDEARs</label><input id="cedQty" class="inp-h" type="number" step="any" placeholder="0.00"></div>
       <div class="f"><label>Ratio conversión</label>
-        <input id="cedRatio" class="inp-h" type="number" step="0.01" placeholder="10" title="Ej: 10 significa que 10 CEDEARs = 1 acción">
+        <input id="cedRatio" class="inp-h" type="number" step="0.01" placeholder="0.00" title="Ej: 10 significa que 10 CEDEARs = 1 acción">
       </div>
-      <div class="f"><label>Precio compra (ARS)</label><input id="cedBuyARS" class="inp-h" type="number" step="0.01" placeholder="180000"></div>
-      <div class="f"><label>Dólar CCL compra</label><input id="cedCCL" class="inp-h" type="number" step="0.01" placeholder="1200" oninput="calcCEDPreview()"></div>
+      <div class="f"><label>Precio compra (ARS)</label><input id="cedBuyARS" class="inp-h" type="number" step="0.01" placeholder="0.00"></div>
+      <div class="f"><label>Dólar CCL compra</label><input id="cedCCL" class="inp-h" type="number" step="0.01" placeholder="0.00" oninput="calcCEDPreview()"></div>
       <div class="f"><label>Fecha compra</label><input id="cedDate" class="inp-h" type="date"></div>
-      <div class="f"><label>Broker</label><input id="cedBroker" class="inp-h" placeholder="IOL, Balanz, PPI..."></div>
+      <div class="f"><label>Broker</label><input id="cedBroker" class="inp-h" list="platformsList" placeholder="IOL, Balanz, PPI..."></div>
       <div class="f"><label>Notas</label><input id="cedNote" class="inp-h" placeholder=""></div>
       <div style="width:100%">
         <div id="cedPreview" style="display:none;padding:10px 12px;background:var(--bg3);border:1px solid var(--br);border-radius:8px;font-size:11px">
@@ -1356,10 +1346,10 @@ td.note-cell{max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:
           <option value="sintetico">Sintético</option>
         </select>
       </div>
-      <div class="f"><label>Cantidad</label><input id="tokQty" class="inp-h" type="number" step="any" placeholder="5"></div>
-      <div class="f"><label>Precio compra (USD)</label><input id="tokBuy" class="inp-h" type="number" step="0.01" placeholder="200.00"></div>
+      <div class="f"><label>Cantidad</label><input id="tokQty" class="inp-h" type="number" step="any" placeholder="0.00"></div>
+      <div class="f"><label>Precio compra (USD)</label><input id="tokBuy" class="inp-h" type="number" step="0.01" placeholder="0.00"></div>
       <div class="f"><label>Fecha compra</label><input id="tokDate" class="inp-h" type="date"></div>
-      <div class="f"><label>Exchange</label><input id="tokExchange" class="inp-h" placeholder="Binance, Bitfinex..."></div>
+      <div class="f"><label>Exchange</label><input id="tokExchange" class="inp-h" list="platformsList" placeholder="Binance, Bitfinex..."></div>
       <div class="f"><label>Notas</label><input id="tokNote" class="inp-h" placeholder=""></div>
       <div><span class="lph">.</span><button class="btn-add" onclick="addOtro('token')"><i class="ti ti-plus"></i> Agregar</button></div>
     </div>
@@ -1385,9 +1375,9 @@ td.note-cell{max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:
           <option value="on">Obligación Negociable</option>
         </select>
       </div>
-      <div class="f"><label>Valor nominal</label><input id="bonNominal" class="inp-h" type="number" step="0.01" placeholder="1000"></div>
-      <div class="f"><label>Precio compra (%)</label><input id="bonBuy" class="inp-h" type="number" step="0.01" placeholder="35.50"></div>
-      <div class="f"><label>Tasa cupón (%)</label><input id="bonRate" class="inp-h" type="number" step="0.01" placeholder="8.75"></div>
+      <div class="f"><label>Valor nominal</label><input id="bonNominal" class="inp-h" type="number" step="0.01" placeholder="0.00"></div>
+      <div class="f"><label>Precio compra (%)</label><input id="bonBuy" class="inp-h" type="number" step="0.01" placeholder="0.00"></div>
+      <div class="f"><label>Tasa cupón (%)</label><input id="bonRate" class="inp-h" type="number" step="0.01" placeholder="0.00"></div>
       <div class="f"><label>Fecha compra</label><input id="bonDate" class="inp-h" type="date"></div>
       <div class="f"><label>Vencimiento</label><input id="bonExpiry" class="inp-h" type="date"></div>
       <div class="f"><label>Moneda</label>
@@ -1396,7 +1386,7 @@ td.note-cell{max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:
           <option value="ARS">ARS</option>
         </select>
       </div>
-      <div class="f"><label>Broker / Custodio</label><input id="bonBroker" class="inp-h" placeholder="IOL, Balanz..."></div>
+      <div class="f"><label>Broker / Custodio</label><input id="bonBroker" class="inp-h" list="platformsList" placeholder="IOL, Balanz..."></div>
       <div class="f"><label>Notas</label><input id="bonNote" class="inp-h" placeholder=""></div>
       <div><span class="lph">.</span><button class="btn-add" onclick="addOtro('bono')"><i class="btn-add" style="font-family:'tabler-icons';font-style:normal">&#xea9e;</i> Agregar Bono</button></div>
     </div>
@@ -1521,9 +1511,9 @@ td.note-cell{max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:
           <option value="otro">Otro</option>
         </select>
       </div>
-      <div class="f"><label>Monto recibido (USD)</label><input id="incAmt" class="inp-h" type="number" step="0.01" placeholder="25.00"></div>
+      <div class="f"><label>Monto recibido (USD)</label><input id="incAmt" class="inp-h" type="number" step="0.01" placeholder="0.00"></div>
       <div class="f"><label>Fecha cobro</label><input id="incDate" class="inp-h" type="date"></div>
-      <div class="f"><label>Plataforma / Exchange</label><input id="incPlatform" class="inp-h" placeholder="Binance Earn, Coinbase..."></div>
+      <div class="f"><label>Plataforma / Exchange</label><input id="incPlatform" class="inp-h" list="platformsList" placeholder="Binance Earn, Coinbase..."></div>
       <div class="f"><label>Notas</label><input id="incNote" class="inp-h" placeholder="Q2 2024, pago mensual..."></div>
       <div><span class="lph">.</span><button class="btn-add" onclick="addIncome()"><i class="ti ti-plus"></i> Registrar</button></div>
     </div>
@@ -1546,9 +1536,9 @@ td.note-cell{max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:
           <option value="dividendo_prog">Dividendo programado</option>
         </select>
       </div>
-      <div class="f"><label>APY / APR (%)</label><input id="apyRate" class="inp-h" type="number" step="0.01" placeholder="4.50" oninput="calcApyPreview()"></div>
-      <div class="f"><label>Capital en producto (USD)</label><input id="apyCapital" class="inp-h" type="number" step="0.01" placeholder="1000" oninput="calcApyPreview()"></div>
-      <div class="f"><label>Plataforma</label><input id="apyPlatform" class="inp-h" placeholder="Binance Earn, Lido..."></div>
+      <div class="f"><label>APY / APR (%)</label><input id="apyRate" class="inp-h" type="number" step="0.01" placeholder="0.00" oninput="calcApyPreview()"></div>
+      <div class="f"><label>Capital en producto (USD)</label><input id="apyCapital" class="inp-h" type="number" step="0.01" placeholder="0.00" oninput="calcApyPreview()"></div>
+      <div class="f"><label>Plataforma</label><input id="apyPlatform" class="inp-h" list="platformsList" placeholder="Binance Earn, Lido..."></div>
       <div class="f"><label>Vencimiento (si aplica)</label><input id="apyExpiry" class="inp-h" type="date"></div>
       <div style="width:100%">
         <div id="apyPreview" style="display:none;padding:10px 12px;background:var(--bg3);border:1px solid var(--br);border-radius:8px;font-size:11px;color:var(--tx2)">
@@ -1609,9 +1599,9 @@ td.note-cell{max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:
       </select>
     </div>
     <div class="f"><label>Símbolo</label><input id="hSym" class="inp-h" placeholder="AAPL" oninput="this.value=this.value.toUpperCase()"></div>
-    <div class="f"><label>Cantidad</label><input id="hQ" class="inp-h" type="number" step="any" placeholder="10"></div>
-    <div class="f"><label>Precio (USD)</label><input id="hP" class="inp-h" type="number" step="0.01" placeholder="182.50"></div>
-    <div class="f"><label>Comisión</label><input id="hC" class="inp-h" type="number" step="0.01" placeholder="5"></div>
+    <div class="f"><label>Cantidad</label><input id="hQ" class="inp-h" type="number" step="any" placeholder="0.00"></div>
+    <div class="f"><label>Precio (USD)</label><input id="hP" class="inp-h" type="number" step="0.01" placeholder="0.00"></div>
+    <div class="f"><label>Comisión</label><input id="hC" class="inp-h" type="number" step="0.01" placeholder="0.00"></div>
     <div class="f"><label>Fecha</label><input id="hD" class="inp-h" type="date"></div>
     <div class="f"><label>Exchange / Broker</label><input id="hN" class="inp-h" placeholder="Binance, TD Ameritrade..."></div>
     <div><span class="lph">.</span><button class="btn-add" onclick="addHist()"><i class="ti ti-plus"></i> Registrar</button></div>
@@ -1634,7 +1624,7 @@ td.note-cell{max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:
       <div class="card-sub">Registrá el valor total en distintas fechas para ver la curva</div>
       <div class="snap-row">
         <div><label>Fecha</label><input type="date" id="snapD" style="width:130px"></div>
-        <div><label>Valor total (USD)</label><input type="number" id="snapV" placeholder="15000" style="width:140px"></div>
+        <div><label>Valor total (USD)</label><input type="number" id="snapV" placeholder="0" style="width:140px"></div>
         <div><span class="lph">.</span><button class="btn-snap" onclick="addSnap()"><i class="ti ti-plus"></i> Guardar</button></div>
       </div>
       <div class="cw" style="height:230px"><canvas id="cEvol" role="img" aria-label="Evolución del portafolio total">Evolución.</canvas></div>
@@ -1645,7 +1635,7 @@ td.note-cell{max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:
       <div class="a-pills" id="aPills"></div>
       <div class="snap-row">
         <div><label>Fecha</label><input type="date" id="aSnapD" style="width:120px"></div>
-        <div><label>Precio (USD)</label><input type="number" id="aSnapV" placeholder="precio" style="width:130px"></div>
+        <div><label>Precio (USD)</label><input type="number" id="aSnapV" placeholder="0" style="width:130px"></div>
         <div><span class="lph">.</span><button class="btn-snap" onclick="addASnap()"><i class="ti ti-plus"></i> Guardar</button></div>
       </div>
       <div class="cw" style="height:230px"><canvas id="cAEvol" role="img" aria-label="Evolución del activo">Activo.</canvas></div>
@@ -1691,7 +1681,7 @@ td.note-cell{max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:
               <option value="above">Sube sobre</option><option value="below">Baja de</option>
             </select>
           </div>
-          <div><label style="font-size:9px;color:var(--tx3);display:block;margin-bottom:4px;text-transform:uppercase;letter-spacing:.07em">Precio (USD)</label><input id="alertPrice" type="number" step="0.01" style="height:32px;padding:0 10px;background:var(--input-bg);border:1px solid var(--br2);border-radius:8px;color:var(--tx1);font-size:11px;width:120px" placeholder="70000"></div>
+          <div><label style="font-size:9px;color:var(--tx3);display:block;margin-bottom:4px;text-transform:uppercase;letter-spacing:.07em">Precio (USD)</label><input id="alertPrice" type="number" step="0.01" style="height:32px;padding:0 10px;background:var(--input-bg);border:1px solid var(--br2);border-radius:8px;color:var(--tx1);font-size:11px;width:120px" placeholder="0.00"></div>
           <div><label style="font-size:9px;color:var(--tx3);display:block;margin-bottom:4px;text-transform:uppercase;letter-spacing:.07em">Nota</label><input id="alertNote" style="height:32px;padding:0 10px;background:var(--input-bg);border:1px solid var(--br2);border-radius:8px;color:var(--tx1);font-size:11px;width:140px" placeholder="Tomar ganancias..."></div>
           <button onclick="addAlert()" style="height:32px;padding:0 14px;background:linear-gradient(135deg,var(--ca),var(--ca2));border:none;border-radius:8px;color:#000;font-size:11px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:5px;font-family:'Inter',system-ui"><i class="ti ti-plus"></i> Agregar alerta</button>
         </div>
@@ -1884,8 +1874,8 @@ td.note-cell{max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:
           <option value="win">Ganada</option><option value="loss">Perdida</option><option value="breakeven">Break Even</option>
         </select>
       </div>
-      <div class="f"><label>P&amp;L ($)</label><input id="jPnl" class="inp-h" type="number" step="0.01" placeholder="150.00"></div>
-      <div class="f"><label>R obtenido</label><input id="jR" class="inp-h" type="number" step="0.1" placeholder="2.5"></div>
+      <div class="f"><label>P&amp;L ($)</label><input id="jPnl" class="inp-h" type="number" step="0.01" placeholder="0.00"></div>
+      <div class="f"><label>R obtenido</label><input id="jR" class="inp-h" type="number" step="0.1" placeholder="0.0"></div>
       <div style="width:100%"><label>Señal de entrada</label><input id="jSignal" class="inp-h" placeholder="Ruptura de resistencia, cruce EMA, divergencia RSI..."></div>
       <div style="width:100%"><label>Contexto del mercado</label><input id="jContext" class="inp-h" placeholder="Tendencia alcista en D1, alta volatilidad, pre-FOMC..."></div>
       <div style="width:100%"><label>Error cometido</label>
@@ -1975,12 +1965,12 @@ td.note-cell{max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:
         </div>
         <div class="card-sub">Calculá el tamaño exacto antes de entrar</div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
-          <div><label style="font-size:9px;color:var(--tx3);display:block;margin-bottom:4px;text-transform:uppercase;letter-spacing:.07em">Capital total ($)</label><input id="calcCapital" type="number" class="inp-h" placeholder="10000" oninput="calcPosition()" style="width:100%;background:var(--input-bg);border:1px solid var(--br2);border-radius:8px;color:var(--tx1);padding:0 10px"></div>
-          <div><label style="font-size:9px;color:var(--tx3);display:block;margin-bottom:4px;text-transform:uppercase;letter-spacing:.07em">Riesgo por op. (%)</label><input id="calcRisk" type="number" class="inp-h" placeholder="1" step="0.1" oninput="calcPosition()" style="width:100%;background:var(--input-bg);border:1px solid var(--br2);border-radius:8px;color:var(--tx1);padding:0 10px"></div>
-          <div><label style="font-size:9px;color:var(--tx3);display:block;margin-bottom:4px;text-transform:uppercase;letter-spacing:.07em">Precio entrada ($)</label><input id="calcEntry" type="number" class="inp-h" placeholder="65.00" step="0.01" oninput="calcPosition()" style="width:100%;background:var(--input-bg);border:1px solid var(--br2);border-radius:8px;color:var(--tx1);padding:0 10px"></div>
-          <div><label style="font-size:9px;color:var(--tx3);display:block;margin-bottom:4px;text-transform:uppercase;letter-spacing:.07em">Stop Loss ($)</label><input id="calcSL" type="number" class="inp-h" placeholder="62.00" step="0.01" oninput="calcPosition()" style="width:100%;background:var(--input-bg);border:1px solid var(--br2);border-radius:8px;color:var(--tx1);padding:0 10px"></div>
-          <div><label style="font-size:9px;color:var(--tx3);display:block;margin-bottom:4px;text-transform:uppercase;letter-spacing:.07em">Take Profit ($)</label><input id="calcTP" type="number" class="inp-h" placeholder="72.00" step="0.01" oninput="calcPosition()" style="width:100%;background:var(--input-bg);border:1px solid var(--br2);border-radius:8px;color:var(--tx1);padding:0 10px"></div>
-          <div><label style="font-size:9px;color:var(--tx3);display:block;margin-bottom:4px;text-transform:uppercase;letter-spacing:.07em">Comisión (%)</label><input id="calcFee" type="number" class="inp-h" placeholder="0.1" step="0.01" oninput="calcPosition()" style="width:100%;background:var(--input-bg);border:1px solid var(--br2);border-radius:8px;color:var(--tx1);padding:0 10px"></div>
+          <div><label style="font-size:9px;color:var(--tx3);display:block;margin-bottom:4px;text-transform:uppercase;letter-spacing:.07em">Capital total ($)</label><input id="calcCapital" type="number" class="inp-h" placeholder="0" oninput="calcPosition()" style="width:100%;background:var(--input-bg);border:1px solid var(--br2);border-radius:8px;color:var(--tx1);padding:0 10px"></div>
+          <div><label style="font-size:9px;color:var(--tx3);display:block;margin-bottom:4px;text-transform:uppercase;letter-spacing:.07em">Riesgo por op. (%)</label><input id="calcRisk" type="number" class="inp-h" placeholder="0.0" step="0.1" oninput="calcPosition()" style="width:100%;background:var(--input-bg);border:1px solid var(--br2);border-radius:8px;color:var(--tx1);padding:0 10px"></div>
+          <div><label style="font-size:9px;color:var(--tx3);display:block;margin-bottom:4px;text-transform:uppercase;letter-spacing:.07em">Precio entrada ($)</label><input id="calcEntry" type="number" class="inp-h" placeholder="0.00" step="0.01" oninput="calcPosition()" style="width:100%;background:var(--input-bg);border:1px solid var(--br2);border-radius:8px;color:var(--tx1);padding:0 10px"></div>
+          <div><label style="font-size:9px;color:var(--tx3);display:block;margin-bottom:4px;text-transform:uppercase;letter-spacing:.07em">Stop Loss ($)</label><input id="calcSL" type="number" class="inp-h" placeholder="0.00" step="0.01" oninput="calcPosition()" style="width:100%;background:var(--input-bg);border:1px solid var(--br2);border-radius:8px;color:var(--tx1);padding:0 10px"></div>
+          <div><label style="font-size:9px;color:var(--tx3);display:block;margin-bottom:4px;text-transform:uppercase;letter-spacing:.07em">Take Profit ($)</label><input id="calcTP" type="number" class="inp-h" placeholder="0.00" step="0.01" oninput="calcPosition()" style="width:100%;background:var(--input-bg);border:1px solid var(--br2);border-radius:8px;color:var(--tx1);padding:0 10px"></div>
+          <div><label style="font-size:9px;color:var(--tx3);display:block;margin-bottom:4px;text-transform:uppercase;letter-spacing:.07em">Comisión (%)</label><input id="calcFee" type="number" class="inp-h" placeholder="0.00" step="0.01" oninput="calcPosition()" style="width:100%;background:var(--input-bg);border:1px solid var(--br2);border-radius:8px;color:var(--tx1);padding:0 10px"></div>
         </div>
         <div id="calcResults" style="display:grid;grid-template-columns:1fr 1fr;gap:8px"></div>
       </div>
@@ -1988,10 +1978,10 @@ td.note-cell{max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:
         <div class="card-head"><i class="ti ti-target" style="color:var(--cr2)"></i> Límites de riesgo</div>
         <div class="card-sub">Definí tus límites para mantener la disciplina</div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
-          <div><label style="font-size:9px;color:var(--tx3);display:block;margin-bottom:4px;text-transform:uppercase;letter-spacing:.07em">Objetivo mensual ($)</label><input id="monthlyGoal" type="number" class="inp-h" placeholder="500" oninput="saveRiskLimits()" style="width:100%;background:var(--input-bg);border:1px solid var(--br2);border-radius:8px;color:var(--tx1);padding:0 10px"></div>
-          <div><label style="font-size:9px;color:var(--tx3);display:block;margin-bottom:4px;text-transform:uppercase;letter-spacing:.07em">Pérd. máx. diaria ($)</label><input id="dailyLoss" type="number" class="inp-h" placeholder="150" oninput="saveRiskLimits()" style="width:100%;background:var(--input-bg);border:1px solid var(--br2);border-radius:8px;color:var(--tx1);padding:0 10px"></div>
-          <div><label style="font-size:9px;color:var(--tx3);display:block;margin-bottom:4px;text-transform:uppercase;letter-spacing:.07em">Pérd. máx. mensual ($)</label><input id="monthlyLoss" type="number" class="inp-h" placeholder="500" oninput="saveRiskLimits()" style="width:100%;background:var(--input-bg);border:1px solid var(--br2);border-radius:8px;color:var(--tx1);padding:0 10px"></div>
-          <div><label style="font-size:9px;color:var(--tx3);display:block;margin-bottom:4px;text-transform:uppercase;letter-spacing:.07em">Máx. ops por día</label><input id="maxOpsDay" type="number" class="inp-h" placeholder="3" oninput="saveRiskLimits()" style="width:100%;background:var(--input-bg);border:1px solid var(--br2);border-radius:8px;color:var(--tx1);padding:0 10px"></div>
+          <div><label style="font-size:9px;color:var(--tx3);display:block;margin-bottom:4px;text-transform:uppercase;letter-spacing:.07em">Objetivo mensual ($)</label><input id="monthlyGoal" type="number" class="inp-h" placeholder="0" oninput="saveRiskLimits()" style="width:100%;background:var(--input-bg);border:1px solid var(--br2);border-radius:8px;color:var(--tx1);padding:0 10px"></div>
+          <div><label style="font-size:9px;color:var(--tx3);display:block;margin-bottom:4px;text-transform:uppercase;letter-spacing:.07em">Pérd. máx. diaria ($)</label><input id="dailyLoss" type="number" class="inp-h" placeholder="0" oninput="saveRiskLimits()" style="width:100%;background:var(--input-bg);border:1px solid var(--br2);border-radius:8px;color:var(--tx1);padding:0 10px"></div>
+          <div><label style="font-size:9px;color:var(--tx3);display:block;margin-bottom:4px;text-transform:uppercase;letter-spacing:.07em">Pérd. máx. mensual ($)</label><input id="monthlyLoss" type="number" class="inp-h" placeholder="0" oninput="saveRiskLimits()" style="width:100%;background:var(--input-bg);border:1px solid var(--br2);border-radius:8px;color:var(--tx1);padding:0 10px"></div>
+          <div><label style="font-size:9px;color:var(--tx3);display:block;margin-bottom:4px;text-transform:uppercase;letter-spacing:.07em">Máx. ops por día</label><input id="maxOpsDay" type="number" class="inp-h" placeholder="0" oninput="saveRiskLimits()" style="width:100%;background:var(--input-bg);border:1px solid var(--br2);border-radius:8px;color:var(--tx1);padding:0 10px"></div>
         </div>
         <div id="riskLimitStatus"></div>
       </div>
@@ -2003,9 +1993,9 @@ td.note-cell{max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:
     <div class="form-row">
       <div class="f"><label>Símbolo</label><input id="wSym" class="inp-h" placeholder="SOL" oninput="this.value=this.value.toUpperCase()"></div>
       <div class="f"><label>Nombre</label><input id="wName" class="inp-h" placeholder="Solana"></div>
-      <div class="f"><label>Entrada ideal ($)</label><input id="wEntry" class="inp-h" type="number" step="0.01" placeholder="60.00"></div>
-      <div class="f"><label>Stop Loss ($)</label><input id="wSL" class="inp-h" type="number" step="0.01" placeholder="55.00"></div>
-      <div class="f"><label>Target ($)</label><input id="wTP" class="inp-h" type="number" step="0.01" placeholder="80.00"></div>
+      <div class="f"><label>Entrada ideal ($)</label><input id="wEntry" class="inp-h" type="number" step="0.01" placeholder="0.00"></div>
+      <div class="f"><label>Stop Loss ($)</label><input id="wSL" class="inp-h" type="number" step="0.01" placeholder="0.00"></div>
+      <div class="f"><label>Target ($)</label><input id="wTP" class="inp-h" type="number" step="0.01" placeholder="0.00"></div>
       <div class="f"><label>Prioridad</label>
         <select id="wPriority" style="height:34px;background:var(--input-bg);border:1px solid var(--br2);border-radius:8px;color:var(--tx1);padding:0 10px;width:100%">
           <option value="high">Alta</option><option value="med">Media</option><option value="low">Baja</option>
@@ -2141,8 +2131,14 @@ td.note-cell{max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:
     <div class="modal-sub">Registrá los detalles antes de entrar</div>
     <input type="hidden" id="tradeEditId">
     <div class="modal-grid">
-      <div class="modal-field"><label>Símbolo</label><input id="tSym" placeholder="BTC" oninput="this.value=this.value.toUpperCase()"></div>
-      <div class="modal-field"><label>Nombre</label><input id="tName" placeholder="Bitcoin"></div>
+      <div class="modal-field ac-wrap"><label>Símbolo</label>
+        <input id="tSym" placeholder="BTC" oninput="this.value=this.value.toUpperCase();acSearchTrading(this,'sym')" autocomplete="off">
+        <div class="ac-drop" id="acTradingSym"></div>
+      </div>
+      <div class="modal-field ac-wrap"><label>Nombre</label>
+        <input id="tName" placeholder="Bitcoin" oninput="acSearchTrading(this,'name')" autocomplete="off">
+        <div class="ac-drop" id="acTradingName"></div>
+      </div>
       <div class="modal-field"><label>Dirección</label>
         <select id="tDir" style="height:34px;background:var(--input-bg);border:1px solid var(--br2);border-radius:8px;color:var(--tx1);padding:0 10px;width:100%">
           <option value="long">LONG (Compra)</option><option value="short">SHORT (Venta)</option>
@@ -2154,10 +2150,10 @@ td.note-cell{max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:
           <option value="swing">Swing Trading</option><option value="position">Position Trading</option>
         </select>
       </div>
-      <div class="modal-field"><label>Precio entrada ($)</label><input id="tEntry" type="number" step="0.01" placeholder="65.00"></div>
-      <div class="modal-field"><label>Cantidad</label><input id="tQty" type="number" step="any" placeholder="1.5"></div>
-      <div class="modal-field"><label>Stop Loss ($)</label><input id="tSL" type="number" step="0.01" placeholder="62.00"></div>
-      <div class="modal-field"><label>Take Profit ($)</label><input id="tTP" type="number" step="0.01" placeholder="72.00"></div>
+      <div class="modal-field"><label>Precio entrada ($)</label><input id="tEntry" type="number" step="0.01" placeholder="0.00"></div>
+      <div class="modal-field"><label>Cantidad</label><input id="tQty" type="number" step="any" placeholder="0.00"></div>
+      <div class="modal-field"><label>Stop Loss ($)</label><input id="tSL" type="number" step="0.01" placeholder="0.00"></div>
+      <div class="modal-field"><label>Take Profit ($)</label><input id="tTP" type="number" step="0.01" placeholder="0.00"></div>
       <div class="modal-field"><label>Fecha entrada</label><input id="tDate" type="date"></div>
       <div class="modal-field"><label>Exchange / Broker</label><input id="tExchange" placeholder="Binance, eToro..."></div>
       <div class="modal-field"><label>Estado</label>
@@ -2165,7 +2161,7 @@ td.note-cell{max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:
           <option value="open">Abierta</option><option value="closed">Cerrada</option>
         </select>
       </div>
-      <div class="modal-field"><label>P&amp;L realizado ($) — si cerrada</label><input id="tPnlReal" type="number" step="0.01" placeholder="150.00"></div>
+      <div class="modal-field"><label>P&amp;L realizado ($) — si cerrada</label><input id="tPnlReal" type="number" step="0.01" placeholder="0.00"></div>
       <div class="modal-field full"><label>Señal de entrada / Contexto</label><input id="tSignal" placeholder="Ruptura de nivel, patrón técnico, fundamentos..."></div>
       <div class="modal-field full"><label>Notas</label><textarea id="tNotes" style="min-height:60px"></textarea></div>
     </div>
@@ -2193,19 +2189,7 @@ td.note-cell{max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:
       <div class="modal-field"><label>Stop Loss</label><input id="eSL" type="number" step="0.01"></div>
       <div class="modal-field"><label>Target Price</label><input id="eTG" type="number" step="0.01"></div>
       <div class="modal-field"><label>Broker / Custodio</label>
-        <select id="eBrokerEdit" style="height:34px;background:var(--input-bg);border:1px solid var(--br2);border-radius:8px;color:var(--tx1);padding:0 10px;width:100%">
-          <option value="">Sin especificar</option>
-          <option value="Interactive Brokers">Interactive Brokers</option>
-          <option value="TD Ameritrade">TD Ameritrade</option>
-          <option value="Schwab">Schwab</option>
-          <option value="Fidelity">Fidelity</option>
-          <option value="eToro">eToro</option>
-          <option value="Balanz">Balanz</option>
-          <option value="IOL">IOL</option>
-          <option value="PPI">PPI</option>
-          <option value="Bull Market">Bull Market Brokers</option>
-          <option value="Otro">Otro</option>
-        </select>
+        <input id="eBrokerEdit" list="platformsList" placeholder="Elegí o escribí uno...">
       </div>
       <div class="modal-field full"><label>Notas</label><textarea id="eNote" style="min-height:70px"></textarea></div>
     </div>
@@ -2360,6 +2344,46 @@ function acSelect(type, sym, name, sector) {
   }
 }
 
+// Trading Desk symbol/name autocomplete — bidirectional (sym→name or name→sym)
+function acSearchTrading(inp, mode) {
+  const all = [...AC_DB.stocks, ...AC_DB.crypto];
+  const q = inp.value.trim().toUpperCase();
+  const raw = inp.value.trim().toLowerCase();
+  const dropId = mode === 'sym' ? 'acTradingSym' : 'acTradingName';
+  const drop = $(dropId);
+  if (!drop) return;
+  if (!q) { drop.classList.remove('open'); return; }
+
+  const scored = all.map(a => {
+    const s = a.sym.toUpperCase(), n = a.name.toUpperCase();
+    if (mode === 'sym') {
+      if (s === q) return { a, score: 100 };
+      if (s.startsWith(q)) return { a, score: 80 };
+      return { a, score: 0 };
+    } else {
+      if (n === raw.toUpperCase()) return { a, score: 100 };
+      if (n.startsWith(raw.charAt(0).toUpperCase() + raw.slice(1))) return { a, score: 60 };
+      if (n.toLowerCase().includes(raw)) return { a, score: 40 };
+      return { a, score: 0 };
+    }
+  }).filter(x => x.score > 0).sort((a,b) => b.score - a.score).slice(0, 7);
+
+  if (!scored.length) { drop.classList.remove('open'); return; }
+  drop.innerHTML = scored.map(({ a }) =>
+    `<div class="ac-item" onclick="acSelectTrading('${a.sym}','${a.name.replace(/'/g,"\\'")}')">
+      <span class="ac-sym">${a.sym}</span><span class="ac-name">${a.name}</span>
+    </div>`
+  ).join('');
+  drop.classList.add('open');
+}
+
+function acSelectTrading(sym, name) {
+  $('tSym').value = sym;
+  $('tName').value = name;
+  $('acTradingSym')?.classList.remove('open');
+  $('acTradingName')?.classList.remove('open');
+}
+
 // Income symbol autocomplete — search across stocks and crypto
 function acSearchIncome(inp) {
   const q = inp.value.trim().toUpperCase();
@@ -2501,8 +2525,11 @@ let ST = {
   selAsset: null
 };
 
-function save() {
-  try { localStorage.setItem(SKEY, JSON.stringify(ST)); showToast(t('toastSaved')); }
+function save(silent = true) {
+  try {
+    localStorage.setItem(SKEY, JSON.stringify(ST));
+    if (!silent) showToast(t('toastSaved'));
+  }
   catch(e) { showToast(t('toastSaved') + ' — error', 'err'); }
 }
 
@@ -5755,28 +5782,53 @@ async function fetchNews() {
   if (allNewsItems.length === 0) {
     grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--tx3)">
       <i class="ti ti-wifi-off" style="font-size:36px;display:block;margin-bottom:12px;color:var(--tx4)"></i>
-      <p style="font-size:13px;margin-bottom:6px">No se pudieron cargar las noticias</p>
-      <p style="font-size:11px;color:var(--tx4)">Verificá tu conexión a internet e intentá nuevamente</p>
+      <p style="font-size:13px;margin-bottom:6px">Las fuentes de noticias no respondieron</p>
+      <p style="font-size:11px;color:var(--tx4);margin-bottom:14px">Probamos varias fuentes sin éxito. Puede ser temporal — intentá de nuevo en unos minutos.</p>
+      <button onclick="fetchNews()" style="padding:8px 16px;background:var(--bg3);border:1px solid var(--br2);border-radius:8px;color:var(--tx2);font-size:11px;font-weight:600;cursor:pointer">
+        <i class="ti ti-refresh"></i> Reintentar
+      </button>
     </div>`;
   } else {
     showToast(`${allNewsItems.length} noticias cargadas`, 'ok', 3000);
   }
 }
 
+// Try multiple CORS proxies in sequence for RSS feeds, more resilient than a single point of failure
+async function fetchRSSWithFallback(targetUrl, timeoutMs = 6000) {
+  const proxies = [
+    url => `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`,
+    url => `https://corsproxy.io/?url=${encodeURIComponent(url)}`,
+    url => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`,
+  ];
+  for (const buildProxyUrl of proxies) {
+    try {
+      const proxyUrl = buildProxyUrl(targetUrl);
+      const r = await fetch(proxyUrl, { signal: AbortSignal.timeout(timeoutMs) });
+      if (!r.ok) continue;
+      // allorigins wraps content in {contents: "..."}, others return raw text/xml directly
+      const text = await r.text();
+      let xmlText = text;
+      try {
+        const parsed = JSON.parse(text);
+        if (parsed?.contents) xmlText = parsed.contents;
+      } catch(e) { /* not JSON, assume raw XML already */ }
+      if (xmlText && xmlText.length > 50) return xmlText;
+    } catch(e) { /* try next proxy */ }
+  }
+  return null;
+}
+
 async function fetchAssetNews(sym, name) {
   const items = [];
   const isCrypto = !!ST.crypto.find(c => c.sym === sym);
 
-  // Crypto: CoinDesk RSS via allorigins proxy
+  // Crypto: CoinDesk RSS via resilient multi-proxy fetch
   if (isCrypto) {
     try {
-      const query = encodeURIComponent(sym + ' ' + name + ' cryptocurrency');
-      const rssUrl = `https://api.allorigins.win/get?url=${encodeURIComponent('https://feeds.feedburner.com/CoinDesk?format=rss')}`;
-      const r = await fetch(rssUrl, { signal: AbortSignal.timeout(6000) });
-      if (r.ok) {
-        const d = await r.json();
+      const xmlText = await fetchRSSWithFallback('https://feeds.feedburner.com/CoinDesk?format=rss');
+      if (xmlText) {
         const parser = new DOMParser();
-        const xml = parser.parseFromString(d.contents, 'text/xml');
+        const xml = parser.parseFromString(xmlText, 'text/xml');
         const entries = xml.querySelectorAll('item');
         entries.forEach(e => {
           const title = e.querySelector('title')?.textContent || '';
@@ -5792,15 +5844,13 @@ async function fetchAssetNews(sym, name) {
     } catch(e) {}
   }
 
-  // Stocks + Crypto: Yahoo Finance RSS
+  // Stocks + Crypto: Yahoo Finance RSS via resilient multi-proxy fetch
   try {
     const query = isCrypto ? sym + '-USD' : sym;
-    const rssUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(`https://finance.yahoo.com/rss/headline?s=${query}`)}`;
-    const r = await fetch(rssUrl, { signal: AbortSignal.timeout(6000) });
-    if (r.ok) {
-      const d = await r.json();
+    const xmlText = await fetchRSSWithFallback(`https://finance.yahoo.com/rss/headline?s=${query}`);
+    if (xmlText) {
       const parser = new DOMParser();
-      const xml = parser.parseFromString(d.contents, 'text/xml');
+      const xml = parser.parseFromString(xmlText, 'text/xml');
       const entries = xml.querySelectorAll('item');
       entries.forEach(e => {
         const title = e.querySelector('title')?.textContent || '';
@@ -6012,7 +6062,7 @@ function updateSyncButton(state) {
   const label = $('syncLabel');
   if (!btn) return;
   btn.className = 'btn-sync';
-  if (state === 'connected') {
+  if (state === 'connected' || (!state && syncUser)) {
     btn.classList.add('connected');
     ico.className = 'ti ti-cloud-check';
     label.textContent = 'Sincronizado';
@@ -6032,9 +6082,14 @@ function updateSyncButton(state) {
 
 async function onLoggedIn() {
   closeSyncModal();
-  updateSyncButton('syncing');
+  updateSyncButton('connected');
   showToast(`Conectado como ${syncUser.user_metadata?.user_name || syncUser.email}`, 'ok', 3000);
-  await checkForConflictsAndSync();
+  try {
+    await checkForConflictsAndSync();
+  } finally {
+    // Ensure button never gets stuck in "syncing" regardless of outcome
+    if (syncUser) updateSyncButton('connected');
+  }
 }
 
 // ── CONFLICT DETECTION ──
@@ -6160,8 +6215,8 @@ function finishSync(status) {
 // Auto-sync to cloud after any save(), debounced
 let autoSyncTimer = null;
 const originalSave = save;
-save = function() {
-  originalSave();
+save = function(silent = true) {
+  originalSave(silent);
   if (syncUser && sb) {
     clearTimeout(autoSyncTimer);
     autoSyncTimer = setTimeout(() => pushToCloud(), 2500);
@@ -6188,6 +6243,21 @@ renderAll();
 initNewsSymsList();
 updateMarketHours();
 setTimeout(loadManifesto, 100);
+
+// Auto-refresh prices every 30 seconds (only while tab is visible)
+let autoRefreshTimer = null;
+function startAutoRefresh() {
+  if (autoRefreshTimer) clearInterval(autoRefreshTimer);
+  autoRefreshTimer = setInterval(() => {
+    if (document.visibilityState === 'visible' && !$('btnUpd')?.classList.contains('loading')) {
+      updatePrices();
+    }
+  }, 30000);
+}
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') startAutoRefresh();
+});
+startAutoRefresh();
 </script>
 <!-- SYNC MODAL -->
 <div class="modal-overlay sync-modal" id="syncModalOverlay">
@@ -6268,5 +6338,49 @@ setTimeout(loadManifesto, 100);
   </div>
 </div>
 
+<!-- PLATFORMS DATALIST — shared suggestions, but free text always allowed -->
+<datalist id="platformsList">
+  <!-- Brokers internacionales -->
+  <option value="Interactive Brokers">
+  <option value="TD Ameritrade">
+  <option value="Charles Schwab">
+  <option value="Fidelity">
+  <option value="eToro">
+  <option value="Robinhood">
+  <option value="Webull">
+  <!-- Brokers Argentina -->
+  <option value="Balanz">
+  <option value="IOL (InvertirOnline)">
+  <option value="PPI">
+  <option value="Bull Market Brokers">
+  <option value="Allaria Ledesma">
+  <option value="Cocos Capital">
+  <option value="Rava Bursátil">
+  <option value="Portfolio Personal">
+  <!-- Exchanges cripto -->
+  <option value="Binance">
+  <option value="Coinbase">
+  <option value="Kraken">
+  <option value="Bitfinex">
+  <option value="Bybit">
+  <option value="OKX">
+  <option value="KuCoin">
+  <option value="Bitso">
+  <option value="Lemon Cash">
+  <option value="Ripio">
+  <option value="Buenbit">
+  <!-- Wallets -->
+  <option value="Ledger">
+  <option value="Trezor">
+  <option value="Exodus">
+  <option value="Phantom">
+  <option value="MetaMask">
+  <option value="Trust Wallet">
+  <!-- Bancos AR -->
+  <option value="Banco Galicia">
+  <option value="Banco Nación">
+  <option value="Brubank">
+  <option value="Naranja X">
+</datalist>
 </body>
 </html>
