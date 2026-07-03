@@ -2528,6 +2528,7 @@ let ST = {
 function save(silent = true) {
   try {
     localStorage.setItem(SKEY, JSON.stringify(ST));
+    localStorage.setItem('mrp_last_local_change', new Date().toISOString());
     if (!silent) showToast(t('toastSaved'));
   }
   catch(e) { showToast(t('toastSaved') + ' — error', 'err'); }
@@ -5957,6 +5958,7 @@ let syncUser = null;
 let pendingConflict = null;
 let conflictChoice = null;
 let syncInFlight = false;
+let syncCheckInFlight = false;
 let supabaseInitAttempts = 0;
 
 function initSupabase() {
@@ -6094,7 +6096,8 @@ async function onLoggedIn() {
 
 // ── CONFLICT DETECTION ──
 async function checkForConflictsAndSync() {
-  if (!sb || !syncUser) return;
+  if (!sb || !syncUser || syncCheckInFlight) return;
+  syncCheckInFlight = true;
   try {
     const { data, error } = await sb
       .from('portfolio_data')
@@ -6106,26 +6109,59 @@ async function checkForConflictsAndSync() {
 
     const hasLocalData = hasRealData(ST);
     const hasCloudData = data && data.data && hasRealData(data.data);
+    const localTimestamp = localStorage.getItem('mrp_last_local_change');
+    const cloudTimestamp = data?.updated_at;
 
-    if (hasCloudData && hasLocalData && !localStorage.getItem('mrp_synced_once')) {
-      // Both exist and never synced before -> ask user
-      showConflictModal(ST, data.data, data.updated_at);
-    } else if (hasCloudData && !hasLocalData) {
-      // Only cloud has data -> pull it
+    if (!hasCloudData && !hasLocalData) {
+      // Nothing anywhere yet — nothing to do
+      finishSync('ok');
+      return;
+    }
+    if (hasCloudData && !hasLocalData) {
+      // Only cloud has data -> pull it, nothing to lose locally
       ST = { ...ST, ...data.data };
       save();
       renderAll();
-      localStorage.setItem('mrp_synced_once', '1');
       finishSync('ok');
       showToast('Datos descargados de la nube', 'ok');
-    } else {
-      // Only local has data, or both empty, or already synced before -> push local
-      await pushToCloud();
-      localStorage.setItem('mrp_synced_once', '1');
+      return;
     }
+    if (hasLocalData && !hasCloudData) {
+      // Only local has data -> push it, nothing to lose in cloud
+      await pushToCloud();
+      return;
+    }
+    // Both have data: compare timestamps to decide automatically, ONLY ask if truly ambiguous
+    if (localTimestamp && cloudTimestamp) {
+      const localTime = new Date(localTimestamp).getTime();
+      const cloudTime = new Date(cloudTimestamp).getTime();
+      const diffSeconds = Math.abs(localTime - cloudTime) / 1000;
+      if (diffSeconds < 5) {
+        // Essentially the same moment (this device's own last push) — no action needed
+        finishSync('ok');
+        return;
+      }
+      if (localTime > cloudTime) {
+        // This device has newer changes than the cloud — push
+        await pushToCloud();
+        return;
+      } else {
+        // Cloud has newer changes than this device — pull
+        ST = { ...ST, ...data.data };
+        save();
+        renderAll();
+        finishSync('ok');
+        showToast('Se descargó una versión más reciente de la nube', 'ok');
+        return;
+      }
+    }
+    // No reliable local timestamp to compare — this is genuinely ambiguous, ask the user
+    showConflictModal(ST, data.data, data.updated_at);
   } catch(e) {
     console.error('Sync check error:', e);
     updateSyncButton('error');
+  } finally {
+    syncCheckInFlight = false;
   }
 }
 
@@ -6174,7 +6210,6 @@ async function confirmConflictResolution() {
     save();
     renderAll();
   }
-  localStorage.setItem('mrp_synced_once', '1');
   $('conflictModalOverlay').classList.remove('open');
   pendingConflict = null;
   finishSync('ok');
@@ -6187,10 +6222,13 @@ async function pushToCloud() {
   syncInFlight = true;
   updateSyncButton('syncing');
   try {
+    const ts = new Date().toISOString();
     const { error } = await sb
       .from('portfolio_data')
-      .upsert({ user_id: syncUser.id, data: ST, updated_at: new Date().toISOString() });
+      .upsert({ user_id: syncUser.id, data: ST, updated_at: ts });
     if (error) throw error;
+    // Keep local timestamp in lockstep with what we just pushed
+    localStorage.setItem('mrp_last_local_change', ts);
     finishSync('ok');
   } catch(e) {
     console.error('Push error:', e);
@@ -6244,15 +6282,16 @@ initNewsSymsList();
 updateMarketHours();
 setTimeout(loadManifesto, 100);
 
-// Auto-refresh prices every 30 seconds (only while tab is visible)
+// Auto-refresh prices every 3 minutes (only while tab is visible and no pending conflict decision)
 let autoRefreshTimer = null;
 function startAutoRefresh() {
   if (autoRefreshTimer) clearInterval(autoRefreshTimer);
   autoRefreshTimer = setInterval(() => {
-    if (document.visibilityState === 'visible' && !$('btnUpd')?.classList.contains('loading')) {
+    const conflictOpen = $('conflictModalOverlay')?.classList.contains('open');
+    if (document.visibilityState === 'visible' && !$('btnUpd')?.classList.contains('loading') && !conflictOpen) {
       updatePrices();
     }
-  }, 30000);
+  }, 180000); // 3 minutos
 }
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'visible') startAutoRefresh();
