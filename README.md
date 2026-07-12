@@ -1,109 +1,238 @@
 # MRP Portfolio
 
-Tracker de inversiones personal, completo y privado. Acciones, cripto, CEDEARs, ETFs, bonos, tokenizadas, Trading Desk profesional y sincronización en la nube — todo en una sola app web, sin instalación.
+Aplicación web personal para registrar, valorar y revisar una cartera de inversiones. Funciona directamente en el navegador y admite acciones, criptomonedas, ETFs, CEDEARs, activos tokenizados, bonos, ingresos pasivos y operaciones de trading.
 
-## 🚀 Uso
+**Aplicación:** [https://criptoscrazy.github.io/mrp-portfolio-finance/](https://criptoscrazy.github.io/mrp-portfolio-finance/)
 
-**[👉 Abrir MRP Portfolio](https://criptoscrazy.github.io/mrp-portfolio-finance/)**
+## 1. Cómo funciona
 
-Funciona directo en el navegador, en Mac, Windows o iPhone. No requiere descargar nada.
+MRP Portfolio utiliza dos capas de almacenamiento:
 
-## ✨ Funcionalidades completas
+- **Navegador (`localStorage`)**: guarda una copia local para que la aplicación funcione incluso sin iniciar sesión.
+- **Supabase**: al conectar la cuenta de GitHub, guarda una copia en la nube para recuperar la cartera desde otros navegadores o dispositivos.
 
-### 📊 Dashboard
-- Resumen ejecutivo: valor total, G/P no realizada, capital invertido
-- Métricas avanzadas: IRR anualizado, Sharpe Ratio, Beta vs S&P 500
-- Distribución del portafolio por clase de activo y por custodio (broker/exchange/wallet)
-- Comparador de rentabilidad vs S&P 500 (SPY) y Bitcoin
-- Gráficos de rentabilidad por activo y G/P en USD
+GitHub Pages publica la aplicación, pero no almacena las inversiones. Supabase almacena la cartera sincronizada.
 
-### 💼 Clases de activos soportadas
-- **Acciones**: con sector, stop loss, target, broker/custodio
-- **Cripto**: con tipo de custodia (exchange/hot/cold/DeFi), wallet, dirección
-- **CEDEARs**: ratio de conversión, precio en ARS, cálculo automático de valor en USD vía CCL
-- **ETFs**: tipo de fondo, índice que replica, expense ratio (TER)
-- **Acciones tokenizadas**: tipo de respaldo (custodiado 1:1 / sintético), exchange
-- **Bonos**: soberanos AR, Treasuries US, corporativos, ONs, plazos fijos — con cálculo de interés anual
+## 2. Primer uso
 
-### 🧮 Promedio DCA
-Precio promedio ponderado de compra cruzado con historial de operaciones, por activo.
+1. Abre la [aplicación](https://criptoscrazy.github.io/mrp-portfolio-finance/).
+2. Pulsa el botón de nube de la cabecera.
+3. Selecciona **Conectar con GitHub** si todavía no hay una sesión activa.
+4. Autoriza el acceso y espera a regresar automáticamente a MRP Portfolio.
+5. Comprueba que el botón indique **Sincronizado**.
+6. Empieza a registrar activos.
 
-### 🛡️ Riesgo
-Exposición por activo y por sector, medidores de Sharpe Ratio y Beta.
+La sesión puede conservarse en el navegador. Si ya existe una sesión válida, la sincronización se iniciará automáticamente y no aparecerá de nuevo el botón de conexión.
 
-### 💰 Ingresos pasivos
-- Registro de dividendos, cupones de bonos, staking, intereses
-- Módulo APY/APR con cálculo automático de ingreso mensual y anual proyectado
-- Posiciones de staking, lending, liquidity pools y plazos fijos
+## 3. Registrar acciones
 
-### 📜 Historial
-- Log completo de operaciones
-- Importador nativo de archivos Binance (XLSX) con vista previa, filtros y detección de duplicados
-- Importador CSV genérico para otros exchanges
+1. Entra en **Acciones**.
+2. Indica el símbolo bursátil, por ejemplo `AAPL`, `MSFT` o `TSLA`.
+3. Introduce nombre, cantidad, precio de compra y fecha.
+4. Completa opcionalmente sector, stop loss, objetivo, broker y notas.
+5. Pulsa **Agregar**.
 
-### 📈 Evolución
-Snapshots automáticos del valor del portafolio en el tiempo (se guardan solos al actualizar precios), gráfico de evolución total y por activo.
+La carga inicial crea también una operación de compra en **Historial**.
 
-### 📺 Gráficos técnicos
-Widgets de TradingView embebidos por activo, con selector de timeframe.
+### Empresas no cotizadas
 
-### 📰 Noticias
-Feed de noticias filtrado por los activos de tu cartera, vía Yahoo Finance y CoinDesk, con múltiples fuentes de respaldo para máxima disponibilidad.
+SpaceX no cotiza actualmente en un mercado público y no tiene un ticker oficial verificable mediante Yahoo Finance. Puede registrarse manualmente como posición privada, pero la aplicación no podrá actualizar automáticamente su precio. En ese caso conservará el precio de compra y mostrará que no hay datos de mercado.
 
-### 🖥️ Trading Desk
-Suite completa para trading activo, separada del tracking de inversión a largo plazo:
-- **Posiciones**: registro de operaciones LONG/SHORT con P&L en vivo, ratio R, curva de capital
-- **Diario de trading**: registro de cada operación con señal de entrada, contexto, errores cometidos y lecciones aprendidas
-- **Checklist de entrada**: lista personalizable con score automático antes de operar
-- **Calculadora de posición**: tamaño exacto según capital y % de riesgo, límites diarios/mensuales
-- **Watchlist**: activos en seguimiento con ratio riesgo/beneficio y tesis de inversión
-- **Psicología**: registro diario de estado mental (descanso, concentración, estrés) correlacionado con resultados
-- **Performance**: win rate, expectativa matemática, drawdown máximo, mejores y peores operaciones
-- **Reglas**: tu manifiesto de trading y reglas personales organizadas por categoría
+No debe utilizarse un símbolo inventado como si fuera una cotización oficial.
 
-### 🔔 Alertas de precio
-Definís condiciones (sube sobre / baja de determinado precio) y la app te avisa visualmente al actualizar.
+## 4. Registrar criptomonedas
 
-### ☁️ Sincronización en la nube
-- Login con tu cuenta de GitHub (vía Supabase)
-- Sincronización automática entre dispositivos (Mac, iPhone, cualquier navegador)
-- Resolución inteligente de conflictos basada en marca de tiempo — nunca perdés datos por usar la app en dos lugares
-- Actualización automática de precios cada 3 minutos (pausada si la pestaña no está visible, para cuidar batería y APIs)
+1. Entra en **Cripto**.
+2. Escribe el símbolo, por ejemplo `ETH`, `SOL`, `ADA` o `DOT`.
+3. Añade nombre, cantidad, precio de compra y fecha.
+4. Selecciona el tipo de custodia.
+5. Añade opcionalmente wallet, dirección y notas.
+6. Pulsa **Agregar**.
 
-### 🎨 Personalización
-- Modo oscuro / claro con paleta accesible (contraste verificado WCAG AA)
-- Español / Inglés
-- Diseño responsive: barra de navegación inferior en iPhone, layout completo en desktop
+Las cotizaciones se consultan mediante CoinGecko. Si un símbolo no está incluido en el mapa interno de la aplicación, deberá valorarse manualmente.
 
-## 🔒 Privacidad y seguridad
+## 5. Otros activos
 
-Tus datos viven en `localStorage` de tu navegador. Si conectás tu cuenta de GitHub, se sincronizan además en una base de datos Supabase protegida con **Row Level Security** — la política de seguridad de la base de datos impide que cualquier otro usuario, incluso con acceso al proyecto, pueda leer o escribir tus datos. Solo vos, autenticado con tu cuenta, podés acceder a tu información.
+La sección **Otros** contiene formularios específicos:
 
-## 🛠️ Stack técnico
+- **ETFs**: símbolo, tipo, índice, cantidad, precio, TER, broker y fecha.
+- **CEDEARs**: símbolo, ratio, cantidad, precio en ARS y tipo de cambio CCL.
+- **Tokenizados**: símbolo, tipo de respaldo, exchange, cantidad y precio.
+- **Bonos**: nominal, precio porcentual, tasa, vencimiento, moneda y broker.
 
-- **Frontend**: HTML/CSS/JavaScript puro en un solo archivo, sin frameworks ni build
-- **Gráficos**: Chart.js
-- **Backend de sincronización**: Supabase (PostgreSQL + Auth)
-- **Precios en tiempo real**: CoinGecko API, Yahoo Finance
-- **Gráficos técnicos**: TradingView embed
+Utiliza la categoría que represente realmente el instrumento. No registres una empresa privada como ETF, bono o tokenizado salvo que poseas efectivamente ese producto.
 
-## 📱 Instalar como app (acceso directo)
+## 6. Actualizar precios
 
-### En Mac (Chrome/Edge)
-1. Abrí la app en el navegador
-2. Menú del navegador (⋮ o Compartir) → **"Instalar [nombre]..."** o **"Crear acceso directo..."**
-3. Quedará como un ícono en el Dock/Launchpad, se abre en su propia ventana sin la barra del navegador
+Pulsa **Actualizar precios** en la cabecera.
 
-### En iPhone (Safari)
-1. Abrí la app en Safari
-2. Tocá el ícono de Compartir (cuadrado con flecha hacia arriba)
-3. **"Agregar a pantalla de inicio"**
-4. Quedará como un ícono más, se abre a pantalla completa como una app nativa
+- Las criptomonedas se consultan mediante CoinGecko.
+- Las acciones se consultan mediante Yahoo Finance y servicios de respaldo para resolver restricciones CORS.
+- La aplicación informa cuántos precios se actualizaron y cuántos quedaron sin datos.
+- Se crea o actualiza el snapshot diario de evolución.
+- La actualización automática se ejecuta cada tres minutos mientras la pestaña está visible.
 
-## 📝 Notas
+Las APIs externas pueden fallar, limitar solicitudes o devolver datos temporalmente incompletos. Verifica siempre precios importantes con tu broker o exchange. MRP Portfolio no ejecuta operaciones.
 
-Proyecto personal en desarrollo continuo. Roadmap y decisiones de diseño documentadas en el historial de conversación con Claude.
+## 7. Editar y eliminar
 
----
+- Usa el botón de lápiz para editar una posición.
+- Usa el botón de papelera o `X` para eliminar.
+- Las eliminaciones relevantes solicitan confirmación.
+- Eliminar una posición no elimina automáticamente sus movimientos históricos; esto preserva la trazabilidad.
+- Si también quieres eliminar el historial, hazlo desde **Historial**.
 
-*Construido con [Claude](https://claude.ai) de Anthropic.*
+## 8. Historial e importaciones
+
+Cada operación puede registrarse manualmente como compra o venta, indicando símbolo, cantidad, precio, comisión, fecha y broker.
+
+La aplicación admite:
+
+- Archivos Binance XLSX compatibles.
+- CSV genérico con vista previa y detección de duplicados.
+
+Para un CSV genérico utiliza encabezados reconocibles como:
+
+```csv
+date,type,symbol,qty,price,comm,notes
+2026-01-15,COMPRA,AAPL,2,180,1.50,Compra inicial
+```
+
+Usa `symbol` o `ticker`; el encabezado abreviado `sym` no está reconocido por el importador genérico.
+
+Revisa siempre la vista previa antes de confirmar una importación.
+
+## 9. Ingresos, DCA, riesgo y evolución
+
+- **Ingresos**: registra dividendos, cupones, staking e intereses.
+- **Promedio DCA**: calcula el precio medio ponderado usando el historial.
+- **Riesgo**: muestra exposición por activo y sector, Sharpe y Beta.
+- **Evolución**: utiliza snapshots creados al actualizar precios.
+- **Alertas**: evalúa condiciones cuando se actualizan las cotizaciones.
+
+Las métricas son informativas y dependen de la calidad y completitud de los datos introducidos. No constituyen asesoramiento financiero.
+
+## 10. Trading Desk
+
+Trading Desk mantiene herramientas separadas del seguimiento de inversión:
+
+- Posiciones LONG y SHORT.
+- Diario de trading.
+- Checklist de entrada.
+- Calculadora de tamaño de posición.
+- Límites diarios y mensuales.
+- Watchlist.
+- Registro psicológico.
+- Métricas de performance.
+- Reglas y manifiesto personal.
+
+## 11. Sincronización entre navegadores
+
+Los cambios se guardan primero en el navegador y, si existe una sesión activa, se envían automáticamente a Supabase después de una breve espera.
+
+Para abrir la cartera en otro navegador:
+
+1. Abre la misma URL de MRP Portfolio.
+2. Conecta la misma cuenta de GitHub.
+3. Espera a que finalice la comprobación de sincronización.
+4. Si aparece un conflicto, compara cuidadosamente las opciones local y nube.
+5. Elige la copia más reciente o la que contenga la cartera correcta.
+
+No edites simultáneamente la cartera en dos dispositivos sin dejar que el primero termine de sincronizar.
+
+## 12. Copias de seguridad
+
+Supabase no sustituye una copia independiente.
+
+Después de cada revisión mensual:
+
+1. Abre **Config**.
+2. Pulsa **Exportar backup**.
+3. Guarda el JSON en una ubicación privada, por ejemplo iCloud Drive.
+4. No subas backups de cartera al repositorio público de GitHub.
+
+Para restaurar, usa **Importar backup**, revisa que sea el archivo correcto y confirma el reemplazo. La aplicación valida y neutraliza contenido HTML peligroso antes de renderizar datos importados.
+
+## 13. Borrar todos los datos
+
+La opción **Borrar todo** solicita confirmación.
+
+- Si estás conectado, elimina primero tu fila de cartera en Supabase.
+- Solo después elimina la copia local.
+- Si falla el borrado en la nube, conserva los datos locales y muestra un error.
+- Tras completarse, la aplicación se recarga vacía.
+
+Esta acción no debe utilizarse como operación rutinaria.
+
+## 14. Proyecto Supabase pausado
+
+Supabase puede pausar proyectos del plan gratuito con poca actividad. Si el botón de nube muestra un error y el proyecto lleva tiempo sin utilizarse:
+
+1. Entra en [Supabase Dashboard](https://supabase.com/dashboard).
+2. Abre `mrp-Portfolio Finance`.
+3. Pulsa **Resume project**.
+4. Espera hasta que el estado sea **Healthy**.
+5. Vuelve a abrir MRP Portfolio.
+
+No es necesario contratar Pro para un uso personal ocasional, pero habrá que reactivar el proyecto cuando Supabase lo pause.
+
+## 15. Privacidad y seguridad
+
+- El repositorio y el HTML son públicos.
+- La clave `anon` de Supabase es una clave pública de navegador; no debe confundirse con una clave `service_role`.
+- La tabla `portfolio_data` tiene Row Level Security activado.
+- El rol anónimo no posee permisos sobre la tabla.
+- Cada usuario autenticado solo puede leer o modificar la fila cuyo `user_id` coincide con `auth.uid()`.
+- El propietario administrativo del proyecto Supabase puede acceder a la base de datos desde el panel; RLS protege frente a visitantes y otros usuarios de la aplicación, no frente al administrador del proyecto.
+- Los textos locales, importados y sincronizados se tratan como datos no confiables y se neutralizan antes de mostrarse.
+
+Nunca publiques contraseñas, secretos OAuth, claves `service_role` ni backups financieros en GitHub.
+
+## 16. Instalación como acceso directo
+
+### iPhone y iPad con Safari
+
+1. Abre la aplicación.
+2. Pulsa **Compartir**.
+3. Selecciona **Agregar a pantalla de inicio**.
+
+### Chrome o Edge en ordenador
+
+1. Abre la aplicación.
+2. Utiliza **Instalar aplicación** o **Crear acceso directo** desde el menú del navegador.
+
+## 17. Resolución de problemas
+
+### La cartera aparece vacía
+
+- Comprueba si estás usando el mismo navegador o la misma cuenta de GitHub.
+- Abre el panel de nube y revisa el estado.
+- No pulses sincronizar ni elijas una copia durante un conflicto hasta saber cuál contiene los datos correctos.
+- Busca el último backup JSON.
+
+### Algunos precios no se actualizan
+
+- Reintenta más tarde.
+- Comprueba que el ticker sea correcto.
+- Recuerda que empresas privadas como SpaceX no tienen cotización pública.
+- Verifica el precio con una fuente financiera independiente.
+
+### Supabase no conecta
+
+- Comprueba que el proyecto esté **Healthy**.
+- Verifica que GitHub siga habilitado en Authentication.
+- Comprueba que la URL autorizada sea `https://criptoscrazy.github.io/mrp-portfolio-finance/`.
+
+## 18. Arquitectura técnica
+
+- HTML, CSS y JavaScript en `index.html`.
+- GitHub Pages para publicación HTTPS.
+- Supabase Auth con GitHub OAuth.
+- PostgreSQL/Supabase con RLS para sincronización.
+- Chart.js para gráficos.
+- CoinGecko y Yahoo Finance para precios.
+- TradingView para gráficos técnicos.
+
+## 19. Alcance
+
+MRP Portfolio es una herramienta personal de registro y análisis. No es un broker, no ejecuta órdenes, no garantiza la disponibilidad de cotizaciones y no ofrece asesoramiento financiero, fiscal o legal.

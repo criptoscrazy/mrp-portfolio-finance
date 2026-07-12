@@ -850,6 +850,11 @@ input::placeholder,textarea::placeholder,select::placeholder{color:var(--tx4);op
 }
 /* Bottom nav for mobile — horizontal scroll */
 @media(max-width:600px){
+  .tip-box{
+    position:fixed;left:12px!important;right:12px!important;
+    top:auto!important;bottom:80px;width:auto;
+    max-width:calc(100vw - 24px);
+  }
   .tabs{
     position:fixed;bottom:0;left:0;right:0;
     background:var(--bg1);border-top:1px solid var(--br);border-bottom:none;
