@@ -1114,7 +1114,7 @@ input::placeholder,textarea::placeholder,select::placeholder{color:var(--tx4);op
     </div>
     <div class="card">
       <div class="card-head"><i class="ti ti-tournament" style="color:var(--ca2)"></i> vs Benchmarks</div>
-      <div class="card-sub">Rentabilidad 24h comparada</div>
+      <div class="card-sub">Tu ROI acumulado vs cambio 24h del mercado</div>
       <div style="display:flex;flex-direction:column;gap:8px;margin-top:6px">
         <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 12px;background:var(--bg3);border-radius:10px;border:1px solid var(--br)">
           <div>
@@ -2180,8 +2180,11 @@ input::placeholder,textarea::placeholder,select::placeholder{color:var(--tx4);op
     <input type="hidden" id="editId">
     <input type="hidden" id="editType">
     <div class="modal-grid">
-      <div class="modal-field"><label>Símbolo</label><input id="eSym" readonly style="opacity:.6;cursor:not-allowed"></div>
-      <div class="modal-field"><label>Nombre</label><input id="eName"></div>
+      <div class="modal-field"><label>Símbolo (no editable)</label><input id="eSym" readonly style="opacity:.6;cursor:not-allowed" title="Para cambiar el símbolo, borrá este activo y creá uno nuevo"></div>
+      <div class="modal-field ac-wrap"><label>Nombre</label>
+        <input id="eName" oninput="acSearchEditName(this)" autocomplete="off">
+        <div class="ac-drop" id="acEditName"></div>
+      </div>
       <div class="modal-field"><label>Cantidad</label><input id="eQty" type="number" step="any"></div>
       <div class="modal-field"><label>Precio compra (USD)</label><input id="eBuy" type="number" step="0.01"></div>
       <div class="modal-field"><label>Fecha compra</label><input id="eDate" type="date"></div>
@@ -2384,6 +2387,29 @@ function acSelectTrading(sym, name) {
   $('acTradingName')?.classList.remove('open');
 }
 
+// Edit modal name autocomplete — matches the locked symbol first, then general search as backup
+function acSearchEditName(inp) {
+  const drop = $('acEditName');
+  if (!drop) return;
+  const sym = $('eSym')?.value?.trim().toUpperCase();
+  const raw = inp.value.trim().toLowerCase();
+  const all = [...AC_DB.stocks, ...AC_DB.crypto];
+  // Exact match for the locked symbol is always shown first (most likely correct choice)
+  const exact = all.find(a => a.sym.toUpperCase() === sym);
+  const others = raw
+    ? all.filter(a => a.sym.toUpperCase() !== sym && a.name.toLowerCase().includes(raw)).slice(0, 5)
+    : [];
+  const results = exact ? [exact, ...others] : others;
+  if (!results.length) { drop.classList.remove('open'); return; }
+  drop.innerHTML = results.map(a =>
+    `<div class="ac-item" onclick="$('eName').value='${a.name.replace(/'/g,"\\'")}';$('acEditName').classList.remove('open')">
+      <span class="ac-sym">${a.sym}</span><span class="ac-name">${a.name}</span>
+      ${a.sym.toUpperCase() === sym ? '<span style="font-size:9px;color:var(--cg2);margin-left:auto">Correcto para este símbolo</span>' : ''}
+    </div>`
+  ).join('');
+  drop.classList.add('open');
+}
+
 // Income symbol autocomplete — search across stocks and crypto
 function acSearchIncome(inp) {
   const q = inp.value.trim().toUpperCase();
@@ -2464,6 +2490,17 @@ function toggleTheme() {
 // ═══════════════════════════════════════════
 const charts = {};
 function destroyChart(k) { if (charts[k]) { charts[k].destroy(); delete charts[k]; } }
+function safeCreateChart(key, canvasEl, config) {
+  // Protects the rest of the calling render function from being cut off if Chart.js
+  // fails to load (e.g. CDN blocked, slow connection, ad-blocker interference).
+  try {
+    if (typeof Chart === 'undefined') { console.warn('Chart.js not loaded, skipping chart:', key); return; }
+    if (!canvasEl) return;
+    charts[key] = new Chart(canvasEl, config);
+  } catch(e) {
+    console.error('Chart creation failed (non-fatal):', key, e);
+  }
+}
 const getGrid = () => getComputedStyle(document.documentElement).getPropertyValue('--grid').trim();
 const getTick = () => getComputedStyle(document.documentElement).getPropertyValue('--tick').trim();
 
@@ -2501,21 +2538,9 @@ const PALETTE = ['#7c3aed','#0891b2','#10b981','#f59e0b','#f43f5e','#ec4899','#8
 // ═══════════════════════════════════════════
 const SKEY = 'mrp_portfolio_v2';
 let ST = {
-  stocks: [
-    { id: uid(), sym:'AAPL', name:'Apple Inc.', sector:'Tecnología', qty:50, buy:182.50, date:'2024-01-15', cur:null, ch:null, sl:160, tg:220, note:'Comprada por potencial en IA y ecosistema.' },
-    { id: uid(), sym:'MSFT', name:'Microsoft',  sector:'Tecnología', qty:20, buy:415.30, date:'2024-02-10', cur:null, ch:null, sl:380, tg:480, note:'Posición a largo plazo. Azure + Copilot.' },
-    { id: uid(), sym:'NVDA', name:'NVIDIA',      sector:'Semiconductores', qty:8,  buy:495.00, date:'2024-04-12', cur:null, ch:null, sl:440, tg:650, note:'Semiconductores IA. Tesis: dominancia GPU.' },
-    { id: uid(), sym:'AMZN', name:'Amazon',      sector:'Consumo',  qty:15, buy:178.25, date:'2024-01-20', cur:null, ch:null, sl:155, tg:220, note:'' },
-  ],
-  crypto: [
-    { id: uid(), sym:'BTC', name:'Bitcoin',  qty:0.25, buy:34500, date:'2023-11-01', cur:null, ch:null, custody:'cold', wallet:'Ledger', addr:'', note:'Reserva de valor. Guardado en cold wallet. Dinero de venta del auto.' },
-    { id: uid(), sym:'ETH', name:'Ethereum', qty:2.0,  buy:2100,  date:'2024-01-10', cur:null, ch:null, custody:'exchange', wallet:'Coinbase', addr:'', note:'Staking en Coinbase. ~4% APY.' },
-    { id: uid(), sym:'SOL', name:'Solana',   qty:15,   buy:95,    date:'2024-02-15', cur:null, ch:null, custody:'hot', wallet:'Phantom', addr:'', note:'Ecosistema DeFi en Solana.' },
-  ],
-  hist: [
-    { id: uid(), date:'2024-01-15', type:'COMPRA', sym:'AAPL', qty:50, price:182.50, comm:5, notes:'TD Ameritrade' },
-    { id: uid(), date:'2023-11-01', type:'COMPRA', sym:'BTC',  qty:0.25, price:34500, comm:12, notes:'Binance' },
-  ],
+  stocks: [],
+  crypto: [],
+  hist: [],
   income: [],
   apyPositions: [],
   alerts: [],
@@ -2525,8 +2550,41 @@ let ST = {
   selAsset: null
 };
 
+// Treat every persisted/imported string as untrusted. Most views below use
+// HTML templates, so markup delimiters must never reach those templates.
+function sanitizePortfolioState(value, key = '', depth = 0) {
+  if (depth > 12) return null;
+  if (typeof value === 'string') {
+    let clean = value.replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, '').slice(0, 5000);
+    if (key === 'id') return clean.replace(/[^A-Za-z0-9_-]/g, '').slice(0, 100);
+    if (key === 'sym' || key === 'symbol' || key === 'ticker') {
+      return clean.toUpperCase().replace(/[^A-Z0-9._:^/-]/g, '').slice(0, 40);
+    }
+    if (/^(url|link|image|logo)$/i.test(key)) {
+      try {
+        const parsed = new URL(clean, location.href);
+        return parsed.protocol === 'https:' ? parsed.href : '';
+      } catch (_) { return ''; }
+    }
+    return clean.replace(/[<>]/g, '');
+  }
+  if (Array.isArray(value)) {
+    return value.slice(0, 10000).map(item => sanitizePortfolioState(item, key, depth + 1));
+  }
+  if (value && typeof value === 'object') {
+    const clean = {};
+    for (const [childKey, childValue] of Object.entries(value)) {
+      if (childKey === '__proto__' || childKey === 'prototype' || childKey === 'constructor') continue;
+      clean[childKey] = sanitizePortfolioState(childValue, childKey, depth + 1);
+    }
+    return clean;
+  }
+  return value;
+}
+
 function save(silent = true) {
   try {
+    ST = sanitizePortfolioState(ST);
     localStorage.setItem(SKEY, JSON.stringify(ST));
     localStorage.setItem('mrp_last_local_change', new Date().toISOString());
     if (!silent) showToast(t('toastSaved'));
@@ -2537,7 +2595,7 @@ function save(silent = true) {
 function loadState() {
   try {
     const raw = localStorage.getItem(SKEY);
-    if (raw) ST = { ...ST, ...JSON.parse(raw) };
+    if (raw) ST = sanitizePortfolioState({ ...ST, ...JSON.parse(raw) });
   } catch(e) {}
   const theme = localStorage.getItem('mrp_theme') || 'dark';
   document.documentElement.setAttribute('data-theme', theme);
@@ -2576,9 +2634,40 @@ function importData(e) {
   reader.onload = ev => {
     try {
       const parsed = JSON.parse(ev.target.result);
-      ST = parsed; save(); renderAll();
+
+      // Validate this actually looks like a MRP Portfolio backup before touching anything
+      const isValidBackup = parsed && typeof parsed === 'object' &&
+        Array.isArray(parsed.stocks) && Array.isArray(parsed.crypto);
+
+      if (!isValidBackup) {
+        showToast('Este archivo no parece ser un backup válido de MRP Portfolio', 'err', 4000);
+        e.target.value = '';
+        return;
+      }
+
+      // Warn before overwriting existing data, unless current state is empty anyway
+      const hasExistingData = hasRealData(ST);
+      if (hasExistingData) {
+        const ok = confirm('Esto va a reemplazar TODOS tus datos actuales con los del archivo importado. ¿Confirmás?');
+        if (!ok) { e.target.value = ''; return; }
+      }
+
+      // Fill in any missing keys with safe defaults so a partial-but-valid backup doesn't break rendering
+      ST = sanitizePortfolioState({
+        stocks: [], crypto: [], otros: [], hist: [], income: [], apyPositions: [],
+        alerts: [], snaps: [], aSnaps: {}, selAsset: null,
+        trading: { positions:[], journal:[], watchlist:[], checklist:[], rules:[], psychEntries:[],
+                   riskLimits:{monthlyGoal:'',dailyLoss:'',monthlyLoss:'',maxOpsDay:''},
+                   manifesto:'', capital:10000, dailyContext:'' },
+        ...parsed
+      });
+      save();
+      renderAll();
       showToast(t('toastImported'));
-    } catch(err) { showToast(t('toastInvalidFile'), 'err'); }
+    } catch(err) {
+      console.error('Import error:', err);
+      showToast(t('toastInvalidFile'), 'err');
+    }
   };
   reader.readAsText(file);
   e.target.value = '';
@@ -2925,28 +3014,28 @@ async function updatePrices() {
       }
     } catch(e) {}
 
-    // Fallback for any crypto still without price
+    // Fallback for any crypto still without price — parallel too
     const missing = ST.crypto.filter(a => a.cur === null);
-    for (const a of missing) {
-      try {
-        const r = await fetchWithFallback(
-          `https://min-api.cryptocompare.com/data/pricemultifull?fsyms=${a.sym}&tsyms=USD`
-        );
-        if (r && r.ok) {
-          const d = await r.json();
-          const info = d?.RAW?.[a.sym]?.USD;
-          if (info) { a.cur = info.PRICE; a.ch = (info.CHANGEPCT24HOUR || 0) / 100; updated++; }
-        }
-      } catch(e) {}
+    if (missing.length) {
+      await Promise.all(missing.map(async (a) => {
+        try {
+          const r = await fetchWithFallback(
+            `https://min-api.cryptocompare.com/data/pricemultifull?fsyms=${a.sym}&tsyms=USD`
+          );
+          if (r && r.ok) {
+            const d = await r.json();
+            const info = d?.RAW?.[a.sym]?.USD;
+            if (info) { a.cur = info.PRICE; a.ch = (info.CHANGEPCT24HOUR || 0) / 100; updated++; }
+          }
+        } catch(e) {}
+      }));
     }
   }
 
-  // ── STOCKS: Yahoo Finance query1 → query2 → allorigins proxy ──
-  for (const a of ST.stocks) {
-    let gotPrice = false;
-    // Source 1: Yahoo query1
+  // ── STOCKS: Yahoo Finance query1 → query2 → v7 quote, all stocks fetched in PARALLEL ──
+  async function fetchOneStockPrice(a) {
+    // Source 1 & 2: Yahoo query1/query2 chart endpoint
     for (const host of ['query1', 'query2']) {
-      if (gotPrice) break;
       try {
         const r = await fetchWithFallback(
           `https://${host}.finance.yahoo.com/v8/finance/chart/${a.sym}?interval=1d&range=5d`
@@ -2957,30 +3046,32 @@ async function updatePrices() {
           if (m?.regularMarketPrice) {
             a.cur = m.regularMarketPrice;
             a.ch = m.chartPreviousClose ? (m.regularMarketPrice - m.chartPreviousClose) / m.chartPreviousClose : 0;
-            updated++; gotPrice = true;
+            return true;
           }
         }
       } catch(e) {}
     }
-    // Source 2: Yahoo Finance v7 quote (different endpoint)
-    if (!gotPrice) {
-      try {
-        const r = await fetchWithFallback(
-          `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${a.sym}`
-        );
-        if (r && r.ok) {
-          const d = await r.json();
-          const q = d?.quoteResponse?.result?.[0];
-          if (q?.regularMarketPrice) {
-            a.cur = q.regularMarketPrice;
-            a.ch = q.regularMarketChangePercent ? q.regularMarketChangePercent / 100 : 0;
-            updated++; gotPrice = true;
-          }
+    // Source 3: Yahoo Finance v7 quote (different endpoint)
+    try {
+      const r = await fetchWithFallback(
+        `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${a.sym}`
+      );
+      if (r && r.ok) {
+        const d = await r.json();
+        const q = d?.quoteResponse?.result?.[0];
+        if (q?.regularMarketPrice) {
+          a.cur = q.regularMarketPrice;
+          a.ch = q.regularMarketChangePercent ? q.regularMarketChangePercent / 100 : 0;
+          return true;
         }
-      } catch(e) {}
-    }
-    if (!gotPrice) failed++;
+      }
+    } catch(e) {}
+    return false;
   }
+
+  const stockResults = await Promise.all(ST.stocks.map(fetchOneStockPrice));
+  updated += stockResults.filter(Boolean).length;
+  failed += stockResults.filter(r => !r).length;
 
   const now = new Date();
   $('updTime').textContent = (t('updPrefix') || 'Actualizado ') + now.toLocaleTimeString(LANG === 'en' ? 'en-US' : 'es-AR', { hour:'2-digit', minute:'2-digit' });
@@ -3005,7 +3096,8 @@ async function updatePrices() {
       todaySnap.value = +snapTotal.toFixed(2); // update today's value
     }
   }
-  save(); renderAll();
+  save();
+  try { renderAll(); } catch(e) { console.error('renderAll error in updatePrices (non-fatal):', e); }
   updateMarketHours();
   const msg = failed > 0
     ? `${updated} ${t('toastUpdated')} · ${failed} sin datos`
@@ -3073,6 +3165,7 @@ function openEdit(type, id) {
   else { $('eExtraLabel').textContent = 'Exchange / Wallet'; $('eExtra').value = a.wallet || ''; }
   $('modalSub').textContent = `Editando posición en ${a.sym} · ${a.name}`;
   $('modalOverlay').classList.add('open');
+  setTimeout(() => acSearchEditName($('eName')), 50);
 }
 
 function closeModal() { $('modalOverlay').classList.remove('open'); }
@@ -3081,7 +3174,13 @@ function saveEdit() {
   const id = $('editId').value, type = $('editType').value;
   const arr = type === 'stock' ? ST.stocks : ST.crypto;
   const a = arr.find(x => x.id === id); if (!a) return;
-  a.name = $('eName').value.trim();
+  const newName = $('eName').value.trim();
+  if (!newName) {
+    showToast('El nombre no puede quedar vacío', 'err');
+    $('eName').value = a.name; // restore original instead of allowing corrupted data
+    return;
+  }
+  a.name = newName;
   a.qty  = parseFloat($('eQty').value) || a.qty;
   a.buy  = parseFloat($('eBuy').value) || a.buy;
   a.date = $('eDate').value || a.date;
@@ -3096,7 +3195,7 @@ function saveEdit() {
 }
 
 // Click outside modal
-$('modalOverlay').addEventListener('click', e => { if (e.target === $('modalOverlay')) closeModal(); });
+$('modalOverlay')?.addEventListener('click', e => { if (e.target === $('modalOverlay')) closeModal(); });
 
 // ═══════════════════════════════════════════
 // HISTORIAL
@@ -3336,7 +3435,7 @@ function renderDash() {
   if ($('cCustodio') && Object.keys(custodioData).length > 0) {
     const custLabels = Object.keys(custodioData);
     const custVals = Object.values(custodioData);
-    charts['custodio'] = new Chart($('cCustodio'), {
+    safeCreateChart('custodio', $('cCustodio'), {
       type: 'doughnut',
       data: { labels: custLabels, datasets: [{ data: custVals, backgroundColor: PALETTE.slice(0, custLabels.length), borderWidth: 2, borderColor: getComputedStyle(document.documentElement).getPropertyValue('--bg2').trim(), hoverOffset: 6 }] },
       options: { responsive:true, maintainAspectRatio:false, cutout:'60%', plugins: { legend: { position:'right', labels: { color:getTick(), font:{size:9}, padding:8 } }, tooltip: { callbacks: { label: c => ' '+fmt(c.raw)+' ('+((c.raw/tot*100).toFixed(1))+'%)' } } } }
@@ -3348,7 +3447,7 @@ function renderDash() {
     <span class="leg-i"><span class="leg-dot" style="background:#7c3aed"></span>Acciones ${sp}%</span>
     <span class="leg-i"><span class="leg-dot" style="background:#0891b2"></span>Cripto ${cp}%</span>`;
   destroyChart('alloc');
-  charts['alloc'] = new Chart($('cAlloc'), {
+  safeCreateChart('alloc', $('cAlloc'), {
     type:'doughnut',
     data:{labels:['Acciones','Cripto'],datasets:[{data:[sVal,cVal],backgroundColor:['#7c3aed','#0891b2'],borderWidth:3,borderColor:getComputedStyle(document.documentElement).getPropertyValue('--bg2').trim(),hoverOffset:6}]},
     options:{responsive:true,maintainAspectRatio:false,cutout:'68%',plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>' '+fmt(c.raw)}}}}
@@ -3359,7 +3458,7 @@ function renderDash() {
   $('retWrap').style.height = rH + 'px';
   destroyChart('ret');
   if (rA.length) {
-    charts['ret'] = new Chart($('cRet'), {
+    safeCreateChart('ret', $('cRet'), {
       type:'bar',
       data:{labels:rA.map(a=>a.sym),datasets:[{data:rA.map(a=>+((calc(a).pp||0)*100).toFixed(2)),backgroundColor:rA.map(a=>(calc(a).pp||0)>=0?'rgba(16,185,129,.7)':'rgba(244,63,94,.7)'),borderRadius:5,borderSkipped:false}]},
       options:{...baseOpts(),indexAxis:'y',plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>' '+(c.raw>=0?'+':'')+c.raw+'%'}}},scales:{x:{ticks:{color:getTick(),font:{size:9},callback:v=>v+'%'},grid:{color:getGrid()}},y:{ticks:{color:getTick(),font:{size:9}},grid:{display:false}}}}
@@ -3369,7 +3468,7 @@ function renderDash() {
   const pA = all.filter(a => a.cur != null);
   destroyChart('pnl');
   if (pA.length) {
-    charts['pnl'] = new Chart($('cPnl'), {
+    safeCreateChart('pnl', $('cPnl'), {
       type:'bar',
       data:{labels:pA.map(a=>a.sym),datasets:[{data:pA.map(a=>+(calc(a).pnl||0).toFixed(2)),backgroundColor:pA.map(a=>(calc(a).pnl||0)>=0?'rgba(16,185,129,.65)':'rgba(244,63,94,.65)'),borderRadius:5,borderSkipped:false}]},
       options:{...baseOpts(),plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>' '+fmt(c.raw)}}},scales:{x:{ticks:{color:getTick(),font:{size:9}},grid:{display:false}},y:{ticks:{color:getTick(),font:{size:9},callback:v=>fmt(v,0)},grid:{color:getGrid()}}}}
@@ -3483,7 +3582,7 @@ function renderRisk() {
   const labels = all.map(a => a.sym);
   const vals = all.map(a => { const {cur,cap}=calc(a); return cur??cap; });
   destroyChart('risk');
-  charts['risk'] = new Chart($('cRisk'), {
+  safeCreateChart('risk', $('cRisk'), {
     type:'doughnut',
     data:{labels,datasets:[{data:vals,backgroundColor:PALETTE.slice(0,all.length),borderWidth:2,borderColor:getComputedStyle(document.documentElement).getPropertyValue('--bg2').trim(),hoverOffset:5}]},
     options:{responsive:true,maintainAspectRatio:false,cutout:'55%',plugins:{legend:{position:'right',labels:{color:getTick(),font:{size:9},padding:8}},tooltip:{callbacks:{label:c=>' '+fmt(c.raw)+' ('+((c.raw/total*100).toFixed(1))+'%)'}}}}
@@ -3498,7 +3597,7 @@ function renderRisk() {
     sectors[sec] = (sectors[sec]||0) + v;
   });
   destroyChart('sector');
-  charts['sector'] = new Chart($('cSector'), {
+  safeCreateChart('sector', $('cSector'), {
     type:'bar',
     data:{labels:Object.keys(sectors),datasets:[{data:Object.values(sectors),backgroundColor:PALETTE,borderRadius:5,borderSkipped:false}]},
     options:{...baseOpts(),plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>' '+fmt(c.raw)}}},scales:{x:{ticks:{color:getTick(),font:{size:9}},grid:{display:false}},y:{ticks:{color:getTick(),font:{size:9},callback:v=>fmt(v,0)},grid:{color:getGrid()}}}}
@@ -3573,7 +3672,7 @@ function renderIncome() {
   if (apyEl) apyEl.textContent = fmt(apyMonthly);
 
   destroyChart('income');
-  charts['income'] = new Chart($('cIncome'), {
+  safeCreateChart('income', $('cIncome'), {
     type:'bar',
     data:{labels:months,datasets:[{label:'Ingresos USD',data:monthly,backgroundColor:'rgba(16,185,129,.7)',borderRadius:5,borderSkipped:false}]},
     options:{...baseOpts(),plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>' '+fmt(c.raw)}}},scales:{x:{ticks:{color:getTick(),font:{size:9}},grid:{display:false}},y:{ticks:{color:getTick(),font:{size:9},callback:v=>fmt(v,0)},grid:{color:getGrid()}}}}
@@ -3582,7 +3681,7 @@ function renderIncome() {
   const typeLabels = { dividendo:'Dividendo', cupon:'Cupón', staking:'Staking', interes:'Interés', otro:'Otro' };
   destroyChart('incType');
   if (Object.keys(byType).length) {
-    charts['incType'] = new Chart($('cIncomeType'), {
+    safeCreateChart('incType', $('cIncomeType'), {
       type:'doughnut',
       data:{labels:Object.keys(byType).map(k=>typeLabels[k]||k),datasets:[{data:Object.values(byType),backgroundColor:PALETTE,borderWidth:2,borderColor:getComputedStyle(document.documentElement).getPropertyValue('--bg2').trim()}]},
       options:{responsive:true,maintainAspectRatio:false,cutout:'60%',plugins:{legend:{position:'right',labels:{color:getTick(),font:{size:9},padding:8}},tooltip:{callbacks:{label:c=>' '+fmt(c.raw)}}}}
@@ -3625,7 +3724,7 @@ function renderEvol() {
     const evolGrad = evolCtx.createLinearGradient(0, 0, 0, evolCanvas.offsetHeight||240);
     evolGrad.addColorStop(0, 'rgba(124,58,237,.25)');
     evolGrad.addColorStop(1, 'rgba(124,58,237,.01)');
-    charts['evol'] = new Chart(evolCanvas, {
+    safeCreateChart('evol', evolCanvas, {
       type:'line',
       data:{labels:snaps.map(s=>s.date),datasets:[{label:'Valor total',data:snaps.map(s=>s.value),borderColor:'#a78bfa',borderWidth:2,backgroundColor:evolGrad,fill:true,tension:0.4,pointRadius:4,pointBackgroundColor:'#a78bfa',pointBorderColor:'#0d1325',pointBorderWidth:2,pointHoverRadius:6}]},
       options:{...baseOpts(),plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>' '+fmt(c.raw)}}}}
@@ -3667,7 +3766,7 @@ function renderAEvol() {
   const lineC = last >= a.buy ? '#10b981' : '#f43f5e';
   const dca = calcDCA(a.sym);
   const avgLine = dca ? Array(sorted.length).fill(dca.avgPrice) : Array(sorted.length).fill(a.buy);
-  charts['aevol'] = new Chart($('cAEvol'), {
+  safeCreateChart('aevol', $('cAEvol'), {
     type:'line',
     data:{labels:sorted.map(p=>p.date),datasets:[
       {label:'Precio',data:sorted.map(p=>p.value),borderColor:lineC,backgroundColor:lineC+'18',fill:true,tension:0.4,pointRadius:4,pointBackgroundColor:lineC,pointBorderColor:getComputedStyle(document.documentElement).getPropertyValue('--bg2').trim(),pointBorderWidth:2},
@@ -3691,7 +3790,7 @@ function showTab(n) {
   if (n==='income') renderIncome();
   if (n==='evol') { renderEvol(); renderAPills(); if (!ST.selAsset&&ST.stocks.length) selectAsset(ST.stocks[0]); }
   if (n==='tv') renderTV();
-  if (n==='news') renderNews();
+  if (n==='news') fetchNews();
   if (n==='otros') renderOtros();
   if (n==='trading') initTradingDesk();
 }
@@ -4407,7 +4506,7 @@ function openTradeModal(id) {
   }
 }
 function closeTradeModal() { $('tradeModalOverlay').classList.remove('open'); }
-$('tradeModalOverlay').addEventListener('click', e => { if(e.target===$('tradeModalOverlay')) closeTradeModal(); });
+$('tradeModalOverlay')?.addEventListener('click', e => { if(e.target===$('tradeModalOverlay')) closeTradeModal(); });
 
 function saveTrade() {
   const sym = $('tSym').value.trim().toUpperCase();
@@ -4504,7 +4603,7 @@ function renderEquityCurve() {
   let capital = ST.trading.capital||10000;
   const points = closed.map(p => { capital += p.pnlReal; return capital; });
   const lineC = capital >= (ST.trading.capital||10000) ? '#10b981' : '#f43f5e';
-  charts['equity'] = new Chart($('cEquity'), {
+  safeCreateChart('equity', $('cEquity'), {
     type:'line',
     data:{labels:closed.map(p=>p.date),datasets:[{data:points,borderColor:lineC,backgroundColor:lineC+'15',fill:true,tension:0.3,pointRadius:3,pointBackgroundColor:lineC}]},
     options:{...baseOpts(),plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>' '+fmt(c.raw)}}}}
@@ -4519,7 +4618,7 @@ function renderStylePnl() {
     (ST.trading.journal||[]).filter(j=>j.style===s).reduce((sum,j)=>sum+(parseFloat(j.pnl)||0),0)
   );
   if (pnls.every(v=>v===0)) return;
-  charts['stylePnl'] = new Chart($('cStylePnl'), {
+  safeCreateChart('stylePnl', $('cStylePnl'), {
     type:'bar',
     data:{labels,datasets:[{data:pnls,backgroundColor:pnls.map(v=>v>=0?'rgba(16,185,129,.7)':'rgba(244,63,94,.7)'),borderRadius:5,borderSkipped:false}]},
     options:{...baseOpts(),plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>' '+fmt(c.raw)}}}}
@@ -4586,7 +4685,7 @@ function renderErrorChart() {
   (ST.trading.journal||[]).forEach(j => { if(j.error) counts[j.error]=(counts[j.error]||0)+1; });
   const sorted = Object.entries(counts).sort((a,b)=>b[1]-a[1]).slice(0,6);
   if (!sorted.length) return;
-  charts['errors'] = new Chart($('cErrors'), {
+  safeCreateChart('errors', $('cErrors'), {
     type:'bar',
     data:{labels:sorted.map(([k])=>errorLabels[k]||k),datasets:[{data:sorted.map(([,v])=>v),backgroundColor:'rgba(244,63,94,.7)',borderRadius:5,borderSkipped:false}]},
     options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{color:getTick(),font:{size:9}},grid:{color:getGrid()}},y:{ticks:{color:getTick(),font:{size:9}},grid:{display:false}}}}
@@ -4904,7 +5003,7 @@ function renderPsychChart() {
   const pnlByDate = {};
   journal.forEach(j => { pnlByDate[j.date]=(pnlByDate[j.date]||0)+(parseFloat(j.pnl)||0); });
   const maxPnl = Math.max(...Object.values(pnlByDate).map(Math.abs), 1);
-  charts['psych'] = new Chart($('cPsych'), {
+  safeCreateChart('psych', $('cPsych'), {
     type:'line',
     data:{
       labels: entries.map(e=>e.date),
@@ -4983,7 +5082,7 @@ function renderMonthlyPnl() {
   });
   const sorted=Object.entries(byMonth).sort((a,b)=>a[0].localeCompare(b[0]));
   if(sorted.length<1)return;
-  charts['monthlyPnl']=new Chart($('cMonthlyPnl'),{
+  safeCreateChart('monthlyPnl', $('cMonthlyPnl'), {
     type:'bar',
     data:{labels:sorted.map(([k])=>k),datasets:[{data:sorted.map(([,v])=>v),backgroundColor:sorted.map(([,v])=>v>=0?'rgba(16,185,129,.7)':'rgba(244,63,94,.7)'),borderRadius:5,borderSkipped:false}]},
     options:{...baseOpts(),plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>' '+fmt(c.raw)}}}}
@@ -5211,10 +5310,11 @@ function calcCEDPreview() {
   const ccl = parseFloat($('cedCCL')?.value)||0;
   const prev = $('cedPreview'); if (!prev) return;
   if (!priceARS || !ccl) { prev.style.display='none'; return; }
-  const priceUSD = priceARS / ccl;
-  const equivShares = qty / ratio;
-  const capUSD = equivShares * priceUSD;
-  $('cedPriceUSD').textContent = fmt(priceUSD);
+  const priceUSD = priceARS / ccl; // price of ONE CEDEAR unit in USD (no ratio division)
+  const capUSD = qty * priceUSD;    // total capital invested in USD
+  const equivShares = qty / ratio;  // equivalent real shares
+  const impliedPricePerShare = equivShares > 0 ? capUSD / equivShares : 0; // what you effectively paid per equivalent share
+  $('cedPriceUSD').textContent = fmt(impliedPricePerShare);
   $('cedEquivShares').textContent = equivShares.toFixed(4);
   $('cedCapUSD').textContent = fmt(capUSD);
   prev.style.display = '';
@@ -5241,9 +5341,12 @@ function addOtro(type) {
     const ratio=parseFloat($('cedRatio')?.value)||1;
     const date=$('cedDate')?.value;
     if (!sym||!qty||!buyARS||!date){showToast('Completá los campos obligatorios','warn');return;}
-    const buyUSD = ccl > 0 ? (buyARS/ccl)/ratio : 0;
+    // priceUSD = price per CEDEAR unit in USD (NOT divided by ratio — ratio only converts qty to equivalent shares)
+    const priceUSD = ccl > 0 ? (buyARS/ccl) : 0;
+    const capitalUSD = qty * priceUSD; // total USD capital actually invested
+    const buyUSD = priceUSD; // kept for backward compatibility with existing saved data
     obj = {...obj, sym, name:$('cedName')?.value.trim()||sym,
-      qty, ratio, buyARS, ccl, buyUSD, date,
+      qty, ratio, buyARS, ccl, buyUSD, priceUSD, capitalUSD, date,
       broker:$('cedBroker')?.value.trim(), note:$('cedNote')?.value.trim()};
     [$('cedSym'),$('cedName'),$('cedQty'),$('cedRatio'),$('cedBuyARS'),$('cedCCL'),$('cedBroker'),$('cedNote')].forEach(el=>{if(el)el.value='';});
     if($('cedPreview'))$('cedPreview').style.display='none';
@@ -5348,6 +5451,7 @@ function renderOtros() {
       cedTb.innerHTML=ceds.map(c=>{
         const equivShares=c.qty/c.ratio;
         const d=days(c.date,today());
+        const capUSD = c.capitalUSD != null ? c.capitalUSD : (c.qty * c.buyUSD); // fallback for older saved records
         return `<tr>
           <td class="sym">${c.sym}</td>
           <td class="muted">${c.name}</td>
@@ -5355,9 +5459,9 @@ function renderOtros() {
           <td class="num">${c.ratio}:1</td>
           <td class="num">${c.buyARS?'$'+c.buyARS.toLocaleString('es-AR',{maximumFractionDigits:2}):'—'} ARS</td>
           <td class="num muted">${c.ccl?'$'+c.ccl.toLocaleString('es-AR',{maximumFractionDigits:0})+' ARS':'—'}</td>
-          <td class="num" style="color:var(--cv3)">${fmt(c.buyUSD)}</td>
+          <td class="num" style="color:var(--cv3)">${fmt(capUSD / equivShares)}</td>
           <td class="num" style="color:var(--ct2)">${equivShares.toFixed(4)}</td>
-          <td class="num">${fmt(equivShares*c.buyUSD)}</td>
+          <td class="num">${fmt(capUSD)}</td>
           <td class="muted">${c.broker||'—'}</td>
           <td class="muted">${d}d</td>
           <td class="note-cell muted">${c.note||'—'}</td>
@@ -5560,14 +5664,10 @@ function renderBenchmarks() {
     } else {btc.textContent='—';}
   }
 
-  // Verdict
+  // Verdict — clarify this compares different time periods, avoid misleading "you're beating the market" claim
   const verdict=$('benchVerdict');
-  if(verdict&&benchData.sp500&&portfolioROI!==0){
-    const spROI=benchData.sp500.ch*100;
-    const diff=portfolioROI-spROI;
-    verdict.innerHTML = diff>=0
-      ? `<span style="color:var(--cg2);font-weight:700">✅ Le estás ganando al S&P 500 por ${Math.abs(diff).toFixed(2)}%</span> en las últimas 24h`
-      : `<span style="color:var(--cr2);font-weight:700">📉 El S&P 500 te ganó por ${Math.abs(diff).toFixed(2)}%</span> en las últimas 24h`;
+  if(verdict&&benchData.sp500){
+    verdict.innerHTML = `<span style="color:var(--tx3);font-size:11px">⚠️ Comparación no equivalente: tu ROI es acumulado desde la compra de cada activo, mientras que el S&P 500 y BTC muestran solo el cambio de las últimas 24hs. No es una comparación directa de rendimiento.</span>`;
   }
 }
 
@@ -5985,9 +6085,10 @@ function initSupabase() {
         updateSyncButton('disconnected');
       }
     });
-    // Check existing session on load
+    // Check existing session on load — block interaction until sync check resolves
     sb.auth.getSession().then(({ data }) => {
       if (data?.session?.user) {
+        showSyncBlockOverlay();
         syncUser = data.session.user;
         onLoggedIn();
       }
@@ -5996,6 +6097,19 @@ function initSupabase() {
     console.error('Supabase init error:', e);
     updateSyncButton('error');
   }
+}
+
+function showSyncBlockOverlay() {
+  const el = $('syncBlockOverlay');
+  if (el) el.style.display = 'flex';
+  // Safety: never block the app for more than 10 seconds, even if sync check hangs
+  clearTimeout(window._syncBlockSafety);
+  window._syncBlockSafety = setTimeout(hideSyncBlockOverlay, 10000);
+}
+function hideSyncBlockOverlay() {
+  const el = $('syncBlockOverlay');
+  if (el) el.style.display = 'none';
+  clearTimeout(window._syncBlockSafety);
 }
 
 function handleSyncClick() {
@@ -6022,7 +6136,9 @@ function openSyncModal() {
   }
 }
 function closeSyncModal() { $('syncModalOverlay').classList.remove('open'); }
-$('syncModalOverlay').addEventListener('click', e => { if (e.target === $('syncModalOverlay')) closeSyncModal(); });
+document.addEventListener('DOMContentLoaded', () => {
+  $('syncModalOverlay')?.addEventListener('click', e => { if (e.target === $('syncModalOverlay')) closeSyncModal(); });
+});
 
 async function signInWithGitHub() {
   if (!sb) {
@@ -6038,7 +6154,7 @@ async function signInWithGitHub() {
     const { data, error } = await sb.auth.signInWithOAuth({
       provider: 'github',
       options: {
-        redirectTo: window.location.href,
+        redirectTo: window.location.origin + window.location.pathname,
         skipBrowserRedirect: false,
       }
     });
@@ -6082,15 +6198,18 @@ function updateSyncButton(state) {
   }
 }
 
+let loginInProgress = false;
 async function onLoggedIn() {
-  closeSyncModal();
-  updateSyncButton('connected');
-  showToast(`Conectado como ${syncUser.user_metadata?.user_name || syncUser.email}`, 'ok', 3000);
+  if (loginInProgress) return;
+  loginInProgress = true;
   try {
+    closeSyncModal();
+    updateSyncButton('connected');
+    showToast(`Conectado como ${syncUser.user_metadata?.user_name || syncUser.email}`, 'ok', 3000);
     await checkForConflictsAndSync();
   } finally {
-    // Ensure button never gets stuck in "syncing" regardless of outcome
     if (syncUser) updateSyncButton('connected');
+    loginInProgress = false;
   }
 }
 
@@ -6162,6 +6281,7 @@ async function checkForConflictsAndSync() {
     updateSyncButton('error');
   } finally {
     syncCheckInFlight = false;
+    hideSyncBlockOverlay();
   }
 }
 
@@ -6203,17 +6323,20 @@ function selectConflictOption(choice) {
 
 async function confirmConflictResolution() {
   if (!conflictChoice || !pendingConflict) return;
-  if (conflictChoice === 'local') {
-    await pushToCloud();
-  } else {
-    ST = { ...ST, ...pendingConflict.cloud };
-    save();
-    renderAll();
+  try {
+    if (conflictChoice === 'local') {
+      await pushToCloud();
+    } else {
+      ST = { ...ST, ...pendingConflict.cloud };
+      save();
+      try { renderAll(); } catch(e) { console.error('renderAll error (non-fatal):', e); }
+    }
+  } finally {
+    $('conflictModalOverlay').classList.remove('open');
+    pendingConflict = null;
+    finishSync('ok');
+    showToast('Sincronización completada', 'ok');
   }
-  $('conflictModalOverlay').classList.remove('open');
-  pendingConflict = null;
-  finishSync('ok');
-  showToast('Sincronización completada', 'ok');
 }
 
 // ── PUSH / PULL ──
@@ -6222,6 +6345,7 @@ async function pushToCloud() {
   syncInFlight = true;
   updateSyncButton('syncing');
   try {
+    ST = sanitizePortfolioState(ST);
     const ts = new Date().toISOString();
     const { error } = await sb
       .from('portfolio_data')
@@ -6285,7 +6409,7 @@ setTimeout(loadManifesto, 100);
 // Auto-refresh prices every 3 minutes (only while tab is visible and no pending conflict decision)
 let autoRefreshTimer = null;
 function startAutoRefresh() {
-  if (autoRefreshTimer) clearInterval(autoRefreshTimer);
+  if (autoRefreshTimer) return; // Already running, don't reset the countdown
   autoRefreshTimer = setInterval(() => {
     const conflictOpen = $('conflictModalOverlay')?.classList.contains('open');
     if (document.visibilityState === 'visible' && !$('btnUpd')?.classList.contains('loading') && !conflictOpen) {
@@ -6293,11 +6417,14 @@ function startAutoRefresh() {
     }
   }, 180000); // 3 minutos
 }
-document.addEventListener('visibilitychange', () => {
-  if (document.visibilityState === 'visible') startAutoRefresh();
-});
 startAutoRefresh();
 </script>
+<!-- SYNC BLOCKING OVERLAY — prevents editing stale data before cloud check completes -->
+<div id="syncBlockOverlay" style="display:none;position:fixed;inset:0;z-index:9998;background:rgba(5,8,16,.85);backdrop-filter:blur(4px);align-items:center;justify-content:center;flex-direction:column;gap:14px">
+  <i class="ti ti-cloud-check" style="font-size:32px;color:var(--cv3);animation:spin 1.2s linear infinite"></i>
+  <div style="color:var(--tx1);font-size:13px;font-weight:600">Verificando datos en la nube...</div>
+  <div style="color:var(--tx3);font-size:11px">Un momento, para evitar sobrescribir información</div>
+</div>
 <!-- SYNC MODAL -->
 <div class="modal-overlay sync-modal" id="syncModalOverlay">
   <div class="modal">
