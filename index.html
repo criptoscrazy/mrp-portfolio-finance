@@ -2587,6 +2587,10 @@ function save(silent = true) {
     ST = sanitizePortfolioState(ST);
     localStorage.setItem(SKEY, JSON.stringify(ST));
     localStorage.setItem('mrp_last_local_change', new Date().toISOString());
+    clearTimeout(window._mrpCloudSaveTimer);
+    window._mrpCloudSaveTimer = setTimeout(() => {
+      if (sb && syncUser && !syncInFlight) pushToCloud();
+    }, 800);
     if (!silent) showToast(t('toastSaved'));
   }
   catch(e) { showToast(t('toastSaved') + ' — error', 'err'); }
@@ -2673,9 +2677,25 @@ function importData(e) {
   e.target.value = '';
 }
 
-function clearAll() {
+async function clearAll() {
   if (!confirm(t('confirmClear'))) return;
-  localStorage.removeItem(SKEY); location.reload();
+  if (sb && syncUser) {
+    updateSyncButton('syncing');
+    const { error } = await sb
+      .from('portfolio_data')
+      .delete()
+      .eq('user_id', syncUser.id);
+    if (error) {
+      console.error('Cloud clear error:', error);
+      updateSyncButton('error');
+      showToast('No se pudo borrar la copia en la nube. No se modificaron los datos locales.', 'err', 5000);
+      return;
+    }
+  }
+  localStorage.removeItem(SKEY);
+  localStorage.removeItem('mrp_last_local_change');
+  localStorage.removeItem('mrp_last_sync');
+  location.reload();
 }
 
 // ═══════════════════════════════════════════
@@ -3210,7 +3230,10 @@ function addHist() {
   [$('hSym'),$('hQ'),$('hP'),$('hC'),$('hN')].forEach(el=>el.value='');
   save(); renderHist();
 }
-function removeHist(id) { ST.hist = ST.hist.filter(h => h.id !== id); save(); renderHist(); }
+function removeHist(id) {
+  if (!confirm('¿Eliminar esta operación del historial?')) return;
+  ST.hist = ST.hist.filter(h => h.id !== id); save(); renderHist();
+}
 
 // ═══════════════════════════════════════════
 // INCOME
@@ -3229,7 +3252,10 @@ function addIncome() {
   save(); renderIncome();
   showToast(`Ingreso de ${sym} registrado`);
 }
-function removeIncome(id) { ST.income = ST.income.filter(i => i.id !== id); save(); renderIncome(); }
+function removeIncome(id) {
+  if (!confirm('¿Eliminar este ingreso?')) return;
+  ST.income = ST.income.filter(i => i.id !== id); save(); renderIncome();
+}
 
 // ═══════════════════════════════════════════
 // SNAPSHOTS
@@ -4647,6 +4673,7 @@ function addJournalEntry() {
 }
 
 function removeJournalEntry(id) {
+  if (!confirm('¿Eliminar esta entrada del diario?')) return;
   ST.trading.journal = ST.trading.journal.filter(j=>j.id!==id);
   save(); renderJournal(); renderTDKPIs();
 }
@@ -4743,6 +4770,7 @@ function addChecklistItem() {
 }
 
 function removeCheckItem(id) {
+  if (!confirm('¿Eliminar este ítem del checklist?')) return;
   ST.trading.checklist = (ST.trading.checklist||[]).filter(c=>c.id!==id);
   save(); renderChecklist();
 }
@@ -4922,6 +4950,7 @@ function addWatchlistItem() {
 }
 
 function removeWatchlistItem(id) {
+  if (!confirm('¿Eliminar este activo de la watchlist?')) return;
   ST.trading.watchlist = (ST.trading.watchlist||[]).filter(w=>w.id!==id);
   save(); renderWatchlist();
 }
@@ -5118,6 +5147,7 @@ function addRule() {
 }
 
 function removeRule(id){
+  if (!confirm('¿Eliminar esta regla?')) return;
   ST.trading.rules=(ST.trading.rules||[]).filter(r=>r.id!==id);
   save(); renderRules();
 }
@@ -5202,6 +5232,7 @@ if (!ST.alerts) ST.alerts = [];
 }
 
 function removeApyPosition(id) {
+  if (!confirm('¿Eliminar esta posición APY?')) return;
   ST.apyPositions = (ST.apyPositions||[]).filter(p=>p.id!==id);
   save(); renderApyTable();
 }
@@ -5383,6 +5414,7 @@ function addOtro(type) {
 }
 
 function removeOtro(id) {
+  if (!confirm('¿Eliminar esta posición?')) return;
   ST.otros = (ST.otros||[]).filter(o=>o.id!==id);
   save(); renderOtros();
 }
@@ -5550,6 +5582,7 @@ function addAlert() {
 }
 
 function removeAlert(id){
+  if (!confirm('¿Eliminar esta alerta?')) return;
   ST.alerts=(ST.alerts||[]).filter(a=>a.id!==id);
   save(); renderAlerts();
 }
