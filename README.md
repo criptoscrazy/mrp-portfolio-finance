@@ -201,7 +201,34 @@ Nunca publiques contraseñas, secretos OAuth, claves `service_role` ni backups f
 1. Abre la aplicación.
 2. Utiliza **Instalar aplicación** o **Crear acceso directo** desde el menú del navegador.
 
-## 17. Resolución de problemas
+### Safari en Mac
+
+1. Abre la aplicación en Safari.
+2. En el menú **Archivo**, selecciona **Añadir al Dock**.
+3. Usa `MRP Portfolio` como nombre y confirma.
+
+La aplicación del Dock sigue siendo una aplicación web administrada por Safari. No crea otra base de datos ni una copia independiente de la cartera: utiliza el mismo almacenamiento web, la misma cuenta de GitHub y la misma sincronización con Supabase.
+
+## 17. Uso sin conexión y copia local
+
+MRP Portfolio no es todavía una PWA offline completa.
+
+Si la aplicación ya estaba abierta cuando se pierde la conexión:
+
+- Puedes consultar la información que ya estaba cargada.
+- Puedes registrar o editar datos y se guardarán en `localStorage`.
+- La sincronización con Supabase quedará pendiente hasta recuperar internet.
+- No funcionarán las cotizaciones, noticias, TradingView ni otros servicios externos.
+
+Al recuperar la conexión, deja la aplicación abierta hasta que el indicador vuelva a mostrar **Sincronizado**. Si también hubo cambios desde otro dispositivo, revisa cuidadosamente cualquier aviso de conflicto antes de elegir una versión.
+
+Si cierras completamente la aplicación e intentas abrirla sin conexión, no se garantiza que cargue. Safari puede necesitar descargar de nuevo el HTML o alguna dependencia externa.
+
+La copia local de `index.html` es un respaldo del código, no la forma recomendada de utilizar la cartera. Abrirla directamente desde Finder utiliza un origen `file://` y puede provocar restricciones de autenticación, CORS, precios y sincronización. Para el uso cotidiano, abre la aplicación del Dock o la URL de GitHub Pages.
+
+Para disponer de funcionamiento offline completo sería necesario incorporar un `service worker`, un manifiesto PWA, caché controlada de dependencias y una cola explícita de sincronización.
+
+## 18. Resolución de problemas
 
 ### La cartera aparece vacía
 
@@ -223,7 +250,7 @@ Nunca publiques contraseñas, secretos OAuth, claves `service_role` ni backups f
 - Verifica que GitHub siga habilitado en Authentication.
 - Comprueba que la URL autorizada sea `https://criptoscrazy.github.io/mrp-portfolio-finance/`.
 
-## 18. Arquitectura técnica
+## 19. Arquitectura técnica
 
 - HTML, CSS y JavaScript en `index.html`.
 - GitHub Pages para publicación HTTPS.
@@ -233,6 +260,6 @@ Nunca publiques contraseñas, secretos OAuth, claves `service_role` ni backups f
 - CoinGecko y Yahoo Finance para precios.
 - TradingView para gráficos técnicos.
 
-## 19. Alcance
+## 20. Alcance
 
 MRP Portfolio es una herramienta personal de registro y análisis. No es un broker, no ejecuta órdenes, no garantiza la disponibilidad de cotizaciones y no ofrece asesoramiento financiero, fiscal o legal.
