@@ -49,7 +49,7 @@ No debe utilizarse un símbolo inventado como si fuera una cotización oficial.
 5. Añade opcionalmente wallet, dirección y notas.
 6. Pulsa **Agregar**.
 
-Las cotizaciones se consultan mediante CoinGecko. Si un símbolo no está incluido en el mapa interno de la aplicación, deberá valorarse manualmente.
+Las cotizaciones se consultan primero mediante el par Spot `USDT` de Binance. Si el par no está disponible o el proveedor falla, la aplicación prueba CoinGecko y después CryptoCompare. La tabla muestra la fuente y la hora utilizada junto al precio.
 
 ## 5. Otros activos
 
@@ -66,8 +66,9 @@ Utiliza la categoría que represente realmente el instrumento. No registres una 
 
 Pulsa **Actualizar precios** en la cabecera.
 
-- Las criptomonedas se consultan mediante CoinGecko.
+- Las criptomonedas se consultan mediante Binance Spot (`USDT`), con CoinGecko y CryptoCompare como respaldos.
 - Las acciones se consultan mediante Yahoo Finance y servicios de respaldo para resolver restricciones CORS.
+- La fuente y la hora de cada cotización cripto se muestran junto al precio actual.
 - La aplicación informa cuántos precios se actualizaron y cuántos quedaron sin datos.
 - Se crea o actualiza el snapshot diario de evolución.
 - La actualización automática se ejecuta cada tres minutos mientras la pestaña está visible.
@@ -296,7 +297,7 @@ Para disponer de funcionamiento offline completo sería necesario incorporar un 
 - Supabase Auth con GitHub OAuth.
 - PostgreSQL/Supabase con RLS para sincronización.
 - Chart.js para gráficos.
-- CoinGecko y Yahoo Finance para precios.
+- Binance Spot, CoinGecko, CryptoCompare y Yahoo Finance para precios.
 - TradingView para gráficos técnicos.
 
 ## 20. Alcance

@@ -346,6 +346,8 @@ tbody tr:hover .sym{color:var(--cv4)}
 td.muted{color:var(--tx2)}
 td.sym{font-weight:700;color:var(--cv3);font-size:12px;letter-spacing:-.01em}
 td.num{font-variant-numeric:tabular-nums;font-size:11px}
+.price-source{margin-top:2px;font-size:8px;line-height:1.2;color:var(--tx3);font-weight:600;white-space:nowrap}
+.price-source.binance{color:#d8a900}
 td.note-cell{max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--tx3);font-size:10px;font-style:italic}
 
 /* ── PILLS ── */
@@ -1697,8 +1699,8 @@ input::placeholder,textarea::placeholder,select::placeholder{color:var(--tx4);op
       <div class="card-sub">Información técnica de la aplicación</div>
       <div class="acc-line"></div>
       <div style="font-size:11px;color:var(--tx2);line-height:2">
-        <div style="display:flex;justify-content:space-between;border-bottom:1px solid var(--br);padding:6px 0"><span style="color:var(--tx3)">Versión</span><span style="font-weight:700;color:var(--cv3)">9.1.1 — Sincronización segura</span></div>
-        <div style="display:flex;justify-content:space-between;border-bottom:1px solid var(--br);padding:6px 0"><span style="color:var(--tx3)">Precios cripto</span><span>CoinGecko API (gratuita)</span></div>
+        <div style="display:flex;justify-content:space-between;border-bottom:1px solid var(--br);padding:6px 0"><span style="color:var(--tx3)">Versión</span><span style="font-weight:700;color:var(--cv3)">9.2 — Precios Binance</span></div>
+        <div style="display:flex;justify-content:space-between;border-bottom:1px solid var(--br);padding:6px 0"><span style="color:var(--tx3)">Precios cripto</span><span>Binance Spot · respaldos CoinGecko/CryptoCompare</span></div>
         <div style="display:flex;justify-content:space-between;border-bottom:1px solid var(--br);padding:6px 0"><span style="color:var(--tx3)">Precios acciones</span><span>Yahoo Finance API</span></div>
         <div style="display:flex;justify-content:space-between;border-bottom:1px solid var(--br);padding:6px 0"><span style="color:var(--tx3)">Almacenamiento</span><span>localStorage (local)</span></div>
         <div style="display:flex;justify-content:space-between;border-bottom:1px solid var(--br);padding:6px 0"><span style="color:var(--tx3)">Datos enviados al exterior</span><span style="color:var(--cg2)">Ninguno</span></div>
@@ -2605,7 +2607,7 @@ const STRING_STATE_KEYS = new Set([
   'style', 'status', 'exchange', 'signal', 'context', 'error', 'result', 'text',
   'category', 'priority', 'thesis', 'addedDate', 'manifesto', 'dailyContext',
   'etfType', 'index', 'tokType', 'bonType', 'currency', 'cond', 'url', 'link',
-  'image', 'logo'
+  'image', 'logo', 'priceSource', 'priceUpdatedAt'
 ]);
 
 function isPlainRecord(value) {
@@ -3120,6 +3122,7 @@ function doParseBinanceXLSX(file) {
 // PRICE UPDATE
 // ═══════════════════════════════════════════
 const CG_MAP = { BTC:'bitcoin',ETH:'ethereum',SOL:'solana',BNB:'binancecoin',ADA:'cardano',DOGE:'dogecoin',DOT:'polkadot',AVAX:'avalanche-2',MATIC:'matic-network',LINK:'chainlink',XRP:'ripple',UNI:'uniswap',ATOM:'cosmos',LTC:'litecoin',NEAR:'near',FTM:'fantom',ALGO:'algorand',SAND:'the-sandbox',MANA:'decentraland',APE:'apecoin' };
+const BINANCE_MARKET_API = 'https://data-api.binance.vision';
 
 // Multi-source price fetcher with CORS proxy fallback (Safari compatible)
 const CORS_PROXY = 'https://api.allorigins.win/get?url=';
@@ -3147,6 +3150,20 @@ async function fetchWithFallback(url, timeout = 7000) {
   return null;
 }
 
+function setCryptoMarketPrice(asset, price, changePercent, source, updatedAt = Date.now()) {
+  const numericPrice = Number(price);
+  const numericChange = Number(changePercent);
+  if (!Number.isFinite(numericPrice) || numericPrice <= 0) return false;
+  const timestamp = new Date(updatedAt);
+  asset.cur = numericPrice;
+  asset.ch = Number.isFinite(numericChange) ? numericChange / 100 : null;
+  asset.priceSource = source;
+  asset.priceUpdatedAt = Number.isFinite(timestamp.getTime())
+    ? timestamp.toISOString()
+    : new Date().toISOString();
+  return true;
+}
+
 async function updatePrices() {
   const btn = $('btnUpd');
   btn.classList.add('loading');
@@ -3154,38 +3171,82 @@ async function updatePrices() {
   $('btnTxt').textContent = t('btnUpdating');
   let updated = 0, failed = 0;
 
-  // ── CRYPTO: CoinGecko (primary) → CryptoCompare (fallback) ──
-  const cgIds = ST.crypto.map(a => CG_MAP[a.sym] || a.sym.toLowerCase());
-  if (cgIds.length) {
-    try {
-      const r = await fetchWithFallback(
-        `https://api.coingecko.com/api/v3/simple/price?ids=${cgIds.join(',')}&vs_currencies=usd&include_24hr_change=true`
-      );
-      if (r && r.ok) {
-        const d = await r.json();
-        ST.crypto.forEach(a => {
-          const id = CG_MAP[a.sym] || a.sym.toLowerCase();
-          if (d[id]) { a.cur = d[id].usd; a.ch = (d[id].usd_24h_change || 0) / 100; updated++; }
-        });
-      }
-    } catch(e) {}
-
-    // Fallback for any crypto still without price — parallel too
-    const missing = ST.crypto.filter(a => a.cur === null);
-    if (missing.length) {
-      await Promise.all(missing.map(async (a) => {
-        try {
-          const r = await fetchWithFallback(
-            `https://min-api.cryptocompare.com/data/pricemultifull?fsyms=${a.sym}&tsyms=USD`
-          );
-          if (r && r.ok) {
-            const d = await r.json();
-            const info = d?.RAW?.[a.sym]?.USD;
-            if (info) { a.cur = info.PRICE; a.ch = (info.CHANGEPCT24HOUR || 0) / 100; updated++; }
+  // ── CRYPTO: Binance Spot USDT (primary) → CoinGecko → CryptoCompare ──
+  const cryptoUpdated = new Set();
+  if (ST.crypto.length) {
+    // Request each pair independently so an unavailable Binance symbol never blocks the rest.
+    await Promise.all(ST.crypto.map(async (a) => {
+      if (!/^[A-Z0-9]{2,20}$/.test(a.sym)) return;
+      try {
+        const pair = `${a.sym}USDT`;
+        const r = await fetchWithFallback(
+          `${BINANCE_MARKET_API}/api/v3/ticker/24hr?symbol=${encodeURIComponent(pair)}`
+        );
+        if (r && r.ok) {
+          const d = await r.json();
+          if (d?.symbol === pair && setCryptoMarketPrice(
+            a,
+            d.lastPrice,
+            d.priceChangePercent,
+            'Binance · USDT',
+            d.closeTime
+          )) {
+            cryptoUpdated.add(a);
+            updated++;
           }
-        } catch(e) {}
-      }));
+        }
+      } catch(e) {}
+    }));
+
+    const coinGeckoAssets = ST.crypto.filter(a => !cryptoUpdated.has(a));
+    const cgIds = [...new Set(coinGeckoAssets.map(a => CG_MAP[a.sym] || a.sym.toLowerCase()))];
+    if (cgIds.length) {
+      try {
+        const r = await fetchWithFallback(
+          `https://api.coingecko.com/api/v3/simple/price?ids=${cgIds.join(',')}&vs_currencies=usd&include_24hr_change=true`
+        );
+        if (r && r.ok) {
+          const d = await r.json();
+          coinGeckoAssets.forEach(a => {
+            const id = CG_MAP[a.sym] || a.sym.toLowerCase();
+            if (d[id] && setCryptoMarketPrice(
+              a,
+              d[id].usd,
+              d[id].usd_24h_change,
+              'CoinGecko',
+              Date.now()
+            )) {
+              cryptoUpdated.add(a);
+              updated++;
+            }
+          });
+        }
+      } catch(e) {}
     }
+
+    const cryptoCompareAssets = ST.crypto.filter(a => !cryptoUpdated.has(a));
+    await Promise.all(cryptoCompareAssets.map(async (a) => {
+      try {
+        const r = await fetchWithFallback(
+          `https://min-api.cryptocompare.com/data/pricemultifull?fsyms=${a.sym}&tsyms=USD`
+        );
+        if (r && r.ok) {
+          const d = await r.json();
+          const info = d?.RAW?.[a.sym]?.USD;
+          if (info && setCryptoMarketPrice(
+            a,
+            info.PRICE,
+            info.CHANGEPCT24HOUR,
+            'CryptoCompare',
+            Number(info.LASTUPDATE) * 1000
+          )) {
+            cryptoUpdated.add(a);
+            updated++;
+          }
+        }
+      } catch(e) {}
+    }));
+    failed += ST.crypto.length - cryptoUpdated.size;
   }
 
   // ── STOCKS: Yahoo Finance query1 → query2 → v7 quote, all stocks fetched in PARALLEL ──
@@ -3641,6 +3702,23 @@ function renderDash() {
 // ═══════════════════════════════════════════
 // RENDER TABLES
 // ═══════════════════════════════════════════
+function renderPriceSource(asset) {
+  const source = String(asset?.priceSource || '').trim();
+  if (!source) return '';
+  const timestamp = new Date(asset.priceUpdatedAt);
+  const hasValidTime = Number.isFinite(timestamp.getTime());
+  const locale = LANG === 'en' ? 'en-US' : 'es-AR';
+  const timeLabel = hasValidTime
+    ? timestamp.toLocaleTimeString(locale, { hour:'2-digit', minute:'2-digit' })
+    : '';
+  const shortLabel = [source, timeLabel].filter(Boolean).join(' · ');
+  const fullLabel = hasValidTime
+    ? `${source} · ${timestamp.toLocaleString(locale)}`
+    : source;
+  const sourceClass = source.includes('Binance') ? ' binance' : '';
+  return `<div class="price-source${sourceClass}" title="${escapeHTML(fullLabel)}">${escapeHTML(shortLabel)}</div>`;
+}
+
 function renderTbl(assets, tbodyId, type) {
   const tb = $(tbodyId); tb.innerHTML = '';
   if (!assets.length) { tb.innerHTML = `<tr><td colspan="17" class="empty"><i class="ti ti-inbox"></i><p>${t('emptyStocks')}</p></td></tr>`; return; }
@@ -3667,7 +3745,7 @@ function renderTbl(assets, tbodyId, type) {
       <td class="num">${a.qty.toLocaleString('es-AR',{maximumFractionDigits:8})}</td>
       <td class="num">${fmt(a.buy)}</td>
       <td class="num" style="color:var(--ca2);font-weight:700">${fmt(avgP)}</td>
-      <td class="num">${a.cur!=null?fmt(a.cur):'<span style="color:var(--tx4)">—</span>'}</td>
+      <td class="num">${a.cur!=null?fmt(a.cur)+renderPriceSource(a):'<span style="color:var(--tx4)">—</span>'}</td>
       <td style="color:${chC};font-weight:700">${ch}</td>
       <td class="num muted">${fmt(cap)}</td>
       <td class="num">${cur!=null?fmt(cur):'—'}</td>
