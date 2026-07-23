@@ -130,6 +130,8 @@ Trading Desk mantiene herramientas separadas del seguimiento de inversión:
 
 Los cambios se guardan primero en el navegador y, si existe una sesión activa, se envían automáticamente a Supabase después de una breve espera.
 
+Las subidas se procesan en orden. Si realizas otro cambio mientras una subida continúa, la versión nueva queda pendiente y se envía a continuación. Si se pierde la conexión, los datos locales y su marca de cambio se conservan; al recuperar la red, la aplicación vuelve a intentar la subida pendiente.
+
 Para abrir la cartera en otro navegador:
 
 1. Abre la misma URL de MRP Portfolio.
@@ -151,7 +153,7 @@ Después de cada revisión mensual:
 3. Guarda el JSON en una ubicación privada, por ejemplo iCloud Drive.
 4. No subas backups de cartera al repositorio público de GitHub.
 
-Para restaurar, usa **Importar backup**, revisa que sea el archivo correcto y confirma el reemplazo. La aplicación valida y neutraliza contenido HTML peligroso antes de renderizar datos importados.
+Para restaurar, usa **Importar backup**, revisa que sea el archivo correcto y confirma el reemplazo. La aplicación acepta archivos de hasta 5 MB, valida la estructura completa antes de sustituir la cartera y neutraliza contenido HTML peligroso antes de renderizar datos importados. Un archivo incompleto o con tipos incompatibles se rechaza sin modificar la cartera actual.
 
 ## 13. Borrar todos los datos
 
@@ -221,6 +223,7 @@ Supabase no garantiza una cifra exacta de solicitudes que impida toda pausa. Si 
 - Cada usuario autenticado solo puede leer o modificar la fila cuyo `user_id` coincide con `auth.uid()`.
 - El propietario administrativo del proyecto Supabase puede acceder a la base de datos desde el panel; RLS protege frente a visitantes y otros usuarios de la aplicación, no frente al administrador del proyecto.
 - Los textos locales, importados y sincronizados se tratan como datos no confiables y se neutralizan antes de mostrarse.
+- Las noticias externas se insertan como texto y solo se habilitan imágenes y enlaces `https`.
 
 Nunca publiques contraseñas, secretos OAuth, claves `service_role` ni backups financieros en GitHub.
 

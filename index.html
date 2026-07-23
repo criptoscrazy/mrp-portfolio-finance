@@ -1697,7 +1697,7 @@ input::placeholder,textarea::placeholder,select::placeholder{color:var(--tx4);op
       <div class="card-sub">Información técnica de la aplicación</div>
       <div class="acc-line"></div>
       <div style="font-size:11px;color:var(--tx2);line-height:2">
-        <div style="display:flex;justify-content:space-between;border-bottom:1px solid var(--br);padding:6px 0"><span style="color:var(--tx3)">Versión</span><span style="font-weight:700;color:var(--cv3)">9.0 — Dashboard + Custodio</span></div>
+        <div style="display:flex;justify-content:space-between;border-bottom:1px solid var(--br);padding:6px 0"><span style="color:var(--tx3)">Versión</span><span style="font-weight:700;color:var(--cv3)">9.1 — Seguridad e integridad</span></div>
         <div style="display:flex;justify-content:space-between;border-bottom:1px solid var(--br);padding:6px 0"><span style="color:var(--tx3)">Precios cripto</span><span>CoinGecko API (gratuita)</span></div>
         <div style="display:flex;justify-content:space-between;border-bottom:1px solid var(--br);padding:6px 0"><span style="color:var(--tx3)">Precios acciones</span><span>Yahoo Finance API</span></div>
         <div style="display:flex;justify-content:space-between;border-bottom:1px solid var(--br);padding:6px 0"><span style="color:var(--tx3)">Almacenamiento</span><span>localStorage (local)</span></div>
@@ -2226,6 +2226,21 @@ const days = (d1, d2) => Math.max(0, Math.floor((new Date(d2) - new Date(d1)) / 
 const today = () => new Date().toISOString().split('T')[0];
 const uid = () => Math.random().toString(36).slice(2, 9);
 const curYear = new Date().getFullYear();
+const escapeHTML = value => String(value ?? '').replace(/[&<>"']/g, char => ({
+  '&': '&amp;',
+  '<': '&lt;',
+  '>': '&gt;',
+  '"': '&quot;',
+  "'": '&#39;',
+})[char]);
+const safeHttpsUrl = value => {
+  try {
+    const parsed = new URL(String(value ?? '').trim(), location.href);
+    return parsed.protocol === 'https:' ? parsed.href : '';
+  } catch (_) {
+    return '';
+  }
+};
 
 // ═══════════════════════════════════════════
 // AUTOCOMPLETE DB
@@ -2555,21 +2570,120 @@ let ST = {
   selAsset: null
 };
 
+const PORTFOLIO_ARRAY_KEYS = [
+  'stocks', 'crypto', 'hist', 'income', 'apyPositions', 'alerts', 'otros', 'snaps'
+];
+const TRADING_ARRAY_KEYS = [
+  'positions', 'journal', 'watchlist', 'checklist', 'rules', 'psychEntries'
+];
+const DEFAULT_TRADING_CHECKLIST = [
+  '¿Hay tendencia clara en el timeframe mayor?',
+  '¿El riesgo es menor al 2% del capital?',
+  '¿Tengo definido el stop loss antes de entrar?',
+  '¿Hay volumen que confirme el movimiento?',
+  '¿No hay noticias de alto impacto en los próximos 30 min?',
+  '¿Mi estado mental es óptimo para operar?',
+  '¿El ratio riesgo/beneficio es al menos 1:2?'
+];
+const DEFAULT_TRADING_RULES = [
+  ['Nunca muevas el stop loss en contra de tu posición.', 'risk'],
+  ['Si perdés el límite diario, cerrá la plataforma hasta mañana.', 'psych'],
+  ['No operés más de 3 veces por día en scalping.', 'general'],
+  ['Esperá confirmación de cierre de vela antes de entrar.', 'entry'],
+  ['Nunca operés por venganza después de una pérdida.', 'psych']
+];
+const NUMERIC_STATE_KEYS = new Set([
+  'qty', 'buy', 'cur', 'ch', 'sl', 'tg', 'price', 'comm', 'amt', 'value',
+  'entry', 'tp', 'pnlReal', 'pnl', 'r', 'rest', 'focus', 'stress', 'score',
+  'rate', 'capital', 'ter', 'ratio', 'buyARS', 'ccl', 'buyUSD', 'priceUSD',
+  'capitalUSD', 'nominal', 'buyPct', 'capUSD', 'annualInterest'
+]);
+const BOOLEAN_STATE_KEYS = new Set(['checked', 'triggered']);
+const STRING_STATE_KEYS = new Set([
+  'id', 'sym', 'symbol', 'ticker', 'name', 'date', 'type', 'notes', 'note',
+  'sector', 'broker', 'custody', 'wallet', 'addr', 'platform', 'expiry', 'dir',
+  'style', 'status', 'exchange', 'signal', 'context', 'error', 'result', 'text',
+  'category', 'priority', 'thesis', 'addedDate', 'manifesto', 'dailyContext',
+  'etfType', 'index', 'tokType', 'bonType', 'currency', 'cond', 'url', 'link',
+  'image', 'logo'
+]);
+
+function isPlainRecord(value) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
+  const proto = Object.getPrototypeOf(value);
+  return proto === Object.prototype || proto === null;
+}
+
+function isValidStateRecord(record) {
+  if (!isPlainRecord(record)) return false;
+  return Object.entries(record).every(([key, value]) => {
+    if (Array.isArray(value) || isPlainRecord(value)) return false;
+    if (NUMERIC_STATE_KEYS.has(key) && value != null && value !== '') {
+      return Number.isFinite(Number(value));
+    }
+    if (BOOLEAN_STATE_KEYS.has(key) && value != null) {
+      return typeof value === 'boolean' || value === 0 || value === 1 ||
+        value === 'true' || value === 'false';
+    }
+    if (STRING_STATE_KEYS.has(key) && value != null) return typeof value === 'string';
+    return value == null || ['string', 'number', 'boolean'].includes(typeof value);
+  });
+}
+
+function isValidRecordArray(value) {
+  return value === undefined ||
+    (Array.isArray(value) && value.length <= 10000 && value.every(isValidStateRecord));
+}
+
+function validatePortfolioStateShape(value, { requireCoreArrays = false } = {}) {
+  if (!isPlainRecord(value)) return false;
+  if (requireCoreArrays && (!Array.isArray(value.stocks) || !Array.isArray(value.crypto))) return false;
+  if (!PORTFOLIO_ARRAY_KEYS.every(key => isValidRecordArray(value[key]))) return false;
+
+  if (value.aSnaps !== undefined) {
+    if (!isPlainRecord(value.aSnaps)) return false;
+    if (!Object.values(value.aSnaps).every(isValidRecordArray)) return false;
+  }
+
+  if (value.trading !== undefined) {
+    if (!isPlainRecord(value.trading)) return false;
+    if (!TRADING_ARRAY_KEYS.every(key => isValidRecordArray(value.trading[key]))) return false;
+    if (value.trading.riskLimits !== undefined && !isValidStateRecord(value.trading.riskLimits)) return false;
+    for (const [key, fieldValue] of Object.entries(value.trading)) {
+      if (TRADING_ARRAY_KEYS.includes(key) || key === 'riskLimits') continue;
+      if (Array.isArray(fieldValue) || isPlainRecord(fieldValue)) return false;
+      if (NUMERIC_STATE_KEYS.has(key) && fieldValue != null && fieldValue !== '' &&
+        !Number.isFinite(Number(fieldValue))) return false;
+      if (STRING_STATE_KEYS.has(key) && fieldValue != null && typeof fieldValue !== 'string') return false;
+    }
+  }
+
+  if (value.selAsset != null && !isValidStateRecord(value.selAsset)) return false;
+  return true;
+}
+
 // Treat every persisted/imported string as untrusted. Most views below use
 // HTML templates, so markup delimiters must never reach those templates.
 function sanitizePortfolioState(value, key = '', depth = 0) {
   if (depth > 12) return null;
+  if (key === 'id') {
+    return String(value ?? '').replace(/[^A-Za-z0-9_-]/g, '').slice(0, 100);
+  }
+  if (key === 'sym' || key === 'symbol' || key === 'ticker') {
+    return String(value ?? '').toUpperCase().replace(/[^A-Z0-9._:^/-]/g, '').slice(0, 40);
+  }
+  if (NUMERIC_STATE_KEYS.has(key)) {
+    if (value == null || value === '') return null;
+    const numericValue = Number(value);
+    return Number.isFinite(numericValue) ? numericValue : null;
+  }
+  if (BOOLEAN_STATE_KEYS.has(key)) {
+    return value === true || value === 1 || value === 'true';
+  }
   if (typeof value === 'string') {
     let clean = value.replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, '').slice(0, 5000);
-    if (key === 'id') return clean.replace(/[^A-Za-z0-9_-]/g, '').slice(0, 100);
-    if (key === 'sym' || key === 'symbol' || key === 'ticker') {
-      return clean.toUpperCase().replace(/[^A-Z0-9._:^/-]/g, '').slice(0, 40);
-    }
     if (/^(url|link|image|logo)$/i.test(key)) {
-      try {
-        const parsed = new URL(clean, location.href);
-        return parsed.protocol === 'https:' ? parsed.href : '';
-      } catch (_) { return ''; }
+      return safeHttpsUrl(clean);
     }
     return clean.replace(/[<>]/g, '');
   }
@@ -2587,25 +2701,38 @@ function sanitizePortfolioState(value, key = '', depth = 0) {
   return value;
 }
 
-function save(silent = true) {
+function save(silent = true, { scheduleSync = true, timestamp = null } = {}) {
   try {
-    ST = sanitizePortfolioState(ST);
+    const sanitizedState = sanitizePortfolioState(ST);
+    if (!validatePortfolioStateShape(sanitizedState)) {
+      throw new Error('Portfolio state failed structural validation');
+    }
+    ST = sanitizedState;
     localStorage.setItem(SKEY, JSON.stringify(ST));
-    localStorage.setItem('mrp_last_local_change', new Date().toISOString());
-    clearTimeout(window._mrpCloudSaveTimer);
-    window._mrpCloudSaveTimer = setTimeout(() => {
-      if (sb && syncUser && !syncInFlight) pushToCloud();
-    }, 800);
+    localStorage.setItem('mrp_last_local_change', timestamp || new Date().toISOString());
+    if (scheduleSync) scheduleCloudSync();
     if (!silent) showToast(t('toastSaved'));
   }
-  catch(e) { showToast(t('toastSaved') + ' — error', 'err'); }
+  catch(e) {
+    console.error('Local save error:', e);
+    showToast(t('toastSaved') + ' — error', 'err');
+  }
 }
 
 function loadState() {
   try {
     const raw = localStorage.getItem(SKEY);
-    if (raw) ST = sanitizePortfolioState({ ...ST, ...JSON.parse(raw) });
-  } catch(e) {}
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (!validatePortfolioStateShape(parsed)) {
+        throw new Error('Stored portfolio state has an invalid structure');
+      }
+      ST = sanitizePortfolioState({ ...ST, ...parsed });
+    }
+  } catch(e) {
+    console.error('Local state load error:', e);
+    window._mrpInvalidLocalState = true;
+  }
   const theme = localStorage.getItem('mrp_theme') || 'dark';
   document.documentElement.setAttribute('data-theme', theme);
   $('themeIco').className = theme === 'dark' ? 'ti ti-sun' : 'ti ti-moon';
@@ -2639,14 +2766,18 @@ function exportData() {
 
 function importData(e) {
   const file = e.target.files[0]; if (!file) return;
+  if (file.size > 5 * 1024 * 1024) {
+    showToast('El backup supera el límite de 5 MB y no se importó.', 'err', 5000);
+    e.target.value = '';
+    return;
+  }
   const reader = new FileReader();
   reader.onload = ev => {
     try {
       const parsed = JSON.parse(ev.target.result);
 
-      // Validate this actually looks like a MRP Portfolio backup before touching anything
-      const isValidBackup = parsed && typeof parsed === 'object' &&
-        Array.isArray(parsed.stocks) && Array.isArray(parsed.crypto);
+      // Validate the complete backup shape before touching the current portfolio.
+      const isValidBackup = validatePortfolioStateShape(parsed, { requireCoreArrays: true });
 
       if (!isValidBackup) {
         showToast('Este archivo no parece ser un backup válido de MRP Portfolio', 'err', 4000);
@@ -2670,7 +2801,7 @@ function importData(e) {
                    manifesto:'', capital:10000, dailyContext:'' },
         ...parsed
       });
-      save();
+      save(true);
       renderAll();
       showToast(t('toastImported'));
     } catch(err) {
@@ -3527,7 +3658,7 @@ function renderTbl(assets, tbodyId, type) {
       : ``;
     const extraCols2 = type === 'stock'
       ? `<td class="num" style="color:var(--cr2)">${a.sl?fmt(a.sl):'—'}</td><td class="num" style="color:var(--cg2)">${a.tg?fmt(a.tg):'—'}</td><td class="muted">${a.broker||'—'}</td>`
-      : `<td><i class="ti ${custIcon}" style="color:var(--cv3)" title="${a.custody||'exchange'}"></i> <span class="pill pill-t" style="font-size:8px">${a.custody||'exchange'}</span></td><td class="muted">${a.wallet||'—'}</td>`;
+      : `<td><i class="ti ${custIcon}" style="color:var(--cv3)" title="${escapeHTML(a.custody||'exchange')}"></i> <span class="pill pill-t" style="font-size:8px">${a.custody||'exchange'}</span></td><td class="muted">${a.wallet||'—'}</td>`;
     const tr = document.createElement('tr');
     tr.innerHTML = `
       <td class="sym">${a.sym}</td>
@@ -3544,7 +3675,7 @@ function renderTbl(assets, tbodyId, type) {
       <td>${ppPill}</td>
       ${extraCols2}
       <td class="muted">${d}d</td>
-      <td class="note-cell" title="${(a.note||'').replace(/"/g,'&quot;')}">${a.note||'—'}</td>
+      <td class="note-cell" title="${escapeHTML(a.note||'')}">${a.note||'—'}</td>
       <td style="white-space:nowrap">
         <button class="btn-edit" onclick="openEdit('${type}','${a.id}')" title="Editar"><i class="ti ti-pencil"></i></button>
         <button class="btn-del" onclick="removeAsset('${type}','${a.id}')" title="Eliminar"><i class="ti ti-trash"></i></button>
@@ -4414,22 +4545,8 @@ if (!ST.trading) ST.trading = {
   positions: [],
   journal: [],
   watchlist: [],
-  checklist: [
-    { id: uid(), text: '¿Hay tendencia clara en el timeframe mayor?', checked: false },
-    { id: uid(), text: '¿El riesgo es menor al 2% del capital?', checked: false },
-    { id: uid(), text: '¿Tengo definido el stop loss antes de entrar?', checked: false },
-    { id: uid(), text: '¿Hay volumen que confirme el movimiento?', checked: false },
-    { id: uid(), text: '¿No hay noticias de alto impacto en los próximos 30 min?', checked: false },
-    { id: uid(), text: '¿Mi estado mental es óptimo para operar?', checked: false },
-    { id: uid(), text: '¿El ratio riesgo/beneficio es al menos 1:2?', checked: false },
-  ],
-  rules: [
-    { id: uid(), text: 'Nunca muevas el stop loss en contra de tu posición.', category: 'risk' },
-    { id: uid(), text: 'Si perdés el límite diario, cerrá la plataforma hasta mañana.', category: 'psych' },
-    { id: uid(), text: 'No operés más de 3 veces por día en scalping.', category: 'general' },
-    { id: uid(), text: 'Esperá confirmación de cierre de vela antes de entrar.', category: 'entry' },
-    { id: uid(), text: 'Nunca operés por venganza después de una pérdida.', category: 'psych' },
-  ],
+  checklist: DEFAULT_TRADING_CHECKLIST.map(text => ({ id: uid(), text, checked: false })),
+  rules: DEFAULT_TRADING_RULES.map(([text, category]) => ({ id: uid(), text, category })),
   psychEntries: [],
   riskLimits: { monthlyGoal: '', dailyLoss: '', monthlyLoss: '', maxOpsDay: '' },
   manifesto: '',
@@ -4614,7 +4731,7 @@ function renderPositions() {
         <td class="num" style="color:var(--ca2)">${ratioR}</td>
         <td class="num" style="color:var(--cr2)">${risk?fmt(risk):'—'}</td>
         <td class="muted">${p.date}</td>
-        <td class="note-cell" title="${(p.notes||'').replace(/"/g,'&quot;')}">${p.notes||'—'}</td>
+        <td class="note-cell" title="${escapeHTML(p.notes||'')}">${p.notes||'—'}</td>
         <td style="white-space:nowrap">
           ${p.status==='open'?`<button class="btn-edit" onclick="closeTrade('${p.id}')" title="Cerrar posición"><i class="ti ti-lock"></i></button>`:''}
           <button class="btn-edit" onclick="openTradeModal('${p.id}')" title="Editar"><i class="ti ti-pencil"></i></button>
@@ -4701,9 +4818,9 @@ function renderJournal() {
       <td>${resPill}</td>
       <td class="num" style="color:${pnlC};font-weight:700">${fmt(j.pnl)}</td>
       <td class="num" style="color:var(--ca2)">${j.r?j.r+'R':'—'}</td>
-      <td class="muted note-cell" title="${j.signal}">${j.signal||'—'}</td>
+      <td class="muted note-cell" title="${escapeHTML(j.signal)}">${j.signal||'—'}</td>
       <td>${j.error?`<span class="pill pill-r" style="font-size:9px">${errorLabels[j.error]||j.error}</span>`:'—'}</td>
-      <td class="note-cell muted" title="${j.notes}">${j.notes||'—'}</td>
+      <td class="note-cell muted" title="${escapeHTML(j.notes)}">${j.notes||'—'}</td>
       <td><button class="btn-del" onclick="removeJournalEntry('${j.id}')"><i class="ti ti-x"></i></button></td>
     </tr>`;
   }).join('');
@@ -4984,7 +5101,7 @@ function renderWatchlist() {
       <td class="num" style="color:var(--cg2)">${w.tp?fmt(w.tp):'—'}</td>
       <td class="num" style="color:var(--ca2);font-weight:700">${ratioRB}</td>
       <td style="color:${prColors[w.priority]};font-weight:600;font-size:10px">${prIcons[w.priority]}</td>
-      <td class="note-cell muted" title="${w.thesis}">${w.thesis||'—'}</td>
+      <td class="note-cell muted" title="${escapeHTML(w.thesis)}">${w.thesis||'—'}</td>
       <td><button class="btn-del" onclick="removeWatchlistItem('${w.id}')"><i class="ti ti-x"></i></button></td>
     </tr>`;
   }).join('');
@@ -5473,7 +5590,7 @@ function renderOtros() {
           <td class="muted">${e.ter?e.ter+'%':'—'}</td>
           <td class="muted">${e.broker||'—'}</td>
           <td class="muted">${d}d</td>
-          <td class="note-cell muted" title="${e.note||''}">${e.note||'—'}</td>
+          <td class="note-cell muted" title="${escapeHTML(e.note||'')}">${e.note||'—'}</td>
           <td><button class="btn-del" onclick="removeOtro('${e.id}')"><i class="ti ti-x"></i></button></td>
         </tr>`;
       }).join('');
@@ -6039,27 +6156,89 @@ function filterNews(sym) {
 
   const COLORS = { BTC:'pill-y', ETH:'pill-b', SOL:'pill-g', AAPL:'pill-b', MSFT:'pill-b', NVDA:'pill-r', default:'pill-t' };
 
-  grid.innerHTML = filtered.map(n => {
+  const createNewsPlaceholder = () => {
+    const placeholder = document.createElement('div');
+    placeholder.className = 'news-img-ph';
+    const icon = document.createElement('i');
+    icon.className = 'ti ti-news';
+    icon.style.fontSize = '28px';
+    placeholder.appendChild(icon);
+    return placeholder;
+  };
+
+  grid.replaceChildren();
+  filtered.forEach(n => {
     const tagClass = COLORS[n.sym] || COLORS.default;
     const relTime = getRelativeTime(n.pubDate);
-    const imgHtml = n.image
-      ? `<img class="news-img" src="${n.image}" alt="" loading="lazy" onerror="this.parentElement.innerHTML='<div class=news-img-ph><i class=ti-news style=font-family:tabler-icons></i></div>'">`
-      : `<div class="news-img-ph"><i class="ti ti-news" style="font-size:28px"></i></div>`;
-    return `
-      <div class="news-card">
-        ${imgHtml}
-        <div class="news-body">
-          <span class="news-tag ${tagClass}">${n.sym}</span>
-          <div class="news-title" title="${n.title.replace(/"/g,'&quot;')}">${n.title}</div>
-          ${n.description ? `<div style="font-size:10px;color:var(--tx3);line-height:1.6;margin-bottom:8px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">${n.description}</div>` : ''}
-          <div class="news-meta">
-            <span class="news-source"><i class="ti ti-building-newspaper" style="font-size:10px"></i> ${n.source}</span>
-            <span class="news-date">${relTime}</span>
-          </div>
-        </div>
-        <a class="news-link" href="${n.link}" target="_blank" rel="noopener noreferrer">Leer artículo completo <i class="ti ti-external-link" style="font-size:10px"></i></a>
-      </div>`;
-  }).join('');
+    const card = document.createElement('div');
+    card.className = 'news-card';
+
+    const imageUrl = safeHttpsUrl(n.image);
+    if (imageUrl) {
+      const image = document.createElement('img');
+      image.className = 'news-img';
+      image.src = imageUrl;
+      image.alt = '';
+      image.loading = 'lazy';
+      image.addEventListener('error', () => image.replaceWith(createNewsPlaceholder()), { once: true });
+      card.appendChild(image);
+    } else {
+      card.appendChild(createNewsPlaceholder());
+    }
+
+    const body = document.createElement('div');
+    body.className = 'news-body';
+
+    const tag = document.createElement('span');
+    tag.className = `news-tag ${tagClass}`;
+    tag.textContent = String(n.sym ?? '');
+    body.appendChild(tag);
+
+    const title = document.createElement('div');
+    title.className = 'news-title';
+    title.textContent = String(n.title ?? '');
+    title.title = String(n.title ?? '');
+    body.appendChild(title);
+
+    if (n.description) {
+      const description = document.createElement('div');
+      description.style.cssText = 'font-size:10px;color:var(--tx3);line-height:1.6;margin-bottom:8px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden';
+      description.textContent = String(n.description);
+      body.appendChild(description);
+    }
+
+    const meta = document.createElement('div');
+    meta.className = 'news-meta';
+    const source = document.createElement('span');
+    source.className = 'news-source';
+    const sourceIcon = document.createElement('i');
+    sourceIcon.className = 'ti ti-building-newspaper';
+    sourceIcon.style.fontSize = '10px';
+    source.append(sourceIcon, document.createTextNode(` ${String(n.source ?? '')}`));
+    const date = document.createElement('span');
+    date.className = 'news-date';
+    date.textContent = relTime;
+    meta.append(source, date);
+    body.appendChild(meta);
+    card.appendChild(body);
+
+    const articleUrl = safeHttpsUrl(n.link);
+    if (articleUrl) {
+      const link = document.createElement('a');
+      link.className = 'news-link';
+      link.href = articleUrl;
+      link.target = '_blank';
+      link.rel = 'noopener noreferrer';
+      link.append(document.createTextNode('Leer artículo completo '));
+      const linkIcon = document.createElement('i');
+      linkIcon.className = 'ti ti-external-link';
+      linkIcon.style.fontSize = '10px';
+      link.appendChild(linkIcon);
+      card.appendChild(link);
+    }
+
+    grid.appendChild(card);
+  });
 }
 
 function getRelativeTime(dateStr) {
@@ -6098,6 +6277,23 @@ let conflictChoice = null;
 let syncInFlight = false;
 let syncCheckInFlight = false;
 let supabaseInitAttempts = 0;
+let cloudSyncPending = false;
+let cloudSyncTimer = null;
+let cloudSyncPromise = null;
+
+function scheduleCloudSync(delay = 800) {
+  if (!sb || !syncUser) return;
+  cloudSyncPending = true;
+  clearTimeout(cloudSyncTimer);
+  cloudSyncTimer = setTimeout(() => {
+    cloudSyncTimer = null;
+    pushToCloud();
+  }, delay);
+}
+
+window.addEventListener('online', () => {
+  if (sb && syncUser && cloudSyncPending) scheduleCloudSync(250);
+});
 
 function initSupabase() {
   if (typeof window.supabase === 'undefined' || !window.supabase.createClient) {
@@ -6246,7 +6442,6 @@ async function onLoggedIn() {
     showToast(`Conectado como ${syncUser.user_metadata?.user_name || syncUser.email}`, 'ok', 3000);
     await checkForConflictsAndSync();
   } finally {
-    if (syncUser) updateSyncButton('connected');
     loginInProgress = false;
   }
 }
@@ -6264,6 +6459,9 @@ async function checkForConflictsAndSync() {
 
     if (error && error.code !== 'PGRST116') throw error;
 
+    if (data?.data && !validatePortfolioStateShape(data.data)) {
+      throw new Error('Cloud portfolio state has an invalid structure');
+    }
     const hasLocalData = hasRealData(ST);
     const hasCloudData = data && data.data && hasRealData(data.data);
     const localTimestamp = localStorage.getItem('mrp_last_local_change');
@@ -6276,8 +6474,8 @@ async function checkForConflictsAndSync() {
     }
     if (hasCloudData && !hasLocalData) {
       // Only cloud has data -> pull it, nothing to lose locally
-      ST = { ...ST, ...data.data };
-      save();
+      ST = sanitizePortfolioState({ ...ST, ...data.data });
+      save(true, { scheduleSync: false, timestamp: cloudTimestamp });
       renderAll();
       finishSync('ok');
       showToast('Datos descargados de la nube', 'ok');
@@ -6294,8 +6492,12 @@ async function checkForConflictsAndSync() {
       const cloudTime = new Date(cloudTimestamp).getTime();
       const diffSeconds = Math.abs(localTime - cloudTime) / 1000;
       if (diffSeconds < 5) {
-        // Essentially the same moment (this device's own last push) — no action needed
-        finishSync('ok');
+        // Treat near-identical timestamps as equal only when the payloads also match.
+        if (portfolioStatesEqual(ST, data.data)) {
+          finishSync('ok');
+        } else {
+          showConflictModal(ST, data.data, data.updated_at);
+        }
         return;
       }
       if (localTime > cloudTime) {
@@ -6304,8 +6506,8 @@ async function checkForConflictsAndSync() {
         return;
       } else {
         // Cloud has newer changes than this device — pull
-        ST = { ...ST, ...data.data };
-        save();
+        ST = sanitizePortfolioState({ ...ST, ...data.data });
+        save(true, { scheduleSync: false, timestamp: cloudTimestamp });
         renderAll();
         finishSync('ok');
         showToast('Se descargó una versión más reciente de la nube', 'ok');
@@ -6324,20 +6526,69 @@ async function checkForConflictsAndSync() {
 }
 
 function hasRealData(state) {
-  if (!state) return false;
-  return (state.stocks?.length > 0) || (state.crypto?.length > 0) || (state.otros?.length > 0) ||
-         (state.hist?.length > 0) || (state.trading?.positions?.length > 0);
+  if (!isPlainRecord(state)) return false;
+  const topLevelData = PORTFOLIO_ARRAY_KEYS.some(key => state[key]?.length > 0);
+  const assetSnapshots = isPlainRecord(state.aSnaps) &&
+    Object.values(state.aSnaps).some(items => Array.isArray(items) && items.length > 0);
+  const trading = isPlainRecord(state.trading) ? state.trading : {};
+  const tradingCollections = ['positions', 'journal', 'watchlist', 'psychEntries']
+    .some(key => trading[key]?.length > 0);
+  const checklist = Array.isArray(trading.checklist) ? trading.checklist : [];
+  const customChecklist = checklist.length !== DEFAULT_TRADING_CHECKLIST.length ||
+    checklist.some((item, index) => item?.text !== DEFAULT_TRADING_CHECKLIST[index] || item?.checked);
+  const rules = Array.isArray(trading.rules) ? trading.rules : [];
+  const customRules = rules.length !== DEFAULT_TRADING_RULES.length ||
+    rules.some((rule, index) =>
+      rule?.text !== DEFAULT_TRADING_RULES[index]?.[0] ||
+      rule?.category !== DEFAULT_TRADING_RULES[index]?.[1]
+    );
+  const riskLimits = isPlainRecord(trading.riskLimits) &&
+    Object.values(trading.riskLimits).some(value => String(value ?? '').trim() !== '');
+  const tradingText = [trading.manifesto, trading.dailyContext]
+    .some(value => String(value ?? '').trim() !== '');
+  const customCapital = Number.isFinite(Number(trading.capital)) && Number(trading.capital) !== 10000;
+  return topLevelData || assetSnapshots || tradingCollections || customChecklist || customRules ||
+    riskLimits || tradingText || customCapital;
+}
+
+function portfolioStatesEqual(first, second) {
+  const comparable = state => {
+    const sanitized = sanitizePortfolioState(state);
+    if (isPlainRecord(sanitized)) delete sanitized.selAsset;
+    return JSON.stringify(sanitized);
+  };
+  return comparable(first) === comparable(second);
+}
+
+function countPortfolioRecords(state) {
+  if (!isPlainRecord(state)) return 0;
+  const topLevelCount = PORTFOLIO_ARRAY_KEYS.reduce(
+    (total, key) => total + (Array.isArray(state[key]) ? state[key].length : 0),
+    0
+  );
+  const trading = isPlainRecord(state.trading) ? state.trading : {};
+  const tradingCount = TRADING_ARRAY_KEYS.reduce(
+    (total, key) => total + (Array.isArray(trading[key]) ? trading[key].length : 0),
+    0
+  );
+  const snapshotCount = isPlainRecord(state.aSnaps)
+    ? Object.values(state.aSnaps).reduce(
+        (total, items) => total + (Array.isArray(items) ? items.length : 0),
+        0
+      )
+    : 0;
+  return topLevelCount + tradingCount + snapshotCount;
 }
 
 function showConflictModal(localData, cloudData, cloudUpdatedAt) {
-  pendingConflict = { local: localData, cloud: cloudData };
+  pendingConflict = { local: localData, cloud: cloudData, cloudUpdatedAt };
   conflictChoice = null;
 
-  const localCount = (localData.stocks?.length||0) + (localData.crypto?.length||0) + (localData.otros?.length||0);
-  const cloudCount = (cloudData.stocks?.length||0) + (cloudData.crypto?.length||0) + (cloudData.otros?.length||0);
+  const localCount = countPortfolioRecords(localData);
+  const cloudCount = countPortfolioRecords(cloudData);
 
-  $('conflictLocalInfo').textContent = `${localCount} activos registrados en este dispositivo`;
-  $('conflictCloudInfo').textContent = `${cloudCount} activos · última actualización: ${new Date(cloudUpdatedAt).toLocaleString('es-AR')}`;
+  $('conflictLocalInfo').textContent = `${localCount} registros guardados en este dispositivo`;
+  $('conflictCloudInfo').textContent = `${cloudCount} registros · última actualización: ${new Date(cloudUpdatedAt).toLocaleString('es-AR')}`;
 
   $('conflictLocal').classList.remove('selected');
   $('conflictCloud').classList.remove('selected');
@@ -6361,68 +6612,91 @@ function selectConflictOption(choice) {
 
 async function confirmConflictResolution() {
   if (!conflictChoice || !pendingConflict) return;
+  let completed = false;
   try {
     if (conflictChoice === 'local') {
-      await pushToCloud();
+      completed = await pushToCloud();
     } else {
-      ST = { ...ST, ...pendingConflict.cloud };
-      save();
+      if (!validatePortfolioStateShape(pendingConflict.cloud)) {
+        throw new Error('Selected cloud state has an invalid structure');
+      }
+      ST = sanitizePortfolioState({ ...ST, ...pendingConflict.cloud });
+      save(true, { scheduleSync: false, timestamp: pendingConflict.cloudUpdatedAt });
       try { renderAll(); } catch(e) { console.error('renderAll error (non-fatal):', e); }
+      finishSync('ok');
+      completed = true;
     }
+  } catch (e) {
+    console.error('Conflict resolution error:', e);
+    updateSyncButton('error');
+    showToast('No se pudo completar la sincronización. Tus datos locales se conservaron.', 'err', 5000);
   } finally {
     $('conflictModalOverlay').classList.remove('open');
     pendingConflict = null;
-    finishSync('ok');
-    showToast('Sincronización completada', 'ok');
+    if (completed) showToast('Sincronización completada', 'ok');
   }
 }
 
 // ── PUSH / PULL ──
 async function pushToCloud() {
-  if (!sb || !syncUser || syncInFlight) return;
+  if (!sb || !syncUser) return false;
+  cloudSyncPending = true;
+  clearTimeout(cloudSyncTimer);
+  cloudSyncTimer = null;
+  if (syncInFlight && cloudSyncPromise) return cloudSyncPromise;
+
   syncInFlight = true;
   updateSyncButton('syncing');
-  try {
-    ST = sanitizePortfolioState(ST);
-    const ts = new Date().toISOString();
-    const { error } = await sb
-      .from('portfolio_data')
-      .upsert({ user_id: syncUser.id, data: ST, updated_at: ts });
-    if (error) throw error;
-    // Keep local timestamp in lockstep with what we just pushed
-    localStorage.setItem('mrp_last_local_change', ts);
-    finishSync('ok');
-  } catch(e) {
-    console.error('Push error:', e);
-    updateSyncButton('error');
-  } finally {
-    syncInFlight = false;
-  }
+  cloudSyncPromise = (async () => {
+    try {
+      while (cloudSyncPending && sb && syncUser) {
+        cloudSyncPending = false;
+        const snapshot = sanitizePortfolioState(ST);
+        if (!validatePortfolioStateShape(snapshot)) {
+          throw new Error('Portfolio state failed validation before cloud upload');
+        }
+        const payload = JSON.parse(JSON.stringify(snapshot));
+        const ts = new Date().toISOString();
+        const { error } = await sb
+          .from('portfolio_data')
+          .upsert({ user_id: syncUser.id, data: payload, updated_at: ts });
+        if (error) throw error;
+        // Do not overwrite a newer local-change timestamp when another edit arrived
+        // while this request was in flight. The queued pass will reconcile it.
+        if (!cloudSyncPending) localStorage.setItem('mrp_last_local_change', ts);
+      }
+      clearTimeout(cloudSyncTimer);
+      cloudSyncTimer = null;
+      finishSync('ok');
+      return true;
+    } catch(e) {
+      cloudSyncPending = true;
+      console.error('Push error:', e);
+      updateSyncButton('error');
+      return false;
+    } finally {
+      syncInFlight = false;
+      cloudSyncPromise = null;
+    }
+  })();
+  return cloudSyncPromise;
 }
 
 async function manualSync() {
   if (!sb || !syncUser) return;
-  await pushToCloud();
-  showToast('Sincronizado con la nube', 'ok');
-  closeSyncModal();
+  const completed = await pushToCloud();
+  if (completed) {
+    showToast('Sincronizado con la nube', 'ok');
+    closeSyncModal();
+  } else {
+    showToast('No se pudo sincronizar. Tus datos locales se conservaron.', 'err', 5000);
+  }
 }
 
 function finishSync(status) {
   localStorage.setItem('mrp_last_sync', new Date().toISOString());
   updateSyncButton(status === 'ok' ? 'connected' : 'error');
 }
-
-// Auto-sync to cloud after any save(), debounced
-let autoSyncTimer = null;
-const originalSave = save;
-save = function(silent = true) {
-  originalSave(silent);
-  if (syncUser && sb) {
-    clearTimeout(autoSyncTimer);
-    autoSyncTimer = setTimeout(() => pushToCloud(), 2500);
-  }
-};
-
 
 // ═══════════════════════════════════════════
 // INIT
@@ -6440,6 +6714,9 @@ if (!ST.trading) ST.trading = {
 };
 if (!ST.apyPositions) ST.apyPositions = [];
 renderAll();
+if (window._mrpInvalidLocalState) {
+  showToast('Los datos locales tenían un formato inválido y no se cargaron. Restaurá un backup válido antes de guardar cambios.', 'err', 8000);
+}
 initNewsSymsList();
 updateMarketHours();
 setTimeout(loadManifesto, 100);
