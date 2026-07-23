@@ -174,7 +174,43 @@ Supabase puede pausar proyectos del plan gratuito con poca actividad. Si el bot�
 4. Espera hasta que el estado sea **Healthy**.
 5. Vuelve a abrir MRP Portfolio.
 
-No es necesario contratar Pro para un uso personal ocasional, pero habrá que reactivar el proyecto cuando Supabase lo pause.
+### Mantenimiento automático con GitHub Actions
+
+El repositorio incluye un workflow que genera actividad mínima en Supabase tres veces por semana:
+
+- Lunes a las `06:17 UTC`.
+- Miércoles a las `18:43 UTC`.
+- Sábado a las `11:29 UTC`.
+
+Los horarios son fijos pero deliberadamente irregulares. GitHub puede retrasar ocasionalmente una ejecución programada.
+
+Antes de activarlo:
+
+1. Abre **SQL Editor** en el proyecto `mrp-Portfolio Finance`.
+2. Copia y ejecuta el contenido de `supabase/keepalive.sql`.
+3. En GitHub abre **Settings > Secrets and variables > Actions**.
+4. Crea el secreto `SUPABASE_URL` con la URL del proyecto, sin una barra final.
+5. Crea el secreto `SUPABASE_ANON_KEY` con la clave pública `anon` o `publishable`.
+6. Abre **Actions > Supabase keepalive**.
+7. Pulsa **Run workflow** para realizar la primera prueba.
+8. Comprueba que la ejecución termina en verde y muestra `Supabase keepalive completed successfully`.
+
+La función `keepalive` no lee ni modifica `portfolio_data`. Solo devuelve una confirmación y la hora del servidor. No utilices una clave `service_role` en este workflow.
+
+### Evitar que GitHub desactive el workflow
+
+GitHub puede desactivar workflows programados de repositorios públicos cuando el repositorio no registra actividad durante 60 días. Las propias ejecuciones programadas no deben considerarse un sustituto de actividad del repositorio.
+
+Cada seis u ocho semanas:
+
+1. Revisa **Actions > Supabase keepalive** y confirma que las ejecuciones siguen en verde.
+2. Aprovecha para realizar una actualización real si procede: corregir el README, revisar una dependencia o documentar una prueba.
+3. Haz el cambio mediante un commit en la rama `main`.
+4. Si GitHub ya lo desactivó, abre el workflow en **Actions** y pulsa **Enable workflow**.
+
+No se recomienda crear commits automáticos sin contenido útil únicamente para simular actividad. Si no hay nada que actualizar, basta con revisar si el workflow continúa habilitado y volver a habilitarlo manualmente cuando GitHub lo solicite.
+
+Supabase no garantiza una cifra exacta de solicitudes que impida toda pausa. Si el proyecto vuelve a pausarse con este calendario, aumenta la frecuencia a una ejecución diaria.
 
 ## 15. Privacidad y seguridad
 
