@@ -1697,7 +1697,7 @@ input::placeholder,textarea::placeholder,select::placeholder{color:var(--tx4);op
       <div class="card-sub">Información técnica de la aplicación</div>
       <div class="acc-line"></div>
       <div style="font-size:11px;color:var(--tx2);line-height:2">
-        <div style="display:flex;justify-content:space-between;border-bottom:1px solid var(--br);padding:6px 0"><span style="color:var(--tx3)">Versión</span><span style="font-weight:700;color:var(--cv3)">9.1 — Seguridad e integridad</span></div>
+        <div style="display:flex;justify-content:space-between;border-bottom:1px solid var(--br);padding:6px 0"><span style="color:var(--tx3)">Versión</span><span style="font-weight:700;color:var(--cv3)">9.1.1 — Sincronización segura</span></div>
         <div style="display:flex;justify-content:space-between;border-bottom:1px solid var(--br);padding:6px 0"><span style="color:var(--tx3)">Precios cripto</span><span>CoinGecko API (gratuita)</span></div>
         <div style="display:flex;justify-content:space-between;border-bottom:1px solid var(--br);padding:6px 0"><span style="color:var(--tx3)">Precios acciones</span><span>Yahoo Finance API</span></div>
         <div style="display:flex;justify-content:space-between;border-bottom:1px solid var(--br);padding:6px 0"><span style="color:var(--tx3)">Almacenamiento</span><span>localStorage (local)</span></div>
@@ -6466,6 +6466,8 @@ async function checkForConflictsAndSync() {
     const hasCloudData = data && data.data && hasRealData(data.data);
     const localTimestamp = localStorage.getItem('mrp_last_local_change');
     const cloudTimestamp = data?.updated_at;
+    const localTime = localTimestamp ? new Date(localTimestamp).getTime() : NaN;
+    const cloudTime = cloudTimestamp ? new Date(cloudTimestamp).getTime() : NaN;
 
     if (!hasCloudData && !hasLocalData) {
       // Nothing anywhere yet — nothing to do
@@ -6486,18 +6488,25 @@ async function checkForConflictsAndSync() {
       await pushToCloud();
       return;
     }
-    // Both have data: compare timestamps to decide automatically, ONLY ask if truly ambiguous
-    if (localTimestamp && cloudTimestamp) {
-      const localTime = new Date(localTimestamp).getTime();
-      const cloudTime = new Date(cloudTimestamp).getTime();
+    // Both have data: matching payloads are already synchronized, even if a
+    // timestamp is missing after an upgrade or migration.
+    if (portfolioStatesEqual(ST, data.data)) {
+      localStorage.setItem(
+        'mrp_last_local_change',
+        Number.isFinite(cloudTime)
+          ? cloudTimestamp
+          : (Number.isFinite(localTime) ? localTimestamp : new Date().toISOString())
+      );
+      finishSync('ok');
+      return;
+    }
+
+    // Different payloads: compare timestamps to decide automatically, ONLY ask if truly ambiguous
+    if (Number.isFinite(localTime) && Number.isFinite(cloudTime)) {
       const diffSeconds = Math.abs(localTime - cloudTime) / 1000;
       if (diffSeconds < 5) {
-        // Treat near-identical timestamps as equal only when the payloads also match.
-        if (portfolioStatesEqual(ST, data.data)) {
-          finishSync('ok');
-        } else {
-          showConflictModal(ST, data.data, data.updated_at);
-        }
+        // Different payloads with near-identical timestamps are genuinely ambiguous.
+        showConflictModal(ST, data.data, data.updated_at);
         return;
       }
       if (localTime > cloudTime) {
@@ -6514,7 +6523,7 @@ async function checkForConflictsAndSync() {
         return;
       }
     }
-    // No reliable local timestamp to compare — this is genuinely ambiguous, ask the user
+    // No reliable timestamps to compare — this is genuinely ambiguous, ask the user
     showConflictModal(ST, data.data, data.updated_at);
   } catch(e) {
     console.error('Sync check error:', e);
