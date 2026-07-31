@@ -56,7 +56,7 @@ Las cotizaciones se consultan primero mediante el par Spot `USDT` de Binance. Si
 La sección **Otros** contiene formularios específicos:
 
 - **ETFs**: símbolo, tipo, índice, cantidad, precio, TER, broker y fecha.
-- **CEDEARs**: símbolo, ratio, cantidad, precio en ARS y tipo de cambio CCL.
+- **CEDEARs**: símbolo, ratio, cantidad, precio en ARS y tipo de cambio CCL. Al actualizar precios, la aplicación consulta el ticker local de BYMA mediante Yahoo Finance (por ejemplo, `AAPL.BA`) y calcula precio actual, valor actual y ganancia o pérdida nominal en ARS.
 - **Tokenizados**: símbolo, tipo de respaldo, exchange, cantidad y precio.
 - **Bonos**: nominal, precio porcentual, tasa, vencimiento, moneda y broker.
 
@@ -67,17 +67,18 @@ Utiliza la categoría que represente realmente el instrumento. No registres una 
 Pulsa **Actualizar precios** en la cabecera.
 
 - Las criptomonedas se consultan mediante Binance Spot (`USDT`), con CoinGecko y CryptoCompare como respaldos.
-- Las acciones se consultan mediante Yahoo Finance y servicios de respaldo para resolver restricciones CORS.
-- La fuente y la hora de cada cotización cripto se muestran junto al precio actual.
+- Las acciones, ETFs, CEDEARs y acciones tokenizadas se consultan mediante Yahoo Finance y servicios de respaldo para resolver restricciones CORS. Los CEDEARs usan el sufijo `.BA` para obtener su cotización local en ARS.
+- La fuente y la hora de cada cotización se conservan con el activo y pueden consultarse en **Más información**.
 - La aplicación informa cuántos precios se actualizaron y cuántos quedaron sin datos.
 - Se crea o actualiza el snapshot diario de evolución.
-- La actualización automática se ejecuta cada tres minutos mientras la pestaña está visible.
+- La actualización automática se ejecuta cada tres minutos mientras la pestaña está visible. Solo renueva la caché local de cotizaciones: no crea snapshots, no marca una edición del usuario y no fuerza una subida a la nube.
 
 Las APIs externas pueden fallar, limitar solicitudes o devolver datos temporalmente incompletos. Verifica siempre precios importantes con tu broker o exchange. MRP Portfolio no ejecuta operaciones.
 
 ## 7. Editar y eliminar
 
-- Usa el botón de lápiz para editar una posición.
+- Usa el botón de ojo para consultar todos los datos de una posición sin entrar en edición.
+- Usa el botón de lápiz para editar una posición, también en ETFs, CEDEARs, tokenizadas y bonos.
 - Usa el botón de papelera o `X` para eliminar.
 - Las eliminaciones relevantes solicitan confirmación.
 - Eliminar una posición no elimina automáticamente sus movimientos históricos; esto preserva la trazabilidad.
@@ -130,6 +131,8 @@ Trading Desk mantiene herramientas separadas del seguimiento de inversión:
 ## 11. Sincronización entre navegadores
 
 Los cambios se guardan primero en el navegador y, si existe una sesión activa, se envían automáticamente a Supabase después de una breve espera.
+
+Las diferencias que solo afectan a cotizaciones derivadas —precio actual, variación, fuente u hora— no se consideran un conflicto entre dispositivos. La ventana de elección se reserva para diferencias reales en cantidades, precios de compra, fechas, notas u otros datos introducidos por el usuario.
 
 Las subidas se procesan en orden. Si realizas otro cambio mientras una subida continúa, la versión nueva queda pendiente y se envía a continuación. Si se pierde la conexión, los datos locales y su marca de cambio se conservan; al recuperar la red, la aplicación vuelve a intentar la subida pendiente.
 

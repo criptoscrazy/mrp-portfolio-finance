@@ -445,6 +445,24 @@ input::placeholder,textarea::placeholder,select::placeholder{color:var(--tx4);op
 .btn-edit:hover{border-color:var(--cv);color:var(--cv3);background:rgba(124,58,237,.08)}
 .btn-view:hover{border-color:var(--ct);color:var(--ct2);background:rgba(8,145,178,.08)}
 
+.detail-grid{
+  display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-bottom:14px;
+}
+.detail-item{
+  padding:10px 12px;background:var(--bg3);border:1px solid var(--br);border-radius:9px;
+  min-width:0;
+}
+.detail-item.full{grid-column:1/-1}
+.detail-label{
+  display:block;font-size:9px;color:var(--tx3);text-transform:uppercase;
+  letter-spacing:.07em;font-weight:600;margin-bottom:4px;
+}
+.detail-value{
+  display:block;font-size:12px;color:var(--tx1);font-weight:600;
+  overflow-wrap:anywhere;white-space:pre-wrap;
+}
+@media(max-width:560px){.detail-grid{grid-template-columns:1fr}}
+
 /* ── EDIT MODAL ── */
 .modal-overlay{
   position:fixed;inset:0;
@@ -1302,11 +1320,11 @@ input::placeholder,textarea::placeholder,select::placeholder{color:var(--tx4);op
   <!-- CEDEARs -->
   <div id="otrosSection-cedeares" style="display:none">
     <div style="padding:10px 14px;background:rgba(8,145,178,.08);border:1px solid rgba(8,145,178,.2);border-radius:10px;margin-bottom:12px;font-size:11px;color:var(--ct2)">
-      <i class="ti ti-info-circle"></i> <strong>CEDEARs:</strong> Certificados de Depósito Argentinos. Cotizan en pesos en el BYMA pero representan acciones extranjeras. Ingresá el ratio de conversión y el precio en ARS para ver el valor implícito en USD via CCL.
+      <i class="ti ti-info-circle"></i> <strong>CEDEARs:</strong> Cotizan en pesos en BYMA. La app consulta el símbolo local (por ejemplo, AAPL.BA) para mostrar precio actual y resultado nominal en ARS; el valor implícito de compra en USD vía CCL se informa por separado.
     </div>
     <div class="form-row">
       <div class="f ac-wrap">
-        <label>Símbolo CEDEAAR</label>
+        <label>Símbolo CEDEAR</label>
         <input id="cedSym" class="inp-h" placeholder="AAPL, MSFT..." oninput="this.value=this.value.toUpperCase();acSearchOtros(this,'ced')" autocomplete="off">
         <div class="ac-drop" id="acCED"></div>
       </div>
@@ -1329,11 +1347,11 @@ input::placeholder,textarea::placeholder,select::placeholder{color:var(--tx4);op
           </div>
         </div>
       </div>
-      <div><span class="lph">.</span><button class="btn-add" onclick="addOtro('cedeaar')"><i class="ti ti-plus"></i> Agregar CEDEAAR</button></div>
+      <div><span class="lph">.</span><button class="btn-add" onclick="addOtro('cedeaar')"><i class="ti ti-plus"></i> Agregar CEDEAR</button></div>
     </div>
     <div class="card" style="padding:0;overflow:hidden">
       <div class="tbl-wrap"><table>
-        <thead><tr><th>Símbolo</th><th>Nombre</th><th>Cant. CDRs</th><th>Ratio</th><th>P. Compra (ARS)</th><th>CCL compra</th><th>P. USD impl.</th><th>Acc. equiv.</th><th>Capital USD</th><th>Broker</th><th>Días</th><th>Notas</th><th></th></tr></thead>
+        <thead><tr><th>Símbolo</th><th>Nombre</th><th>Cant.</th><th>Ratio</th><th>P. compra ARS</th><th>P. actual ARS</th><th>24h</th><th>Valor actual ARS</th><th>G/P ARS</th><th>G/P %</th><th>CCL compra</th><th>P. USD impl.</th><th>Acc. equiv.</th><th>Capital USD</th><th>Broker</th><th>Días</th><th>Notas</th><th>Acc.</th></tr></thead>
         <tbody id="cedTb"></tbody>
       </table></div>
     </div>
@@ -1699,9 +1717,9 @@ input::placeholder,textarea::placeholder,select::placeholder{color:var(--tx4);op
       <div class="card-sub">Información técnica de la aplicación</div>
       <div class="acc-line"></div>
       <div style="font-size:11px;color:var(--tx2);line-height:2">
-        <div style="display:flex;justify-content:space-between;border-bottom:1px solid var(--br);padding:6px 0"><span style="color:var(--tx3)">Versión</span><span style="font-weight:700;color:var(--cv3)">9.2 — Precios Binance</span></div>
+        <div style="display:flex;justify-content:space-between;border-bottom:1px solid var(--br);padding:6px 0"><span style="color:var(--tx3)">Versión</span><span style="font-weight:700;color:var(--cv3)">9.3 — Sync y CEDEARs</span></div>
         <div style="display:flex;justify-content:space-between;border-bottom:1px solid var(--br);padding:6px 0"><span style="color:var(--tx3)">Precios cripto</span><span>Binance Spot · respaldos CoinGecko/CryptoCompare</span></div>
-        <div style="display:flex;justify-content:space-between;border-bottom:1px solid var(--br);padding:6px 0"><span style="color:var(--tx3)">Precios acciones</span><span>Yahoo Finance API</span></div>
+        <div style="display:flex;justify-content:space-between;border-bottom:1px solid var(--br);padding:6px 0"><span style="color:var(--tx3)">Acciones / ETFs / CEDEARs</span><span>Yahoo Finance · BYMA (.BA)</span></div>
         <div style="display:flex;justify-content:space-between;border-bottom:1px solid var(--br);padding:6px 0"><span style="color:var(--tx3)">Almacenamiento</span><span>localStorage (local)</span></div>
         <div style="display:flex;justify-content:space-between;border-bottom:1px solid var(--br);padding:6px 0"><span style="color:var(--tx3)">Datos enviados al exterior</span><span style="color:var(--cg2)">Ninguno</span></div>
         <div style="display:flex;justify-content:space-between;padding:6px 0"><span style="color:var(--tx3)">Próxima entrega</span><span>CEDEARs · ETFs · Alertas · S&P comparador</span></div>
@@ -2210,6 +2228,32 @@ input::placeholder,textarea::placeholder,select::placeholder{color:var(--tx4);op
   </div>
 </div>
 
+<!-- READ-ONLY ASSET DETAILS -->
+<div class="modal-overlay" id="detailModalOverlay" role="dialog" aria-modal="true" aria-labelledby="detailTitle">
+  <div class="modal" style="max-width:700px">
+    <div class="modal-head" id="detailTitle"><i class="ti ti-eye" style="color:var(--ct2)"></i> Más información</div>
+    <div class="modal-sub" id="detailSub">Detalle completo de la posición</div>
+    <div class="detail-grid" id="detailGrid"></div>
+    <div class="modal-actions">
+      <button class="btn-save" onclick="closeDetailModal()">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+<!-- EDIT OTHER ASSET -->
+<div class="modal-overlay" id="otroEditModalOverlay" role="dialog" aria-modal="true" aria-labelledby="otroEditTitle">
+  <div class="modal" style="max-width:700px">
+    <div class="modal-head" id="otroEditTitle"><i class="ti ti-edit" style="color:var(--cv3)"></i> Editar activo</div>
+    <div class="modal-sub" id="otroEditSub">Modificá los datos de tu posición</div>
+    <input type="hidden" id="otroEditId">
+    <div class="modal-grid" id="otroEditFields"></div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeOtroEdit()">Cancelar</button>
+      <button class="btn-save" onclick="saveOtroEdit()"><i class="ti ti-check"></i> Guardar cambios</button>
+    </div>
+  </div>
+</div>
+
 <!-- TOAST -->
 <div class="toast" id="toast"><i class="ti ti-check" id="toastIco"></i> <span id="toastMsg">Guardado</span></div>
 
@@ -2235,6 +2279,7 @@ const escapeHTML = value => String(value ?? '').replace(/[&<>"']/g, char => ({
   '"': '&quot;',
   "'": '&#39;',
 })[char]);
+const inlineArg = value => escapeHTML(JSON.stringify(String(value ?? '')));
 const safeHttpsUrl = value => {
   try {
     const parsed = new URL(String(value ?? '').trim(), location.href);
@@ -2607,7 +2652,7 @@ const STRING_STATE_KEYS = new Set([
   'style', 'status', 'exchange', 'signal', 'context', 'error', 'result', 'text',
   'category', 'priority', 'thesis', 'addedDate', 'manifesto', 'dailyContext',
   'etfType', 'index', 'tokType', 'bonType', 'currency', 'cond', 'url', 'link',
-  'image', 'logo', 'priceSource', 'priceUpdatedAt'
+  'image', 'logo', 'priceSource', 'priceUpdatedAt', 'quoteCurrency', 'quoteSymbol'
 ]);
 
 function isPlainRecord(value) {
@@ -2703,7 +2748,7 @@ function sanitizePortfolioState(value, key = '', depth = 0) {
   return value;
 }
 
-function save(silent = true, { scheduleSync = true, timestamp = null } = {}) {
+function save(silent = true, { scheduleSync = true, timestamp = null, markChanged = true } = {}) {
   try {
     const sanitizedState = sanitizePortfolioState(ST);
     if (!validatePortfolioStateShape(sanitizedState)) {
@@ -2711,7 +2756,11 @@ function save(silent = true, { scheduleSync = true, timestamp = null } = {}) {
     }
     ST = sanitizedState;
     localStorage.setItem(SKEY, JSON.stringify(ST));
-    localStorage.setItem('mrp_last_local_change', timestamp || new Date().toISOString());
+    // Market quotes are derived/cache data. Persisting them locally must not make
+    // the sync engine believe that the user edited the portfolio.
+    if (markChanged) {
+      localStorage.setItem('mrp_last_local_change', timestamp || new Date().toISOString());
+    }
     if (scheduleSync) scheduleCloudSync();
     if (!silent) showToast(t('toastSaved'));
   }
@@ -3164,7 +3213,7 @@ function setCryptoMarketPrice(asset, price, changePercent, source, updatedAt = D
   return true;
 }
 
-async function updatePrices() {
+async function updatePrices({ automatic = false } = {}) {
   const btn = $('btnUpd');
   btn.classList.add('loading');
   $('refIco').classList.add('spin');
@@ -3250,6 +3299,23 @@ async function updatePrices() {
   }
 
   // ── STOCKS: Yahoo Finance query1 → query2 → v7 quote, all stocks fetched in PARALLEL ──
+  function setYahooMarketPrice(asset, price, previousClose, currency, updatedAt) {
+    const numericPrice = Number(price);
+    const numericPreviousClose = Number(previousClose);
+    if (!Number.isFinite(numericPrice) || numericPrice <= 0) return false;
+    asset.cur = numericPrice;
+    asset.ch = Number.isFinite(numericPreviousClose) && numericPreviousClose > 0
+      ? (numericPrice - numericPreviousClose) / numericPreviousClose
+      : null;
+    asset.priceSource = asset.sym.endsWith('.BA') ? 'Yahoo Finance · BYMA' : 'Yahoo Finance';
+    asset.priceUpdatedAt = Number.isFinite(Number(updatedAt))
+      ? new Date(Number(updatedAt) * 1000).toISOString()
+      : new Date().toISOString();
+    asset.quoteCurrency = String(currency || (asset.sym.endsWith('.BA') ? 'ARS' : 'USD')).toUpperCase();
+    asset.quoteSymbol = asset.sym;
+    return true;
+  }
+
   async function fetchOneStockPrice(a) {
     // Source 1 & 2: Yahoo query1/query2 chart endpoint
     for (const host of ['query1', 'query2']) {
@@ -3260,11 +3326,13 @@ async function updatePrices() {
         if (r && r.ok) {
           const d = await r.json();
           const m = d?.chart?.result?.[0]?.meta;
-          if (m?.regularMarketPrice) {
-            a.cur = m.regularMarketPrice;
-            a.ch = m.chartPreviousClose ? (m.regularMarketPrice - m.chartPreviousClose) / m.chartPreviousClose : 0;
-            return true;
-          }
+          if (m?.regularMarketPrice && setYahooMarketPrice(
+            a,
+            m.regularMarketPrice,
+            m.chartPreviousClose ?? m.previousClose,
+            m.currency,
+            m.regularMarketTime
+          )) return true;
         }
       } catch(e) {}
     }
@@ -3276,19 +3344,51 @@ async function updatePrices() {
       if (r && r.ok) {
         const d = await r.json();
         const q = d?.quoteResponse?.result?.[0];
-        if (q?.regularMarketPrice) {
-          a.cur = q.regularMarketPrice;
-          a.ch = q.regularMarketChangePercent ? q.regularMarketChangePercent / 100 : 0;
-          return true;
-        }
+        if (q?.regularMarketPrice && setYahooMarketPrice(
+          a,
+          q.regularMarketPrice,
+          q.regularMarketPreviousClose,
+          q.currency,
+          q.regularMarketTime
+        )) return true;
       }
     } catch(e) {}
     return false;
   }
 
-  const stockResults = await Promise.all(ST.stocks.map(fetchOneStockPrice));
-  updated += stockResults.filter(Boolean).length;
-  failed += stockResults.filter(r => !r).length;
+  // Stocks and stock-like assets share the same quote pipeline. CEDEARs use
+  // Yahoo's BYMA suffix (AAPL -> AAPL.BA), which returns the local ARS quote.
+  const stockQuoteTargets = [
+    ...ST.stocks.map(asset => ({ asset, symbol: asset.sym })),
+    ...(ST.otros || [])
+      .filter(asset => ['etf', 'token', 'cedeaar'].includes(asset.type))
+      .map(asset => ({
+        asset,
+        symbol: asset.type === 'cedeaar' && !asset.sym.endsWith('.BA')
+          ? `${asset.sym}.BA`
+          : asset.sym
+      }))
+  ];
+  const quoteGroups = new Map();
+  stockQuoteTargets.forEach(target => {
+    const symbol = String(target.symbol || '').trim().toUpperCase();
+    if (!/^[A-Z0-9.^=-]{1,30}$/.test(symbol)) return;
+    if (!quoteGroups.has(symbol)) quoteGroups.set(symbol, []);
+    quoteGroups.get(symbol).push(target.asset);
+  });
+  const stockResults = await Promise.all([...quoteGroups.entries()].map(async ([symbol, assets]) => {
+    const quote = { sym: symbol };
+    const ok = await fetchOneStockPrice(quote);
+    if (ok) {
+      assets.forEach(asset => {
+        ['cur', 'ch', 'priceSource', 'priceUpdatedAt', 'quoteCurrency', 'quoteSymbol']
+          .forEach(key => { asset[key] = quote[key]; });
+      });
+    }
+    return { ok, count: assets.length };
+  }));
+  updated += stockResults.reduce((total, result) => total + (result.ok ? result.count : 0), 0);
+  failed += stockResults.reduce((total, result) => total + (result.ok ? 0 : result.count), 0);
 
   const now = new Date();
   $('updTime').textContent = (t('updPrefix') || 'Actualizado ') + now.toLocaleTimeString(LANG === 'en' ? 'en-US' : 'es-AR', { hour:'2-digit', minute:'2-digit' });
@@ -3296,30 +3396,34 @@ async function updatePrices() {
   btn.classList.remove('loading');
   $('refIco').classList.remove('spin');
   $('btnTxt').textContent = t('btnUpdate');
-  // Auto-snapshot portfolio value after price update
-  const allAssets = [...ST.stocks, ...ST.crypto];
-  const snapTotal = allAssets.reduce((s, a) => {
-    const { cur, cap } = calc(a);
-    return s + (cur ?? cap);
-  }, 0);
-  if (snapTotal > 0) {
-    if (!ST.snaps) ST.snaps = [];
-    // Only add if no snapshot for today yet
-    const todaySnap = ST.snaps.find(s => s.date === today());
-    if (!todaySnap) {
-      ST.snaps.push({ date: today(), value: +snapTotal.toFixed(2) });
-      ST.snaps.sort((a, b) => a.date.localeCompare(b.date));
-    } else {
-      todaySnap.value = +snapTotal.toFixed(2); // update today's value
+  // A manual refresh records today's evolution snapshot. Automatic refreshes
+  // only update the local quote cache and never create user-data changes.
+  if (!automatic) {
+    const allAssets = [...ST.stocks, ...ST.crypto];
+    const snapTotal = allAssets.reduce((s, a) => {
+      const { cur, cap } = calc(a);
+      return s + (cur ?? cap);
+    }, 0);
+    if (snapTotal > 0) {
+      if (!ST.snaps) ST.snaps = [];
+      const todaySnap = ST.snaps.find(s => s.date === today());
+      if (!todaySnap) {
+        ST.snaps.push({ date: today(), value: +snapTotal.toFixed(2) });
+        ST.snaps.sort((a, b) => a.date.localeCompare(b.date));
+      } else {
+        todaySnap.value = +snapTotal.toFixed(2);
+      }
     }
   }
-  save();
+  save(true, automatic
+    ? { scheduleSync: false, markChanged: false }
+    : { scheduleSync: true, markChanged: true });
   try { renderAll(); } catch(e) { console.error('renderAll error in updatePrices (non-fatal):', e); }
   updateMarketHours();
   const msg = failed > 0
     ? `${updated} ${t('toastUpdated')} · ${failed} sin datos`
     : `${updated} ${t('toastUpdated')}`;
-  showToast(msg, failed > 0 ? 'warn' : 'ok', 3000);
+  if (!automatic) showToast(msg, failed > 0 ? 'warn' : 'ok', 3000);
   checkAlerts();
   fetchBenchmarks();
   if($('alertsList')) renderAlerts();
@@ -3413,6 +3517,293 @@ function saveEdit() {
 
 // Click outside modal
 $('modalOverlay')?.addEventListener('click', e => { if (e.target === $('modalOverlay')) closeModal(); });
+
+const formatARS = value => {
+  const number = Number(value);
+  return Number.isFinite(number)
+    ? `$${number.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ARS`
+    : '—';
+};
+
+function quoteUpdatedLabel(asset) {
+  if (!asset?.priceUpdatedAt) return '—';
+  const date = new Date(asset.priceUpdatedAt);
+  return Number.isFinite(date.getTime()) ? date.toLocaleString('es-AR') : '—';
+}
+
+function showAssetDetails(title, subtitle, fields) {
+  $('detailTitle').textContent = title;
+  $('detailSub').textContent = subtitle;
+  const grid = $('detailGrid');
+  grid.replaceChildren();
+  fields.forEach(field => {
+    const item = document.createElement('div');
+    item.className = `detail-item${field.full ? ' full' : ''}`;
+    const label = document.createElement('span');
+    label.className = 'detail-label';
+    label.textContent = field.label;
+    const value = document.createElement('span');
+    value.className = 'detail-value';
+    value.textContent = field.value == null || field.value === '' ? '—' : String(field.value);
+    if (field.tone === 'positive') value.style.color = 'var(--cg2)';
+    if (field.tone === 'negative') value.style.color = 'var(--cr2)';
+    item.append(label, value);
+    grid.appendChild(item);
+  });
+  $('detailModalOverlay').classList.add('open');
+}
+
+function openAssetDetails(scope, id) {
+  let asset = null;
+  let fields = [];
+  let kind = '';
+  if (scope === 'stock' || scope === 'crypto') {
+    asset = (scope === 'stock' ? ST.stocks : ST.crypto).find(item => item.id === id);
+    if (!asset) return;
+    kind = scope === 'stock' ? 'Acción' : 'Criptomoneda';
+    const { cap, cur, pnl, pp, d } = calc(asset);
+    const dca = calcDCA(asset.sym);
+    const avgPrice = dca ? dca.avgPrice : asset.buy;
+    fields = [
+      { label:'Tipo', value:kind },
+      { label:'Nombre', value:asset.name },
+      { label:'Cantidad', value:Number(asset.qty).toLocaleString('es-AR', { maximumFractionDigits:8 }) },
+      { label:'Fecha de compra', value:asset.date },
+      { label:'Precio de compra', value:fmt(asset.buy) },
+      { label:'Precio promedio DCA', value:fmt(avgPrice) },
+      { label:'Precio actual', value:asset.cur != null ? fmt(asset.cur) : 'Sin cotización' },
+      { label:'Variación 24 h', value:asset.ch != null ? fmtPct(asset.ch * 100) : '—', tone:asset.ch == null ? null : (asset.ch >= 0 ? 'positive' : 'negative') },
+      { label:'Capital invertido', value:fmt(cap) },
+      { label:'Valor actual', value:cur != null ? fmt(cur) : '—' },
+      { label:'Ganancia / pérdida', value:pnl != null ? fmt(pnl) : '—', tone:pnl == null ? null : (pnl >= 0 ? 'positive' : 'negative') },
+      { label:'Rentabilidad', value:pp != null ? fmtPct(pp * 100) : '—', tone:pp == null ? null : (pp >= 0 ? 'positive' : 'negative') },
+      { label:'Antigüedad', value:`${d} días` },
+      { label:'Fuente del precio', value:asset.priceSource || '—' },
+      { label:'Cotización actualizada', value:quoteUpdatedLabel(asset) }
+    ];
+    if (scope === 'stock') {
+      fields.push(
+        { label:'Sector', value:asset.sector || '—' },
+        { label:'Stop loss', value:asset.sl ? fmt(asset.sl) : '—' },
+        { label:'Precio objetivo', value:asset.tg ? fmt(asset.tg) : '—' },
+        { label:'Broker / custodio', value:asset.broker || '—' }
+      );
+    } else {
+      fields.push(
+        { label:'Tipo de custodia', value:asset.custody || '—' },
+        { label:'Exchange / wallet', value:asset.wallet || '—' },
+        { label:'Dirección', value:asset.addr || '—', full:true }
+      );
+    }
+  } else {
+    asset = (ST.otros || []).find(item => item.id === id);
+    if (!asset) return;
+    const otherTypeNames = { etf:'ETF', cedeaar:'CEDEAR', token:'Acción tokenizada', bono:'Bono' };
+    kind = otherTypeNames[asset.type] || 'Otro activo';
+    if (asset.type === 'etf' || asset.type === 'token') {
+      const cap = Number(asset.qty) * Number(asset.buy);
+      const currentValue = asset.cur != null ? Number(asset.qty) * Number(asset.cur) : null;
+      const pnl = currentValue != null ? currentValue - cap : null;
+      const roi = pnl != null && cap > 0 ? pnl / cap : null;
+      fields = [
+        { label:'Tipo', value:kind }, { label:'Nombre', value:asset.name },
+        { label:'Cantidad', value:Number(asset.qty).toLocaleString('es-AR', { maximumFractionDigits:8 }) },
+        { label:'Fecha de compra', value:asset.date },
+        { label:'Precio de compra', value:fmt(asset.buy) },
+        { label:'Precio actual', value:asset.cur != null ? fmt(asset.cur) : 'Sin cotización' },
+        { label:'Variación 24 h', value:asset.ch != null ? fmtPct(asset.ch * 100) : '—', tone:asset.ch == null ? null : (asset.ch >= 0 ? 'positive' : 'negative') },
+        { label:'Capital invertido', value:fmt(cap) },
+        { label:'Valor actual', value:currentValue != null ? fmt(currentValue) : '—' },
+        { label:'Ganancia / pérdida', value:pnl != null ? fmt(pnl) : '—', tone:pnl == null ? null : (pnl >= 0 ? 'positive' : 'negative') },
+        { label:'Rentabilidad', value:roi != null ? fmtPct(roi * 100) : '—', tone:roi == null ? null : (roi >= 0 ? 'positive' : 'negative') },
+        { label:'Fuente del precio', value:asset.priceSource || '—' },
+        { label:'Cotización actualizada', value:quoteUpdatedLabel(asset) }
+      ];
+      if (asset.type === 'etf') {
+        fields.push(
+          { label:'Categoría ETF', value:asset.etfType || '—' },
+          { label:'Índice que replica', value:asset.index || '—' },
+          { label:'TER / expense ratio', value:asset.ter ? `${asset.ter}%` : '—' },
+          { label:'Broker / custodio', value:asset.broker || '—' }
+        );
+      } else {
+        fields.push(
+          { label:'Tipo de respaldo', value:asset.tokType || '—' },
+          { label:'Exchange', value:asset.exchange || '—' }
+        );
+      }
+    } else if (asset.type === 'cedeaar') {
+      const ratio = Number(asset.ratio) || 1;
+      const equivalentShares = Number(asset.qty) / ratio;
+      const investedARS = Number(asset.qty) * Number(asset.buyARS);
+      const currentValueARS = asset.cur != null ? Number(asset.qty) * Number(asset.cur) : null;
+      const pnlARS = currentValueARS != null ? currentValueARS - investedARS : null;
+      const roi = pnlARS != null && investedARS > 0 ? pnlARS / investedARS : null;
+      const capitalUSD = asset.capitalUSD != null ? Number(asset.capitalUSD) : Number(asset.qty) * Number(asset.buyUSD || 0);
+      const impliedUnderlyingUSD = equivalentShares > 0 ? capitalUSD / equivalentShares : null;
+      fields = [
+        { label:'Tipo', value:kind }, { label:'Nombre', value:asset.name },
+        { label:'Cantidad de CEDEARs', value:Number(asset.qty).toLocaleString('es-AR', { maximumFractionDigits:8 }) },
+        { label:'Ratio de conversión', value:`${ratio}:1` },
+        { label:'Fecha de compra', value:asset.date },
+        { label:'Precio de compra', value:formatARS(asset.buyARS) },
+        { label:'Precio actual BYMA', value:asset.cur != null ? formatARS(asset.cur) : 'Sin cotización' },
+        { label:'Variación 24 h', value:asset.ch != null ? fmtPct(asset.ch * 100) : '—', tone:asset.ch == null ? null : (asset.ch >= 0 ? 'positive' : 'negative') },
+        { label:'Capital invertido', value:formatARS(investedARS) },
+        { label:'Valor actual nominal', value:currentValueARS != null ? formatARS(currentValueARS) : '—' },
+        { label:'Ganancia / pérdida nominal', value:pnlARS != null ? formatARS(pnlARS) : '—', tone:pnlARS == null ? null : (pnlARS >= 0 ? 'positive' : 'negative') },
+        { label:'Rentabilidad nominal', value:roi != null ? fmtPct(roi * 100) : '—', tone:roi == null ? null : (roi >= 0 ? 'positive' : 'negative') },
+        { label:'Dólar CCL de compra', value:asset.ccl ? formatARS(asset.ccl) : '—' },
+        { label:'Acciones equivalentes', value:equivalentShares.toFixed(4) },
+        { label:'Precio USD implícito de compra', value:impliedUnderlyingUSD != null ? fmt(impliedUnderlyingUSD) : '—' },
+        { label:'Capital de compra en USD', value:fmt(capitalUSD) },
+        { label:'Broker', value:asset.broker || '—' },
+        { label:'Fuente del precio', value:asset.priceSource || '—' },
+        { label:'Símbolo consultado', value:asset.quoteSymbol || `${asset.sym}.BA` },
+        { label:'Cotización actualizada', value:quoteUpdatedLabel(asset) }
+      ];
+    } else if (asset.type === 'bono') {
+      fields = [
+        { label:'Tipo', value:kind }, { label:'Nombre', value:asset.name },
+        { label:'Categoría', value:asset.bonType || '—' },
+        { label:'Valor nominal', value:Number(asset.nominal).toLocaleString('es-AR', { maximumFractionDigits:2 }) },
+        { label:'Precio de compra', value:`${asset.buyPct}%` },
+        { label:'Capital al comprar', value:fmt(asset.capUSD) },
+        { label:'Cupón', value:asset.rate ? `${asset.rate}%` : '—' },
+        { label:'Interés anual estimado', value:asset.annualInterest ? fmt(asset.annualInterest) : '—' },
+        { label:'Fecha de compra', value:asset.date },
+        { label:'Vencimiento', value:asset.expiry || '—' },
+        { label:'Moneda', value:asset.currency || '—' },
+        { label:'Broker / custodio', value:asset.broker || '—' }
+      ];
+    }
+  }
+  fields.push({ label:'Notas', value:asset.note || 'Sin notas', full:true });
+  showAssetDetails(`${asset.sym} · Más información`, `${kind} · detalle completo de la posición`, fields);
+}
+
+function closeDetailModal() { $('detailModalOverlay').classList.remove('open'); }
+
+const OTRO_EDIT_CONFIG = {
+  etf: [
+    { key:'sym', label:'Símbolo', readonly:true }, { key:'name', label:'Nombre' },
+    { key:'etfType', label:'Tipo ETF', type:'select', options:[['indice','Índice'],['sector','Sector'],['commodity','Commodity'],['apalancado','Apalancado'],['inverso','Inverso'],['tematico','Temático'],['bono_etf','Bonos']] },
+    { key:'index', label:'Índice que replica' }, { key:'qty', label:'Cantidad', type:'number' },
+    { key:'buy', label:'Precio compra (USD)', type:'number' }, { key:'date', label:'Fecha compra', type:'date' },
+    { key:'ter', label:'TER / Expense ratio (%)', type:'number' }, { key:'broker', label:'Broker / Custodio' },
+    { key:'note', label:'Notas', type:'textarea', full:true }
+  ],
+  cedeaar: [
+    { key:'sym', label:'Símbolo', readonly:true }, { key:'name', label:'Nombre' },
+    { key:'qty', label:'Cantidad de CEDEARs', type:'number' }, { key:'ratio', label:'Ratio de conversión', type:'number' },
+    { key:'buyARS', label:'Precio compra (ARS)', type:'number' }, { key:'ccl', label:'Dólar CCL compra', type:'number' },
+    { key:'date', label:'Fecha compra', type:'date' }, { key:'broker', label:'Broker' },
+    { key:'note', label:'Notas', type:'textarea', full:true }
+  ],
+  token: [
+    { key:'sym', label:'Símbolo', readonly:true }, { key:'name', label:'Nombre' },
+    { key:'tokType', label:'Tipo respaldo', type:'select', options:[['custodiado','Custodiado 1:1'],['sintetico','Sintético']] },
+    { key:'qty', label:'Cantidad', type:'number' }, { key:'buy', label:'Precio compra (USD)', type:'number' },
+    { key:'date', label:'Fecha compra', type:'date' }, { key:'exchange', label:'Exchange' },
+    { key:'note', label:'Notas', type:'textarea', full:true }
+  ],
+  bono: [
+    { key:'sym', label:'Código / Ticker', readonly:true }, { key:'name', label:'Nombre' },
+    { key:'bonType', label:'Tipo', type:'select', options:[['soberano_ar','Soberano Argentina'],['soberano_us','Soberano USA'],['corporativo','Corporativo'],['plazo_fijo','Plazo Fijo'],['on','Obligación Negociable']] },
+    { key:'nominal', label:'Valor nominal', type:'number' }, { key:'buyPct', label:'Precio compra (%)', type:'number' },
+    { key:'rate', label:'Tasa cupón (%)', type:'number' }, { key:'date', label:'Fecha compra', type:'date' },
+    { key:'expiry', label:'Vencimiento', type:'date' },
+    { key:'currency', label:'Moneda', type:'select', options:[['USD','USD'],['ARS','ARS']] },
+    { key:'broker', label:'Broker / Custodio' }, { key:'note', label:'Notas', type:'textarea', full:true }
+  ]
+};
+
+function openOtroEdit(id) {
+  const asset = (ST.otros || []).find(item => item.id === id);
+  if (!asset || !OTRO_EDIT_CONFIG[asset.type]) return;
+  $('otroEditId').value = id;
+  $('otroEditSub').textContent = `Editando ${asset.sym} · ${asset.name}`;
+  const container = $('otroEditFields');
+  container.replaceChildren();
+  OTRO_EDIT_CONFIG[asset.type].forEach(field => {
+    const wrapper = document.createElement('div');
+    wrapper.className = `modal-field${field.full ? ' full' : ''}`;
+    const label = document.createElement('label');
+    label.htmlFor = `oe_${field.key}`;
+    label.textContent = field.label;
+    let input;
+    if (field.type === 'select') {
+      input = document.createElement('select');
+      field.options.forEach(([value, text]) => {
+        const option = document.createElement('option');
+        option.value = value; option.textContent = text;
+        input.appendChild(option);
+      });
+    } else if (field.type === 'textarea') {
+      input = document.createElement('textarea');
+      input.style.minHeight = '70px';
+    } else {
+      input = document.createElement('input');
+      input.type = field.type || 'text';
+      if (field.type === 'number') input.step = 'any';
+    }
+    input.id = `oe_${field.key}`;
+    input.value = asset[field.key] ?? '';
+    if (field.readonly) {
+      input.readOnly = true;
+      input.style.opacity = '.6';
+      input.style.cursor = 'not-allowed';
+      input.title = 'Para cambiar el símbolo, eliminá el activo y creá uno nuevo';
+    }
+    wrapper.append(label, input);
+    container.appendChild(wrapper);
+  });
+  $('otroEditModalOverlay').classList.add('open');
+}
+
+function closeOtroEdit() { $('otroEditModalOverlay').classList.remove('open'); }
+
+function saveOtroEdit() {
+  const asset = (ST.otros || []).find(item => item.id === $('otroEditId').value);
+  if (!asset || !OTRO_EDIT_CONFIG[asset.type]) return;
+  const value = key => $(`oe_${key}`)?.value?.trim() ?? '';
+  const number = key => Number.parseFloat(value(key));
+  const requirePositive = keys => keys.every(key => Number.isFinite(number(key)) && number(key) > 0);
+  const name = value('name');
+  if (!name) { showToast('El nombre no puede quedar vacío', 'warn'); return; }
+
+  asset.name = name;
+  if (asset.type === 'etf') {
+    if (!requirePositive(['qty','buy']) || !value('date')) { showToast('Completá cantidad, precio y fecha', 'warn'); return; }
+    Object.assign(asset, { etfType:value('etfType'), index:value('index'), qty:number('qty'), buy:number('buy'), date:value('date'), ter:number('ter') || 0, broker:value('broker'), note:value('note') });
+  } else if (asset.type === 'cedeaar') {
+    if (!requirePositive(['qty','ratio','buyARS']) || !value('date')) { showToast('Completá cantidad, ratio, precio y fecha', 'warn'); return; }
+    const ccl = number('ccl') || 0;
+    const priceUSD = ccl > 0 ? number('buyARS') / ccl : 0;
+    Object.assign(asset, { qty:number('qty'), ratio:number('ratio'), buyARS:number('buyARS'), ccl, buyUSD:priceUSD, priceUSD, capitalUSD:number('qty') * priceUSD, date:value('date'), broker:value('broker'), note:value('note') });
+  } else if (asset.type === 'token') {
+    if (!requirePositive(['qty','buy']) || !value('date')) { showToast('Completá cantidad, precio y fecha', 'warn'); return; }
+    Object.assign(asset, { tokType:value('tokType'), qty:number('qty'), buy:number('buy'), date:value('date'), exchange:value('exchange'), note:value('note') });
+  } else if (asset.type === 'bono') {
+    if (!requirePositive(['nominal','buyPct']) || !value('date')) { showToast('Completá nominal, precio y fecha', 'warn'); return; }
+    const nominal = number('nominal');
+    const buyPct = number('buyPct');
+    const rate = number('rate') || 0;
+    Object.assign(asset, { bonType:value('bonType'), nominal, buyPct, capUSD:nominal * buyPct / 100, rate, annualInterest:nominal * rate / 100, date:value('date'), expiry:value('expiry'), currency:value('currency') || 'USD', broker:value('broker'), note:value('note') });
+  }
+  closeOtroEdit();
+  save();
+  renderAll();
+  showToast(`${asset.sym} actualizado`);
+}
+
+$('detailModalOverlay')?.addEventListener('click', event => { if (event.target === $('detailModalOverlay')) closeDetailModal(); });
+$('otroEditModalOverlay')?.addEventListener('click', event => { if (event.target === $('otroEditModalOverlay')) closeOtroEdit(); });
+document.addEventListener('keydown', event => {
+  if (event.key !== 'Escape') return;
+  closeDetailModal();
+  closeOtroEdit();
+});
 
 // ═══════════════════════════════════════════
 // HISTORIAL
@@ -3755,8 +4146,9 @@ function renderTbl(assets, tbodyId, type) {
       <td class="muted">${d}d</td>
       <td class="note-cell" title="${escapeHTML(a.note||'')}">${a.note||'—'}</td>
       <td style="white-space:nowrap">
-        <button class="btn-edit" onclick="openEdit('${type}','${a.id}')" title="Editar"><i class="ti ti-pencil"></i></button>
-        <button class="btn-del" onclick="removeAsset('${type}','${a.id}')" title="Eliminar"><i class="ti ti-trash"></i></button>
+        <button class="btn-view" onclick="openAssetDetails(${inlineArg(type)},${inlineArg(a.id)})" title="Más información"><i class="ti ti-eye"></i></button>
+        <button class="btn-edit" onclick="openEdit(${inlineArg(type)},${inlineArg(a.id)})" title="Editar"><i class="ti ti-pencil"></i></button>
+        <button class="btn-del" onclick="removeAsset(${inlineArg(type)},${inlineArg(a.id)})" title="Eliminar"><i class="ti ti-trash"></i></button>
       </td>`;
     tb.appendChild(tr);
   });
@@ -5659,7 +6051,7 @@ function renderOtros() {
           <td class="muted">${e.index||'—'}</td>
           <td class="num">${e.qty}</td>
           <td class="num">${fmt(e.buy)}</td>
-          <td class="num">${cur?fmt(cur):'<span style="color:var(--tx4)">—</span>'}</td>
+          <td class="num">${cur?fmt(cur)+renderPriceSource(e):'<span style="color:var(--tx4)">—</span>'}</td>
           <td style="color:${ch!=null?(ch>=0?'var(--cg2)':'var(--cr2)'):'var(--tx3)'};font-weight:700">${ch!=null?(ch>=0?'+':''+(ch*100).toFixed(2)+'%'):'—'}</td>
           <td class="num muted">${fmt(cap)}</td>
           <td class="num">${curVal!=null?fmt(curVal):'—'}</td>
@@ -5669,7 +6061,11 @@ function renderOtros() {
           <td class="muted">${e.broker||'—'}</td>
           <td class="muted">${d}d</td>
           <td class="note-cell muted" title="${escapeHTML(e.note||'')}">${e.note||'—'}</td>
-          <td><button class="btn-del" onclick="removeOtro('${e.id}')"><i class="ti ti-x"></i></button></td>
+          <td style="white-space:nowrap">
+            <button class="btn-view" onclick="openAssetDetails(&quot;otro&quot;,${inlineArg(e.id)})" title="Más información"><i class="ti ti-eye"></i></button>
+            <button class="btn-edit" onclick="openOtroEdit(${inlineArg(e.id)})" title="Editar"><i class="ti ti-pencil"></i></button>
+            <button class="btn-del" onclick="removeOtro(${inlineArg(e.id)})" title="Eliminar"><i class="ti ti-trash"></i></button>
+          </td>
         </tr>`;
       }).join('');
     }
@@ -5678,26 +6074,44 @@ function renderOtros() {
   const ceds = otros.filter(o=>o.type==='cedeaar');
   const cedTb=$('cedTb');
   if(cedTb){
-    if(!ceds.length){cedTb.innerHTML='<tr><td colspan="13" class="empty"><i class="ti ti-building-bank"></i><p>Sin CEDEARs. Agregá tu primera posición.</p></td></tr>';}
+    if(!ceds.length){cedTb.innerHTML='<tr><td colspan="18" class="empty"><i class="ti ti-building-bank"></i><p>Sin CEDEARs. Agregá tu primera posición.</p></td></tr>';}
     else{
       cedTb.innerHTML=ceds.map(c=>{
-        const equivShares=c.qty/c.ratio;
+        const ratio=Number(c.ratio)||1;
+        const equivShares=Number(c.qty)/ratio;
         const d=days(c.date,today());
-        const capUSD = c.capitalUSD != null ? c.capitalUSD : (c.qty * c.buyUSD); // fallback for older saved records
+        const capUSD = c.capitalUSD != null ? Number(c.capitalUSD) : (Number(c.qty) * Number(c.buyUSD||0));
+        const investedARS=Number(c.qty)*Number(c.buyARS);
+        const currentPrice=Number.isFinite(Number(c.cur))&&Number(c.cur)>0?Number(c.cur):null;
+        const currentValueARS=currentPrice!=null?Number(c.qty)*currentPrice:null;
+        const pnlARS=currentValueARS!=null?currentValueARS-investedARS:null;
+        const roi=pnlARS!=null&&investedARS>0?pnlARS/investedARS:null;
+        const pnlColor=pnlARS==null?'var(--tx3)':(pnlARS>=0?'var(--cg2)':'var(--cr2)');
+        const changeColor=c.ch==null?'var(--tx3)':(c.ch>=0?'var(--cg2)':'var(--cr2)');
+        const impliedUSD=equivShares>0?capUSD/equivShares:null;
         return `<tr>
-          <td class="sym">${c.sym}</td>
-          <td class="muted">${c.name}</td>
+          <td class="sym">${escapeHTML(c.sym)}</td>
+          <td class="muted">${escapeHTML(c.name)}</td>
           <td class="num">${c.qty}</td>
-          <td class="num">${c.ratio}:1</td>
-          <td class="num">${c.buyARS?'$'+c.buyARS.toLocaleString('es-AR',{maximumFractionDigits:2}):'—'} ARS</td>
+          <td class="num">${ratio}:1</td>
+          <td class="num">${formatARS(c.buyARS)}</td>
+          <td class="num">${currentPrice!=null?formatARS(currentPrice)+renderPriceSource(c):'<span style="color:var(--tx4)">Sin cotización</span>'}</td>
+          <td style="color:${changeColor};font-weight:700">${c.ch!=null?fmtPct(c.ch*100):'—'}</td>
+          <td class="num">${currentValueARS!=null?formatARS(currentValueARS):'—'}</td>
+          <td class="num" style="color:${pnlColor};font-weight:700">${pnlARS!=null?formatARS(pnlARS):'—'}</td>
+          <td>${roi!=null?`<span class="pill ${roi>=0?'pill-g':'pill-r'}">${fmtPct(roi*100)}</span>`:'—'}</td>
           <td class="num muted">${c.ccl?'$'+c.ccl.toLocaleString('es-AR',{maximumFractionDigits:0})+' ARS':'—'}</td>
-          <td class="num" style="color:var(--cv3)">${fmt(capUSD / equivShares)}</td>
+          <td class="num" style="color:var(--cv3)">${impliedUSD!=null?fmt(impliedUSD):'—'}</td>
           <td class="num" style="color:var(--ct2)">${equivShares.toFixed(4)}</td>
           <td class="num">${fmt(capUSD)}</td>
-          <td class="muted">${c.broker||'—'}</td>
+          <td class="muted">${escapeHTML(c.broker||'—')}</td>
           <td class="muted">${d}d</td>
-          <td class="note-cell muted">${c.note||'—'}</td>
-          <td><button class="btn-del" onclick="removeOtro('${c.id}')"><i class="ti ti-x"></i></button></td>
+          <td class="note-cell muted" title="${escapeHTML(c.note||'')}">${escapeHTML(c.note||'—')}</td>
+          <td style="white-space:nowrap">
+            <button class="btn-view" onclick="openAssetDetails(&quot;otro&quot;,${inlineArg(c.id)})" title="Más información"><i class="ti ti-eye"></i></button>
+            <button class="btn-edit" onclick="openOtroEdit(${inlineArg(c.id)})" title="Editar"><i class="ti ti-pencil"></i></button>
+            <button class="btn-del" onclick="removeOtro(${inlineArg(c.id)})" title="Eliminar"><i class="ti ti-trash"></i></button>
+          </td>
         </tr>`;
       }).join('');
     }
@@ -5724,7 +6138,7 @@ function renderOtros() {
           <td><span class="pill ${tk.tokType==='custodiado'?'pill-g':'pill-y'}">${typeLabel}</span></td>
           <td class="num">${tk.qty}</td>
           <td class="num">${fmt(tk.buy)}</td>
-          <td class="num">${cur?fmt(cur):'<span style="color:var(--tx4)">—</span>'}</td>
+          <td class="num">${cur?fmt(cur)+renderPriceSource(tk):'<span style="color:var(--tx4)">—</span>'}</td>
           <td class="num muted">${fmt(cap)}</td>
           <td class="num">${curVal!=null?fmt(curVal):'—'}</td>
           <td class="num" style="color:${pnlC};font-weight:700">${pnl!=null?fmt(pnl):'—'}</td>
@@ -5732,7 +6146,11 @@ function renderOtros() {
           <td class="muted">${tk.exchange||'—'}</td>
           <td class="muted">${d}d</td>
           <td class="note-cell muted">${tk.note||'—'}</td>
-          <td><button class="btn-del" onclick="removeOtro('${tk.id}')"><i class="ti ti-x"></i></button></td>
+          <td style="white-space:nowrap">
+            <button class="btn-view" onclick="openAssetDetails(&quot;otro&quot;,${inlineArg(tk.id)})" title="Más información"><i class="ti ti-eye"></i></button>
+            <button class="btn-edit" onclick="openOtroEdit(${inlineArg(tk.id)})" title="Editar"><i class="ti ti-pencil"></i></button>
+            <button class="btn-del" onclick="removeOtro(${inlineArg(tk.id)})" title="Eliminar"><i class="ti ti-trash"></i></button>
+          </td>
         </tr>`;
       }).join('');
     }
@@ -5758,7 +6176,11 @@ function renderOtros() {
           <td><span class="pill ${b.currency==='USD'?'pill-g':'pill-y'}">${b.currency}</span></td>
           <td class="muted">${b.broker||'—'}</td>
           <td class="note-cell muted">${b.note||'—'}</td>
-          <td><button class="btn-del" onclick="removeOtro('${b.id}')"><i class="ti ti-x"></i></button></td>
+          <td style="white-space:nowrap">
+            <button class="btn-view" onclick="openAssetDetails(&quot;otro&quot;,${inlineArg(b.id)})" title="Más información"><i class="ti ti-eye"></i></button>
+            <button class="btn-edit" onclick="openOtroEdit(${inlineArg(b.id)})" title="Editar"><i class="ti ti-pencil"></i></button>
+            <button class="btn-del" onclick="removeOtro(${inlineArg(b.id)})" title="Eliminar"><i class="ti ti-trash"></i></button>
+          </td>
         </tr>`;
       }).join('');
     }
@@ -6641,8 +7063,30 @@ function hasRealData(state) {
 function portfolioStatesEqual(first, second) {
   const comparable = state => {
     const sanitized = sanitizePortfolioState(state);
-    if (isPlainRecord(sanitized)) delete sanitized.selAsset;
-    return JSON.stringify(sanitized);
+    if (!isPlainRecord(sanitized)) return JSON.stringify(sanitized);
+    delete sanitized.selAsset;
+
+    // Quotes are derived cache data and can legitimately differ by seconds
+    // between devices. They must never trigger a destructive conflict choice.
+    const derivedQuoteFields = [
+      'cur', 'ch', 'priceSource', 'priceUpdatedAt', 'quoteCurrency', 'quoteSymbol'
+    ];
+    ['stocks', 'crypto', 'otros'].forEach(collection => {
+      if (!Array.isArray(sanitized[collection])) return;
+      sanitized[collection].forEach(asset => {
+        derivedQuoteFields.forEach(field => { delete asset[field]; });
+      });
+    });
+
+    const canonicalize = value => {
+      if (Array.isArray(value)) return value.map(canonicalize);
+      if (!isPlainRecord(value)) return value;
+      return Object.keys(value).sort().reduce((result, key) => {
+        result[key] = canonicalize(value[key]);
+        return result;
+      }, {});
+    };
+    return JSON.stringify(canonicalize(sanitized));
   };
   return comparable(first) === comparable(second);
 }
@@ -6815,7 +7259,7 @@ function startAutoRefresh() {
   autoRefreshTimer = setInterval(() => {
     const conflictOpen = $('conflictModalOverlay')?.classList.contains('open');
     if (document.visibilityState === 'visible' && !$('btnUpd')?.classList.contains('loading') && !conflictOpen) {
-      updatePrices();
+      updatePrices({ automatic: true });
     }
   }, 180000); // 3 minutos
 }
