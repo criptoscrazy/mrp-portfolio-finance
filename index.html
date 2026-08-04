@@ -1321,13 +1321,14 @@ input::placeholder,textarea::placeholder,select::placeholder{color:var(--tx4);op
   <!-- CEDEARs -->
   <div id="otrosSection-cedeares" style="display:none">
     <div style="padding:10px 14px;background:rgba(8,145,178,.08);border:1px solid rgba(8,145,178,.2);border-radius:10px;margin-bottom:12px;font-size:11px;color:var(--ct2)">
-      <i class="ti ti-info-circle"></i> <strong>CEDEARs:</strong> Cotizan en pesos en BYMA. La app consulta el símbolo local (por ejemplo, AAPL.BA) para mostrar precio actual y resultado nominal en ARS; el valor implícito de compra en USD vía CCL se informa por separado.
+      <i class="ti ti-info-circle"></i> <strong>CEDEARs:</strong> Para compras en USD MEP, la cartera se analiza en dólares: valor actual USD = cotización BYMA en ARS ÷ CCL actual. El CCL histórico no es necesario para la rentabilidad actual.
     </div>
     <div class="form-row" style="margin-bottom:12px">
-      <div class="f"><label>CCL actual de referencia</label><input id="cedCurrentCCL" class="inp-h" inputmode="decimal" placeholder="0,00"></div>
+      <div class="f"><label>CCL actual (ARS por USD)</label><input id="cedCurrentCCL" class="inp-h" inputmode="decimal" placeholder="0,00"></div>
       <div class="f"><label>Fuente del CCL</label><input id="cedCurrentCCLSource" class="inp-h" placeholder="Broker / fuente verificada"></div>
-      <div><span class="lph">.</span><button class="btn-snap" onclick="saveCedearCurrentCCL()"><i class="ti ti-check"></i> Guardar referencia</button></div>
-      <div style="align-self:end;font-size:9px;color:var(--tx3);padding-bottom:8px" id="cedCurrentCCLStatus">Sin referencia: métricas CCL pendientes</div>
+      <div><span class="lph">.</span><button class="btn-snap" onclick="refreshCedearCurrentCCL({manual:true})"><i class="ti ti-refresh"></i> Actualizar CCL</button></div>
+      <div><span class="lph">.</span><button class="btn-snap" onclick="saveCedearCurrentCCL()"><i class="ti ti-check"></i> Usar manual</button></div>
+      <div style="align-self:end;font-size:9px;color:var(--tx3);padding-bottom:8px" id="cedCurrentCCLStatus">Sin CCL actual: métricas USD pendientes</div>
     </div>
     <div class="form-row">
       <div class="f ac-wrap">
@@ -1370,7 +1371,7 @@ input::placeholder,textarea::placeholder,select::placeholder{color:var(--tx4);op
     </div>
     <div class="card" style="padding:0;overflow:hidden">
       <div class="tbl-wrap"><table>
-        <thead><tr><th>Símbolo</th><th>Nombre</th><th>Cant.</th><th>Lotes</th><th>Costos / promedios</th><th>P. actual ARS</th><th>Valor actual ARS</th><th>G/P ARS nominal</th><th title="Compara el valor actual convertido por el CCL actual con el costo histórico USD válido. No es ganancia realizada.">G/P USD implícita CCL</th><th>Acc. equiv.</th><th>Actualización</th><th>Acc.</th></tr></thead>
+        <thead><tr><th>Símbolo</th><th>Nombre</th><th>Cant.</th><th>Lotes</th><th>Coste histórico USD</th><th>Valor actual USD</th><th>G/P USD</th><th>Rentab. %</th><th>Precio ARS</th><th>G/P ARS nominal</th><th>Actualización</th><th>Acc.</th></tr></thead>
         <tbody id="cedTb"></tbody>
       </table></div>
     </div>
@@ -1741,7 +1742,7 @@ input::placeholder,textarea::placeholder,select::placeholder{color:var(--tx4);op
       <div class="card-sub">Información técnica de la aplicación</div>
       <div class="acc-line"></div>
       <div style="font-size:11px;color:var(--tx2);line-height:2">
-        <div style="display:flex;justify-content:space-between;border-bottom:1px solid var(--br);padding:6px 0"><span style="color:var(--tx3)">Versión</span><span style="font-weight:700;color:var(--cv3)">9.4 — Lotes CEDEAR multimoneda</span></div>
+        <div style="display:flex;justify-content:space-between;border-bottom:1px solid var(--br);padding:6px 0"><span style="color:var(--tx3)">Versión</span><span style="font-weight:700;color:var(--cv3)">9.5 — CEDEARs en USD MEP</span></div>
         <div style="display:flex;justify-content:space-between;border-bottom:1px solid var(--br);padding:6px 0"><span style="color:var(--tx3)">Precios cripto</span><span>Binance Spot · respaldos CoinGecko/CryptoCompare</span></div>
         <div style="display:flex;justify-content:space-between;border-bottom:1px solid var(--br);padding:6px 0"><span style="color:var(--tx3)">Acciones / ETFs / CEDEARs</span><span>Yahoo Finance · BYMA (.BA)</span></div>
         <div style="display:flex;justify-content:space-between;border-bottom:1px solid var(--br);padding:6px 0"><span style="color:var(--tx3)">Almacenamiento</span><span>localStorage (local)</span></div>
@@ -2755,7 +2756,7 @@ const STRING_STATE_KEYS = new Set([
   ,'purchaseCurrency','quantityDecimal','ratioDecimal','unitPriceDecimal','grossAmountDecimal',
   'totalCostDecimal','cclAtPurchaseDecimal','mepAtPurchaseDecimal','historicalArsEquivalentDecimal',
   'ticketNumber','informationSource','amountDecimal','lotId','concept','schemaVersion',
-  'cedearCurrentCclDecimal','cedearCurrentCclSource','cedearCurrentCclUpdatedAt','cedearPriceArsDecimal','cclDecimal'
+  'cedearCurrentCclDecimal','cedearCurrentCclSource','cedearCurrentCclUpdatedAt','cedearCurrentCclMode','cedearPriceArsDecimal','cclDecimal'
 ]);
 
 function isPlainRecord(value) {
@@ -3548,6 +3549,10 @@ async function updatePrices({ automatic = false } = {}) {
   updated += stockResults.reduce((total, result) => total + (result.ok ? result.count : 0), 0);
   failed += stockResults.reduce((total, result) => total + (result.ok ? 0 : result.count), 0);
 
+  // CCL actual para valorar CEDEARs en USD. Si las fuentes no responden,
+  // se conserva el último valor válido o el respaldo manual, nunca cero.
+  await refreshCedearCurrentCCL();
+
   const now = new Date();
   $('updTime').textContent = (t('updPrefix') || 'Actualizado ') + now.toLocaleTimeString(LANG === 'en' ? 'en-US' : 'es-AR', { hour:'2-digit', minute:'2-digit' });
   $('updDot').classList.add('live');
@@ -3724,7 +3729,7 @@ function consolidateCedears(lots=(ST.otros||[]).filter(item=>item.type==='cedeaa
   const groups=new Map();
   lots.forEach(lot=>{
     const key=String(lot.sym||'').toUpperCase();if(!key)return;
-    if(!groups.has(key))groups.set(key,{sym:key,name:lot.name||key,lots:[],costs:{ARS:'0',USD_MEP:'0',USD_CABLE:'0'},quantity:'0',equivalentShares:'0'});
+    if(!groups.has(key))groups.set(key,{sym:key,name:normalizedCedearName(key,lot.name),lots:[],costs:{ARS:'0',USD_MEP:'0',USD_CABLE:'0'},quantity:'0',equivalentShares:'0'});
     const group=groups.get(key),values=cedearLotValues(lot);group.lots.push(lot);
     group.quantity=decAdd(group.quantity,values.quantity)||group.quantity;
     group.equivalentShares=decAdd(group.equivalentShares,values.equivalentShares)||group.equivalentShares;
@@ -3740,13 +3745,19 @@ function consolidateCedears(lots=(ST.otros||[]).filter(item=>item.type==='cedeaa
     const arsBases=lotValues.map(value=>value.historicalARS);
     group.historicalARS=arsBases.every(Boolean)?decSum(arsBases):null;
     group.pnlARS=group.currentValueARS&&group.historicalARS?decSub(group.currentValueARS,group.historicalARS):null;
-    const usdBases=lotValues.map(value=>value.historicalUSD);
     group.currencies=CEDEAR_CURRENCIES.filter(currency=>decPositive(group.costs[currency]));
     group.mixedCurrencies=group.currencies.length>1;
-    group.historicalUSD=!group.mixedCurrencies&&usdBases.every(Boolean)?decSum(usdBases):null;
+    // USD MEP is the primary analysis basis. Its real paid amount is already
+    // in USD, so it never needs CCL histórico to calculate current P/L.
+    const allBoughtInUSDMEP=lotValues.length>0&&lotValues.every(value=>value.currency==='USD_MEP');
+    group.historicalUSD=allBoughtInUSDMEP?decSum(lotValues.map(value=>value.total)):null;
     const currentCCL=dec(ST.cedearCurrentCclDecimal);
-    group.currentImplicitUSD=group.currentValueARS&&decPositive(currentCCL)?decDiv(group.currentValueARS,currentCCL,8):null;
-    group.pnlImplicitUSD=group.currentImplicitUSD&&group.historicalUSD?decSub(group.currentImplicitUSD,group.historicalUSD):null;
+    group.currentValueUSD=group.currentValueARS&&decPositive(currentCCL)?decDiv(group.currentValueARS,currentCCL,8):null;
+    group.pnlUSD=group.currentValueUSD&&group.historicalUSD?decSub(group.currentValueUSD,group.historicalUSD):null;
+    group.roiUSD=group.pnlUSD&&decPositive(group.historicalUSD)?decMul(decDiv(group.pnlUSD,group.historicalUSD,12),'100'):null;
+    // Compatibilidad interna para la timeline y estados guardados de v9.4.
+    group.currentImplicitUSD=group.currentValueUSD;
+    group.pnlImplicitUSD=group.pnlUSD;
     group.averages={};CEDEAR_CURRENCIES.forEach(currency=>{if(decPositive(group.costs[currency])){
       const currencyQty=decSum(lotValues.filter(value=>value.currency===currency).map(value=>value.quantity));
       group.averages[currency]=decDiv(group.costs[currency],currencyQty,8);
@@ -3755,10 +3766,42 @@ function consolidateCedears(lots=(ST.otros||[]).filter(item=>item.type==='cedeaa
   }).sort((a,b)=>a.sym.localeCompare(b.sym));
 }
 
+async function refreshCedearCurrentCCL({manual=false} = {}) {
+  const sources=[
+    {
+      url:'https://dolarapi.com/v1/dolares/contadoconliqui',
+      label:'DolarApi.com · CCL venta',
+      read:data=>({value:data?.venta,updatedAt:data?.fechaActualizacion})
+    },
+    {
+      url:'https://dolarazo.com.ar/api/v1/cotizaciones/dolares/contadoconliqui',
+      label:'Dolarazo · CCL venta',
+      read:data=>({value:data?.data?.venta??data?.venta,updatedAt:data?.timestamp??data?.data?.fechaActualizacion})
+    }
+  ];
+  for(const source of sources){
+    try{
+      const response=await fetchWithFallback(source.url,5000);
+      if(!response?.ok)continue;
+      const parsed=source.read(await response.json()),value=dec(parsed.value);
+      if(!decPositive(value))continue;
+      const apiDate=new Date(parsed.updatedAt);
+      ST.cedearCurrentCclDecimal=value;
+      ST.cedearCurrentCclSource=source.label;
+      ST.cedearCurrentCclMode='auto';
+      ST.cedearCurrentCclUpdatedAt=Number.isFinite(apiDate.getTime())?apiDate.toISOString():new Date().toISOString();
+      if(manual){save();renderOtros();showToast('CCL actualizado automáticamente desde '+source.label);}
+      return true;
+    }catch(e){}
+  }
+  if(manual)showToast('No se pudo actualizar el CCL. Podés ingresarlo manualmente.','warn',5000);
+  return false;
+}
+
 function saveCedearCurrentCCL() {
   const value=dec($('cedCurrentCCL')?.value),source=$('cedCurrentCCLSource')?.value.trim();
   if(!decPositive(value)||!source){showToast('Indicá un CCL positivo y su fuente','warn');return;}
-  ST.cedearCurrentCclDecimal=value;ST.cedearCurrentCclSource=source;ST.cedearCurrentCclUpdatedAt=new Date().toISOString();
+  ST.cedearCurrentCclDecimal=value;ST.cedearCurrentCclSource=source;ST.cedearCurrentCclMode='manual';ST.cedearCurrentCclUpdatedAt=new Date().toISOString();
   if(!ST.cedearValuations)ST.cedearValuations=[];
   consolidateCedears().forEach(group=>{if(group.currentPriceARS){
     const existing=ST.cedearValuations.find(item=>item.date===today()&&item.sym===group.sym);
@@ -6160,7 +6203,7 @@ const ETF_DB = [
 const CEDEAR_DB = [
   {sym:'AAPL',name:'Apple Inc.',ratio:10},{sym:'MSFT',name:'Microsoft',ratio:3},
   {sym:'GOOGL',name:'Alphabet',ratio:9},{sym:'AMZN',name:'Amazon',ratio:12},
-  {sym:'NVDA',name:'NVIDIA',ratio:8},{sym:'TSLA',name:'Tesla',ratio:12},
+  {sym:'NVDA',name:'NVIDIA Corporation',ratio:8},{sym:'TSLA',name:'Tesla, Inc.',ratio:12},
   {sym:'META',name:'Meta Platforms',ratio:5},{sym:'JPM',name:'JPMorgan Chase',ratio:5},
   {sym:'V',name:'Visa',ratio:4},{sym:'MA',name:'Mastercard',ratio:3},
   {sym:'DIS',name:'Walt Disney',ratio:5},{sym:'KO',name:'Coca-Cola',ratio:3},
@@ -6169,6 +6212,13 @@ const CEDEAR_DB = [
   {sym:'WMT',name:'Walmart',ratio:3},{sym:'NFLX',name:'Netflix',ratio:3},
   {sym:'PYPL',name:'PayPal',ratio:5},{sym:'AMD',name:'AMD',ratio:6},
 ];
+
+const CEDEAR_ISSUER_NAMES = {
+  AAPL:'Apple Inc.', NVDA:'NVIDIA Corporation', TSLA:'Tesla, Inc.'
+};
+function normalizedCedearName(sym, fallback = '') {
+  return CEDEAR_ISSUER_NAMES[String(sym || '').toUpperCase()] || fallback || String(sym || '').toUpperCase();
+}
 
 function acSearchOtros(inp, type) {
   const q = inp.value.trim().toUpperCase();
@@ -6397,26 +6447,24 @@ function renderOtros() {
     if($('cedCurrentCCL'))$('cedCurrentCCL').value=currentCCL||'';
     if($('cedCurrentCCLSource'))$('cedCurrentCCLSource').value=ST.cedearCurrentCclSource||'';
     if($('cedCurrentCCLStatus'))$('cedCurrentCCLStatus').textContent=currentCCL
-      ? `CCL ${formatDec(currentCCL,{digits:2,currency:'ARS'})} · ${ST.cedearCurrentCclSource||'sin fuente'} · ${quoteUpdatedLabel({priceUpdatedAt:ST.cedearCurrentCclUpdatedAt})}`
-      : 'Sin referencia: métricas CCL pendientes';
+      ? `CCL usado: ${formatDec(currentCCL,{digits:2,currency:'ARS'})} · ${ST.cedearCurrentCclSource||'sin fuente'} · ${ST.cedearCurrentCclMode==='manual'?'manual':'automático'} · ${quoteUpdatedLabel({priceUpdatedAt:ST.cedearCurrentCclUpdatedAt})}`
+      : 'Sin CCL actual: métricas USD pendientes';
     if(!ceds.length){cedTb.innerHTML='<tr><td colspan="12" class="empty"><i class="ti ti-building-bank"></i><p>Sin CEDEARs. Agregá tu primera compra.</p></td></tr>';}
     else{
       cedTb.innerHTML=consolidateCedears(ceds).map(group=>{
-        const costs=CEDEAR_CURRENCIES.filter(currency=>decPositive(group.costs[currency])).map(currency=>
-          `<div>${formatDec(group.costs[currency],{digits:2,currency:currencyLabel(currency)})}<br><span class="muted">prom. ${formatDec(group.averages[currency],{digits:6,currency:currencyLabel(currency)})}</span></div>`
-        ).join('');
         const pnlARSColor=group.pnlARS==null?'var(--tx3)':(decCmp(group.pnlARS,'0')>=0?'var(--cg2)':'var(--cr2)');
-        const pnlUSDColor=group.pnlImplicitUSD==null?'var(--tx3)':(decCmp(group.pnlImplicitUSD,'0')>=0?'var(--cg2)':'var(--cr2)');
+        const pnlUSDColor=group.pnlUSD==null?'var(--tx3)':(decCmp(group.pnlUSD,'0')>=0?'var(--cg2)':'var(--cr2)');
+        const roiUSDColor=group.roiUSD==null?'var(--tx3)':(decCmp(group.roiUSD,'0')>=0?'var(--cg2)':'var(--cr2)');
         const representative=group.lots.find(lot=>lot.priceUpdatedAt===group.priceUpdatedAt)||group.lots[0];
         return `<tr>
           <td class="sym">${escapeHTML(group.sym)}</td><td class="muted">${escapeHTML(group.name)}</td>
           <td class="num">${formatDec(group.quantity,{digits:4})}</td><td><span class="pill pill-t">${group.lots.length}</span></td>
-          <td class="num" style="line-height:1.5">${costs}</td>
-          <td class="num">${group.currentPriceARS?formatDec(group.currentPriceARS,{digits:2,currency:'ARS'})+renderPriceSource(representative):'<span style="color:var(--tx4)">Sin cotización</span>'}</td>
-          <td class="num">${group.currentValueARS?formatDec(group.currentValueARS,{digits:2,currency:'ARS'}):'Pendiente'}</td>
+          <td class="num" style="font-weight:700">${group.historicalUSD?formatDec(group.historicalUSD,{digits:2,currency:'USD'}):'<span title="Solo se consolida si todos los lotes fueron comprados en USD MEP">Pendiente</span>'}</td>
+          <td class="num" style="font-weight:700">${group.currentValueUSD?formatDec(group.currentValueUSD,{digits:2,currency:'USD'}):'<span title="Falta cotización ARS o CCL actual">Pendiente</span>'}</td>
+          <td class="num" style="color:${pnlUSDColor};font-weight:700">${group.pnlUSD?formatDec(group.pnlUSD,{digits:2,currency:'USD'}):'Pendiente'}</td>
+          <td class="num" style="color:${roiUSDColor};font-weight:700">${group.roiUSD?`${decCmp(group.roiUSD,'0')>=0?'+':''}${formatDec(group.roiUSD,{digits:2})}%`:'Pendiente'}</td>
+          <td class="num muted">${group.currentPriceARS?formatDec(group.currentPriceARS,{digits:2,currency:'ARS'})+renderPriceSource(representative):'<span style="color:var(--tx4)">Pendiente</span>'}</td>
           <td class="num" style="color:${pnlARSColor};font-weight:700">${group.pnlARS?formatDec(group.pnlARS,{digits:2,currency:'ARS'}):'<span title="Falta equivalente histórico ARS en uno o más lotes">Pendiente</span>'}</td>
-          <td class="num" style="color:${pnlUSDColor};font-weight:700">${group.pnlImplicitUSD?formatDec(group.pnlImplicitUSD,{digits:2,currency:'USD'}):'<span title="Falta CCL actual o base histórica USD válida">Pendiente</span>'}</td>
-          <td class="num" style="color:var(--ct2)">${formatDec(group.equivalentShares,{digits:4})}</td>
           <td class="muted">${group.priceUpdatedAt?quoteUpdatedLabel(representative):'Pendiente'}</td>
           <td style="white-space:nowrap">
             <button class="btn-view" onclick="openCEDLots(${inlineArg(group.sym)})" title="Ver compras / lotes"><i class="ti ti-layers"></i> Ver lotes</button>
@@ -7432,6 +7480,13 @@ function portfolioStatesEqual(first, second) {
         derivedQuoteFields.forEach(field => { delete asset[field]; });
       });
     });
+    // El CCL automático es una cotización derivada, igual que los precios de
+    // mercado. Cada dispositivo puede actualizarlo en segundos distintos y
+    // eso no debe disparar una elección destructiva de datos.
+    if (sanitized.cedearCurrentCclMode === 'auto') {
+      ['cedearCurrentCclDecimal','cedearCurrentCclSource','cedearCurrentCclUpdatedAt','cedearCurrentCclMode']
+        .forEach(field => { delete sanitized[field]; });
+    }
 
     const canonicalize = value => {
       if (Array.isArray(value)) return value.map(canonicalize);

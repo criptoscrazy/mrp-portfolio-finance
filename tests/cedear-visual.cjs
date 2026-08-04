@@ -68,7 +68,7 @@ const lot = (id, sym, date, quantity, unit, total, ticket, ratio = '10') => ({
       return style.position === 'fixed' && style.display !== 'none' && rect.width >= innerWidth && rect.height >= innerHeight;
     }).map(element => ({ id: element.id, className: element.className, opacity: getComputedStyle(element).opacity, background: getComputedStyle(element).backgroundColor, zIndex: getComputedStyle(element).zIndex }))
   }));
-  if (!result.visible || result.activeTab !== 'Otros' || !result.tableText.includes('822') || !result.tableText.includes('9.042,97') || !result.lotsButton) {
+  if (!result.visible || result.activeTab !== 'Otros' || !result.tableText.includes('822') || !result.tableText.includes('9.042,97') || !result.tableText.includes('16.440,00') || !result.tableText.includes('7.397,03') || !result.lotsButton) {
     throw new Error(`Render CEDEAR incompleto: ${JSON.stringify(result)}`);
   }
   if (pageErrors.length) throw new Error(`Errores JavaScript visuales: ${pageErrors.join(' | ')}`);

@@ -183,6 +183,7 @@ const tests = String.raw`
   let scheduledSyncs = 0;
   scheduleCloudSync = () => { scheduledSyncs++; };
   fetchWithFallback = async url => {
+    if (url.includes('dolarapi.com/v1/dolares/contadoconliqui')) return { ok:true, json:async () => ({ venta:1200, fechaActualizacion:'2026-08-04T10:00:00.000Z' }) };
     if (url.includes('MSFT')) return { ok:true, json:async () => ({ chart:{ result:[{ meta:{ regularMarketPrice:210, chartPreviousClose:205, currency:'USD', regularMarketTime:1785517200 } }] } }) };
     if (url.includes('AAPL.BA')||url.includes('NVDA.BA')||url.includes('TSLA.BA')) return { ok:true, json:async () => ({ chart:{ result:[{ meta:{ regularMarketPrice:24000, chartPreviousClose:23500, currency:'ARS', regularMarketTime:1785517200 } }] } }) };
     return null;
@@ -195,6 +196,22 @@ const tests = String.raw`
   assert.strictEqual(updatedCedear.quoteSymbol, 'AAPL.BA', 'Debe consultar el ticker BYMA');
   assert.strictEqual(updatedCedear.quoteCurrency, 'ARS', 'Debe conservar la moneda ARS');
   assert(updatedCedear.priceSource.includes('BYMA'), 'Debe identificar la fuente BYMA');
+  assert.strictEqual(ST.cedearCurrentCclDecimal, '1200', 'Debe guardar el CCL automático válido');
+  assert.strictEqual(ST.cedearCurrentCclMode, 'auto', 'Debe identificar la fuente automática del CCL');
+  const valuedApple=consolidateCedears().find(group=>group.sym==='AAPL');
+  assert.strictEqual(valuedApple.historicalUSD, '9042.97', 'El coste USD MEP debe ser el importe histórico real pagado');
+  assert.strictEqual(valuedApple.currentValueUSD, '16440', 'El valor actual USD debe ser ARS dividido por CCL actual');
+  assert.strictEqual(valuedApple.pnlUSD, '7397.03', 'La G/P USD no debe depender del CCL histórico');
+  const retainedCCL=ST.cedearCurrentCclDecimal;
+  fetchWithFallback = async () => null;
+  assert.strictEqual(await refreshCedearCurrentCCL(), false, 'Debe informar si no hay CCL automático disponible');
+  assert.strictEqual(ST.cedearCurrentCclDecimal, retainedCCL, 'Un fallo de fuente no debe reemplazar el CCL válido por cero');
+  fetchWithFallback = async url => {
+    if (url.includes('dolarapi.com/v1/dolares/contadoconliqui')) return { ok:true, json:async () => ({ venta:1200, fechaActualizacion:'2026-08-04T10:00:00.000Z' }) };
+    if (url.includes('MSFT')) return { ok:true, json:async () => ({ chart:{ result:[{ meta:{ regularMarketPrice:210, chartPreviousClose:205, currency:'USD', regularMarketTime:1785517200 } }] } }) };
+    if (url.includes('AAPL.BA')||url.includes('NVDA.BA')||url.includes('TSLA.BA')) return { ok:true, json:async () => ({ chart:{ result:[{ meta:{ regularMarketPrice:24000, chartPreviousClose:23500, currency:'ARS', regularMarketTime:1785517200 } }] } }) };
+    return null;
+  };
   assert.strictEqual(ST.snaps.length, 0, 'La actualización automática no debe crear snapshots');
   assert.strictEqual(localStorage.getItem('mrp_last_local_change'), '2026-07-31T09:00:00Z', 'La actualización automática no debe cambiar el timestamp de usuario');
   assert.strictEqual(scheduledSyncs, 0, 'La actualización automática no debe subir cotizaciones a la nube');
@@ -223,6 +240,7 @@ const tests = String.raw`
   renderOtros();
   assert($('cedTb').innerHTML.includes('24.000,00'), 'La tabla CEDEAR debe mostrar el precio actual ARS');
   assert($('cedTb').innerHTML.includes('9.042,97'), 'La tabla CEDEAR debe mostrar el costo MEP consolidado');
+  assert($('cedTb').innerHTML.includes('16.440,00'), 'La tabla CEDEAR debe destacar el valor actual USD');
   assert($('cedTb').innerHTML.includes('Ver lotes'), 'La tabla CEDEAR debe abrir compras/lotes');
 
   openAssetDetails('otro', 'a1');

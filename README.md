@@ -77,10 +77,11 @@ Las APIs externas pueden fallar, limitar solicitudes o devolver datos temporalme
 
 ### CEDEARs: precios, resultado y timeline
 
-Los precios actuales de CEDEAR se consultan con el ticker de BYMA en ARS (por ejemplo, `AAPL.BA`). Para calcular el valor actual implícito en USD, guardá una referencia de **CCL actual**, su fuente y la fecha desde la propia sección CEDEARs.
+Los precios actuales de CEDEAR se consultan con el ticker de BYMA en ARS (por ejemplo, `AAPL.BA`). Para compras realizadas en **USD MEP**, el importe realmente pagado en USD es el coste histórico principal: no se reconvierte a ARS ni requiere CCL histórico. El valor actual se calcula como `valor ARS / CCL actual`.
 
-- El resultado nominal ARS solo se muestra si cada lote tiene una base histórica ARS válida.
-- La métrica **G/P USD implícita CCL** usa el CCL actual y solo se muestra si existe una base histórica USD compatible. Si hay monedas distintas o faltan referencias, muestra `Pendiente`.
+- Al actualizar precios, la aplicación consulta primero el CCL venta de DolarApi.com y conserva valor, fuente y fecha/hora. Si no está disponible, intenta Dolarazo. El botón **Actualizar CCL** permite reintentar; también podés introducir una referencia manual como respaldo.
+- Para una posición compuesta íntegramente por compras en USD MEP, la tabla destaca **coste histórico USD**, **valor actual USD**, **G/P USD** y **rentabilidad %**. No se exige CCL histórico para este cálculo.
+- El resultado nominal ARS queda como información secundaria y solo se muestra si cada lote tiene una base histórica ARS válida. Si una moneda, precio o CCL actual falta, se muestra `Pendiente`, nunca cero.
 - La timeline conserva las fechas reales de compra. Las cotizaciones o referencias de CCL que no se hayan guardado para una fecha histórica se muestran como `Pendiente`, nunca como cero.
 - Al editar o eliminar se trabaja sobre un lote concreto, desde **Ver lotes**. Los gastos de otra moneda se mantienen separados; no se convierten de forma automática.
 
@@ -315,7 +316,7 @@ Para disponer de funcionamiento offline completo sería necesario incorporar un 
 - Supabase Auth con GitHub OAuth.
 - PostgreSQL/Supabase con RLS para sincronización.
 - Chart.js para gráficos.
-- Binance Spot, CoinGecko, CryptoCompare y Yahoo Finance para precios.
+- Binance Spot, CoinGecko, CryptoCompare, Yahoo Finance, DolarApi.com y Dolarazo para precios y CCL actual.
 - TradingView para gráficos técnicos.
 
 ## 20. Alcance
