@@ -376,6 +376,7 @@ td.note-cell{max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:
 }
 .form-row .f{flex:1;min-width:80px}
 .form-row label{font-size:9px;color:var(--tx3);display:block;margin-bottom:4px;text-transform:uppercase;letter-spacing:.07em;font-weight:600}
+#otrosSection-cedeares .f label{color:var(--tx2)}
 .form-row input,
 .form-row select,
 .form-row textarea{
@@ -1322,6 +1323,12 @@ input::placeholder,textarea::placeholder,select::placeholder{color:var(--tx4);op
     <div style="padding:10px 14px;background:rgba(8,145,178,.08);border:1px solid rgba(8,145,178,.2);border-radius:10px;margin-bottom:12px;font-size:11px;color:var(--ct2)">
       <i class="ti ti-info-circle"></i> <strong>CEDEARs:</strong> Cotizan en pesos en BYMA. La app consulta el símbolo local (por ejemplo, AAPL.BA) para mostrar precio actual y resultado nominal en ARS; el valor implícito de compra en USD vía CCL se informa por separado.
     </div>
+    <div class="form-row" style="margin-bottom:12px">
+      <div class="f"><label>CCL actual de referencia</label><input id="cedCurrentCCL" class="inp-h" inputmode="decimal" placeholder="0,00"></div>
+      <div class="f"><label>Fuente del CCL</label><input id="cedCurrentCCLSource" class="inp-h" placeholder="Broker / fuente verificada"></div>
+      <div><span class="lph">.</span><button class="btn-snap" onclick="saveCedearCurrentCCL()"><i class="ti ti-check"></i> Guardar referencia</button></div>
+      <div style="align-self:end;font-size:9px;color:var(--tx3);padding-bottom:8px" id="cedCurrentCCLStatus">Sin referencia: métricas CCL pendientes</div>
+    </div>
     <div class="form-row">
       <div class="f ac-wrap">
         <label>Símbolo CEDEAR</label>
@@ -1329,21 +1336,33 @@ input::placeholder,textarea::placeholder,select::placeholder{color:var(--tx4);op
         <div class="ac-drop" id="acCED"></div>
       </div>
       <div class="f"><label>Nombre</label><input id="cedName" class="inp-h" placeholder="Apple Inc."></div>
-      <div class="f"><label>Cantidad de CEDEARs</label><input id="cedQty" class="inp-h" type="number" step="any" placeholder="0.00"></div>
+      <div class="f"><label>Moneda de compra *</label><select id="cedCurrency" onchange="updateCEDForm()" style="height:34px;background:var(--input-bg);border:1px solid var(--br2);border-radius:8px;color:var(--tx1);padding:0 10px;width:100%"><option value="ARS">ARS</option><option value="USD_MEP">USD MEP</option><option value="USD_CABLE">USD cable</option></select></div>
+      <div class="f"><label>Cantidad de CEDEARs *</label><input id="cedQty" class="inp-h" inputmode="decimal" placeholder="0,00" oninput="calcCEDPreview()"></div>
       <div class="f"><label>Ratio conversión</label>
-        <input id="cedRatio" class="inp-h" type="number" step="0.01" placeholder="0.00" title="Ej: 10 significa que 10 CEDEARs = 1 acción">
+        <input id="cedRatio" class="inp-h" inputmode="decimal" placeholder="0,00" title="Ej: 10 significa que 10 CEDEARs = 1 acción" oninput="calcCEDPreview()">
       </div>
-      <div class="f"><label>Precio compra (ARS)</label><input id="cedBuyARS" class="inp-h" type="number" step="0.01" placeholder="0.00"></div>
-      <div class="f"><label>Dólar CCL compra</label><input id="cedCCL" class="inp-h" type="number" step="0.01" placeholder="0.00" oninput="calcCEDPreview()"></div>
-      <div class="f"><label>Fecha compra</label><input id="cedDate" class="inp-h" type="date"></div>
+      <div class="f"><label id="cedUnitPriceLabel">Precio unitario (ARS) *</label><input id="cedUnitPrice" class="inp-h" inputmode="decimal" placeholder="0,00" oninput="calcCEDPreview()"></div>
+      <div class="f"><label>Importe bruto (calculado)</label><input id="cedGross" class="inp-h" readonly placeholder="se calcula" title="Cantidad × precio unitario"></div>
+      <div class="f"><label id="cedTotalLabel">Costo total (ARS) *</label><input id="cedTotalCost" class="inp-h" inputmode="decimal" placeholder="incluye gastos" oninput="calcCEDPreview()"></div>
+      <div class="f"><label>Fecha compra *</label><input id="cedDate" class="inp-h" type="date"></div>
       <div class="f"><label>Broker</label><input id="cedBroker" class="inp-h" list="platformsList" placeholder="IOL, Balanz, PPI..."></div>
+      <div class="f"><label>N.º ticket / comprobante</label><input id="cedTicket" class="inp-h" placeholder="874213"></div>
+      <div class="f"><label>Fuente (opcional)</label><input id="cedSource" class="inp-h" placeholder="Broker, extracto..."></div>
+      <div class="f"><label>CCL histórico (opcional)</label><input id="cedCCL" class="inp-h" inputmode="decimal" placeholder="0,00" oninput="calcCEDPreview()"></div>
+      <div class="f"><label>MEP histórico (opcional)</label><input id="cedMEP" class="inp-h" inputmode="decimal" placeholder="0,00"></div>
+      <div class="f"><label>Equivalente histórico ARS (opcional)</label><input id="cedHistARS" class="inp-h" inputmode="decimal" placeholder="0,00"></div>
       <div class="f"><label>Notas</label><input id="cedNote" class="inp-h" placeholder=""></div>
+      <div style="width:100%;padding:10px 12px;background:var(--bg3);border:1px solid var(--br);border-radius:8px">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:8px"><strong style="font-size:11px">Gastos y comisiones</strong><button class="btn-cancel" type="button" onclick="addCEDExpenseRow()"><i class="ti ti-plus"></i> Añadir gasto</button></div>
+        <div id="cedExpenseRows"></div>
+        <div style="font-size:9px;color:var(--tx3);margin-top:6px">Los gastos en otra moneda se conservan separados y nunca se convierten automáticamente.</div>
+      </div>
       <div style="width:100%">
         <div id="cedPreview" style="display:none;padding:10px 12px;background:var(--bg3);border:1px solid var(--br);border-radius:8px;font-size:11px">
           <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px">
-            <div><div style="font-size:9px;color:var(--tx3);margin-bottom:3px">PRECIO USD IMPLÍCITO</div><div style="font-weight:700;color:var(--cv3)" id="cedPriceUSD">—</div></div>
+            <div><div style="font-size:9px;color:var(--tx3);margin-bottom:3px">COSTO EFECTIVO UNITARIO</div><div style="font-weight:700;color:var(--cv3)" id="cedPriceUSD">—</div></div>
             <div><div style="font-size:9px;color:var(--tx3);margin-bottom:3px">ACCIONES EQUIVALENTES</div><div style="font-weight:700;color:var(--ct2)" id="cedEquivShares">—</div></div>
-            <div><div style="font-size:9px;color:var(--tx3);margin-bottom:3px">CAPITAL USD</div><div style="font-weight:700;color:var(--cg2)" id="cedCapUSD">—</div></div>
+            <div><div style="font-size:9px;color:var(--tx3);margin-bottom:3px">TOTAL RECONOCIDO</div><div style="font-weight:700;color:var(--cg2)" id="cedCapUSD">—</div></div>
           </div>
         </div>
       </div>
@@ -1351,9 +1370,13 @@ input::placeholder,textarea::placeholder,select::placeholder{color:var(--tx4);op
     </div>
     <div class="card" style="padding:0;overflow:hidden">
       <div class="tbl-wrap"><table>
-        <thead><tr><th>Símbolo</th><th>Nombre</th><th>Cant.</th><th>Ratio</th><th>P. compra ARS</th><th>P. actual ARS</th><th>24h</th><th>Valor actual ARS</th><th>G/P ARS</th><th>G/P %</th><th>CCL compra</th><th>P. USD impl.</th><th>Acc. equiv.</th><th>Capital USD</th><th>Broker</th><th>Días</th><th>Notas</th><th>Acc.</th></tr></thead>
+        <thead><tr><th>Símbolo</th><th>Nombre</th><th>Cant.</th><th>Lotes</th><th>Costos / promedios</th><th>P. actual ARS</th><th>Valor actual ARS</th><th>G/P ARS nominal</th><th title="Compara el valor actual convertido por el CCL actual con el costo histórico USD válido. No es ganancia realizada.">G/P USD implícita CCL</th><th>Acc. equiv.</th><th>Actualización</th><th>Acc.</th></tr></thead>
         <tbody id="cedTb"></tbody>
       </table></div>
+    </div>
+    <div class="card" style="padding:0;overflow:hidden;margin-top:12px">
+      <div style="padding:12px 14px"><div class="card-head"><i class="ti ti-timeline" style="color:var(--cv3)"></i> Timeline CEDEAR</div><div class="card-sub">Compras reales por fecha y valuaciones disponibles. Mercado o tipo de cambio faltante se muestra como pendiente.</div></div>
+      <div class="tbl-wrap"><table><thead><tr><th>Fecha</th><th>Evento</th><th>Símbolo</th><th>Cantidad acumulada</th><th>Costos acumulados</th><th>Precio mercado ARS</th><th>CCL</th><th>Valor ARS</th><th>Valor USD implícito</th><th>Fuente / estado</th></tr></thead><tbody id="cedTimelineTb"></tbody></table></div>
     </div>
   </div>
 
@@ -1678,6 +1701,7 @@ input::placeholder,textarea::placeholder,select::placeholder{color:var(--tx4);op
       <div class="tools-row">
         <button class="btn-tool" onclick="exportData()"><i class="ti ti-download"></i> Exportar backup (.json)</button>
         <button class="btn-tool" onclick="$('importFile').click()"><i class="ti ti-upload"></i> Importar backup</button>
+        <button class="btn-tool" id="btnCedearMigrationBackup" style="display:none" onclick="exportCedearMigrationBackup()"><i class="ti ti-history"></i> Exportar backup previo a lotes CEDEAR</button>
         <input type="file" id="importFile" accept=".json" style="display:none" onchange="importData(event)">
       </div>
       <div class="sect-t" style="margin-top:16px"><i class="ti ti-table-import"></i> Carga masiva desde CSV / Excel</div>
@@ -1717,7 +1741,7 @@ input::placeholder,textarea::placeholder,select::placeholder{color:var(--tx4);op
       <div class="card-sub">Información técnica de la aplicación</div>
       <div class="acc-line"></div>
       <div style="font-size:11px;color:var(--tx2);line-height:2">
-        <div style="display:flex;justify-content:space-between;border-bottom:1px solid var(--br);padding:6px 0"><span style="color:var(--tx3)">Versión</span><span style="font-weight:700;color:var(--cv3)">9.3 — Sync y CEDEARs</span></div>
+        <div style="display:flex;justify-content:space-between;border-bottom:1px solid var(--br);padding:6px 0"><span style="color:var(--tx3)">Versión</span><span style="font-weight:700;color:var(--cv3)">9.4 — Lotes CEDEAR multimoneda</span></div>
         <div style="display:flex;justify-content:space-between;border-bottom:1px solid var(--br);padding:6px 0"><span style="color:var(--tx3)">Precios cripto</span><span>Binance Spot · respaldos CoinGecko/CryptoCompare</span></div>
         <div style="display:flex;justify-content:space-between;border-bottom:1px solid var(--br);padding:6px 0"><span style="color:var(--tx3)">Acciones / ETFs / CEDEARs</span><span>Yahoo Finance · BYMA (.BA)</span></div>
         <div style="display:flex;justify-content:space-between;border-bottom:1px solid var(--br);padding:6px 0"><span style="color:var(--tx3)">Almacenamiento</span><span>localStorage (local)</span></div>
@@ -2254,6 +2278,16 @@ input::placeholder,textarea::placeholder,select::placeholder{color:var(--tx4);op
   </div>
 </div>
 
+<!-- CEDEAR LOTS -->
+<div class="modal-overlay" id="cedLotsModalOverlay" role="dialog" aria-modal="true" aria-labelledby="cedLotsTitle">
+  <div class="modal" style="max-width:1050px">
+    <div class="modal-head" id="cedLotsTitle"><i class="ti ti-layers" style="color:var(--ct2)"></i> Compras / lotes</div>
+    <div class="modal-sub" id="cedLotsSub">Cada compra conserva su moneda, gastos y trazabilidad.</div>
+    <div class="tbl-wrap"><table><thead><tr><th>Fecha</th><th>Cantidad</th><th>Ratio</th><th>Moneda</th><th>P. unitario</th><th>Bruto</th><th>Gastos</th><th>Total</th><th>P. efectivo</th><th>Ticket</th><th>Acc.</th></tr></thead><tbody id="cedLotsTb"></tbody></table></div>
+    <div class="modal-actions"><button class="btn-save" onclick="closeCEDLots()">Cerrar</button></div>
+  </div>
+</div>
+
 <!-- TOAST -->
 <div class="toast" id="toast"><i class="ti ti-check" id="toastIco"></i> <span id="toastMsg">Guardado</span></div>
 
@@ -2272,6 +2306,69 @@ const days = (d1, d2) => Math.max(0, Math.floor((new Date(d2) - new Date(d1)) / 
 const today = () => new Date().toISOString().split('T')[0];
 const uid = () => Math.random().toString(36).slice(2, 9);
 const curYear = new Date().getFullYear();
+const CEDEAR_CURRENCIES = ['ARS','USD_MEP','USD_CABLE'];
+const CEDEAR_MIGRATION_BACKUP_KEY = 'mrp_portfolio_v2_pre_cedear_lots_v1';
+
+// Decimal arithmetic for quantities and money. Persisted CEDEAR values are
+// canonical decimal strings; Number is used only at chart/market-API boundaries.
+function dec(value) {
+  let raw = String(value ?? '').trim().replace(/\s/g, '');
+  if (!raw) return null;
+  if (raw.includes(',') && raw.includes('.')) {
+    raw = raw.lastIndexOf(',') > raw.lastIndexOf('.')
+      ? raw.replace(/\./g, '').replace(',', '.')
+      : raw.replace(/,/g, '');
+  } else raw = raw.replace(',', '.');
+  if (!/^-?\d+(?:\.\d+)?$/.test(raw)) return null;
+  const negative = raw.startsWith('-');
+  if (negative) raw = raw.slice(1);
+  let [whole, fraction = ''] = raw.split('.');
+  whole = whole.replace(/^0+(?=\d)/, '') || '0';
+  fraction = fraction.replace(/0+$/, '');
+  if (whole === '0' && !fraction) return '0';
+  return `${negative ? '-' : ''}${whole}${fraction ? '.' + fraction : ''}`;
+}
+function decParts(value) {
+  const normalized = dec(value); if (normalized == null) return null;
+  const negative = normalized.startsWith('-');
+  const clean = negative ? normalized.slice(1) : normalized;
+  const [whole, fraction = ''] = clean.split('.');
+  return { int:BigInt(`${negative ? '-' : ''}${whole}${fraction}`), scale:fraction.length };
+}
+const decPow = scale => 10n ** BigInt(scale);
+function decString(int, scale) {
+  const negative = int < 0n; let digits = (negative ? -int : int).toString();
+  if (scale) digits = digits.padStart(scale + 1, '0');
+  const whole = scale ? digits.slice(0, -scale) : digits;
+  const fraction = scale ? digits.slice(-scale).replace(/0+$/, '') : '';
+  return dec(`${negative ? '-' : ''}${whole}${fraction ? '.' + fraction : ''}`);
+}
+function decAdd(a, b) {
+  const x=decParts(a), y=decParts(b); if(!x||!y)return null;
+  const scale=Math.max(x.scale,y.scale);
+  return decString(x.int*decPow(scale-x.scale)+y.int*decPow(scale-y.scale),scale);
+}
+function decSub(a,b){const y=decParts(b);return y?decAdd(a,decString(-y.int,y.scale)):null;}
+function decMul(a,b){const x=decParts(a),y=decParts(b);return x&&y?decString(x.int*y.int,x.scale+y.scale):null;}
+function decDiv(a,b,precision=8){
+  const x=decParts(a),y=decParts(b);if(!x||!y||y.int===0n)return null;
+  const negative=(x.int<0n)!==(y.int<0n);const ax=x.int<0n?-x.int:x.int;const ay=y.int<0n?-y.int:y.int;
+  const numerator=ax*decPow(precision+y.scale);const denominator=ay*decPow(x.scale);
+  let quotient=numerator/denominator;const remainder=numerator%denominator;
+  if(remainder*2n>=denominator)quotient+=1n;
+  return decString(negative?-quotient:quotient,precision);
+}
+function decCmp(a,b){const d=decParts(decSub(a,b));return !d?null:(d.int===0n?0:(d.int>0n?1:-1));}
+function decPositive(value){return decCmp(value,'0')===1;}
+function decSum(values){return values.reduce((total,value)=>decAdd(total,value)||total,'0');}
+function formatDec(value,{digits=2,currency=''}={}){
+  const normalized=dec(value);if(normalized==null)return 'Pendiente';
+  const rounded=decDiv(normalized,'1',digits);const negative=rounded.startsWith('-');
+  const clean=negative?rounded.slice(1):rounded;let [whole,fraction='']=clean.split('.');
+  whole=whole.replace(/\B(?=(\d{3})+(?!\d))/g,'.');fraction=fraction.padEnd(digits,'0');
+  return `${negative?'-':''}${currency?'$':''}${whole}${digits?','+fraction:''}${currency?' '+currency:''}`;
+}
+function currencyLabel(value){return value==='USD_MEP'?'USD MEP':value==='USD_CABLE'?'USD cable':'ARS';}
 const escapeHTML = value => String(value ?? '').replace(/[&<>"']/g, char => ({
   '&': '&amp;',
   '<': '&lt;',
@@ -2612,13 +2709,15 @@ let ST = {
   apyPositions: [],
   alerts: [],
   otros: [],
+  cedearExpenses: [],
+  cedearValuations: [],
   snaps: [],
   aSnaps: {},
   selAsset: null
 };
 
 const PORTFOLIO_ARRAY_KEYS = [
-  'stocks', 'crypto', 'hist', 'income', 'apyPositions', 'alerts', 'otros', 'snaps'
+  'stocks', 'crypto', 'hist', 'income', 'apyPositions', 'alerts', 'otros', 'cedearExpenses', 'cedearValuations', 'snaps'
 ];
 const TRADING_ARRAY_KEYS = [
   'positions', 'journal', 'watchlist', 'checklist', 'rules', 'psychEntries'
@@ -2653,6 +2752,10 @@ const STRING_STATE_KEYS = new Set([
   'category', 'priority', 'thesis', 'addedDate', 'manifesto', 'dailyContext',
   'etfType', 'index', 'tokType', 'bonType', 'currency', 'cond', 'url', 'link',
   'image', 'logo', 'priceSource', 'priceUpdatedAt', 'quoteCurrency', 'quoteSymbol'
+  ,'purchaseCurrency','quantityDecimal','ratioDecimal','unitPriceDecimal','grossAmountDecimal',
+  'totalCostDecimal','cclAtPurchaseDecimal','mepAtPurchaseDecimal','historicalArsEquivalentDecimal',
+  'ticketNumber','informationSource','amountDecimal','lotId','concept','schemaVersion',
+  'cedearCurrentCclDecimal','cedearCurrentCclSource','cedearCurrentCclUpdatedAt','cedearPriceArsDecimal','cclDecimal'
 ]);
 
 function isPlainRecord(value) {
@@ -2770,6 +2873,57 @@ function save(silent = true, { scheduleSync = true, timestamp = null, markChange
   }
 }
 
+function needsCedearMigration(state) {
+  return Array.isArray(state?.otros) && state.otros.some(item =>
+    item?.type === 'cedeaar' && item.schemaVersion !== 'cedear-lots-v1'
+  );
+}
+
+function upgradeCedearState(state) {
+  if (!isPlainRecord(state)) return state;
+  if (!Array.isArray(state.cedearExpenses)) state.cedearExpenses = [];
+  if (!Array.isArray(state.cedearValuations)) state.cedearValuations = [];
+  if (!Array.isArray(state.otros)) return state;
+  state.otros.forEach(lot => {
+    if (lot?.type !== 'cedeaar' || lot.schemaVersion === 'cedear-lots-v1') return;
+    const quantity = dec(lot.quantityDecimal ?? lot.qty);
+    const ratio = dec(lot.ratioDecimal ?? lot.ratio ?? 1);
+    const unitPrice = dec(lot.unitPriceDecimal ?? lot.buyARS);
+    const gross = quantity && unitPrice ? decMul(quantity, unitPrice) : null;
+    lot.purchaseCurrency = 'ARS';
+    lot.quantityDecimal = quantity;
+    lot.ratioDecimal = ratio;
+    lot.unitPriceDecimal = unitPrice;
+    lot.grossAmountDecimal = dec(lot.grossAmountDecimal) || gross;
+    lot.totalCostDecimal = dec(lot.totalCostDecimal) || gross;
+    lot.cclAtPurchaseDecimal = dec(lot.cclAtPurchaseDecimal ?? lot.ccl);
+    lot.mepAtPurchaseDecimal = dec(lot.mepAtPurchaseDecimal);
+    lot.historicalArsEquivalentDecimal = dec(lot.historicalArsEquivalentDecimal) || gross;
+    lot.ticketNumber = String(lot.ticketNumber || '');
+    lot.informationSource = String(lot.informationSource || 'Migración de registro anterior');
+    lot.schemaVersion = 'cedear-lots-v1';
+  });
+  return state;
+}
+
+function preserveCedearPreMigrationBackup(state) {
+  if (!needsCedearMigration(state) || localStorage.getItem(CEDEAR_MIGRATION_BACKUP_KEY)) return;
+  localStorage.setItem(CEDEAR_MIGRATION_BACKUP_KEY, JSON.stringify(state));
+}
+
+function updateCedearMigrationControls() {
+  const available = Boolean(localStorage.getItem(CEDEAR_MIGRATION_BACKUP_KEY));
+  const element = $('btnCedearMigrationBackup'); if (element) element.style.display = available ? '' : 'none';
+}
+
+function exportCedearMigrationBackup() {
+  const raw = localStorage.getItem(CEDEAR_MIGRATION_BACKUP_KEY);
+  if (!raw) { showToast('No hay un backup previo a la migración', 'warn'); return; }
+  const blob = new Blob([raw], { type:'application/json' });
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+  a.download = `MRP_Portfolio_antes_lotes_CEDEAR_${today()}.json`; a.click();
+}
+
 function loadState() {
   try {
     const raw = localStorage.getItem(SKEY);
@@ -2778,7 +2932,9 @@ function loadState() {
       if (!validatePortfolioStateShape(parsed)) {
         throw new Error('Stored portfolio state has an invalid structure');
       }
-      ST = sanitizePortfolioState({ ...ST, ...parsed });
+      preserveCedearPreMigrationBackup(parsed);
+      ST = upgradeCedearState(sanitizePortfolioState({ ...ST, ...parsed }));
+      localStorage.setItem(SKEY, JSON.stringify(ST));
     }
   } catch(e) {
     console.error('Local state load error:', e);
@@ -2787,6 +2943,7 @@ function loadState() {
   const theme = localStorage.getItem('mrp_theme') || 'dark';
   document.documentElement.setAttribute('data-theme', theme);
   $('themeIco').className = theme === 'dark' ? 'ti ti-sun' : 'ti ti-moon';
+  updateCedearMigrationControls();
 }
 
 // ═══════════════════════════════════════════
@@ -2844,14 +3001,15 @@ function importData(e) {
       }
 
       // Fill in any missing keys with safe defaults so a partial-but-valid backup doesn't break rendering
-      ST = sanitizePortfolioState({
-        stocks: [], crypto: [], otros: [], hist: [], income: [], apyPositions: [],
+      preserveCedearPreMigrationBackup(parsed);
+      ST = upgradeCedearState(sanitizePortfolioState({
+        stocks: [], crypto: [], otros: [], cedearExpenses: [], cedearValuations: [], hist: [], income: [], apyPositions: [],
         alerts: [], snaps: [], aSnaps: {}, selAsset: null,
         trading: { positions:[], journal:[], watchlist:[], checklist:[], rules:[], psychEntries:[],
                    riskLimits:{monthlyGoal:'',dailyLoss:'',monthlyLoss:'',maxOpsDay:''},
                    manifesto:'', capital:10000, dailyContext:'' },
         ...parsed
-      });
+      }));
       save(true);
       renderAll();
       showToast(t('toastImported'));
@@ -3414,6 +3572,15 @@ async function updatePrices({ automatic = false } = {}) {
         todaySnap.value = +snapTotal.toFixed(2);
       }
     }
+    const currentCCL=dec(ST.cedearCurrentCclDecimal);
+    if(decPositive(currentCCL)){
+      if(!ST.cedearValuations)ST.cedearValuations=[];
+      consolidateCedears().forEach(group=>{if(group.currentPriceARS){
+        const existing=ST.cedearValuations.find(item=>item.date===today()&&item.sym===group.sym);
+        const valuation={id:existing?.id||uid(),date:today(),sym:group.sym,cedearPriceArsDecimal:group.currentPriceARS,cclDecimal:currentCCL,source:`${group.priceSource||'BYMA'} · CCL: ${ST.cedearCurrentCclSource||'referencia manual'}`};
+        if(existing)Object.assign(existing,valuation);else ST.cedearValuations.push(valuation);
+      }});
+    }
   }
   save(true, automatic
     ? { scheduleSync: false, markChanged: false }
@@ -3531,6 +3698,76 @@ function quoteUpdatedLabel(asset) {
   return Number.isFinite(date.getTime()) ? date.toLocaleString('es-AR') : '—';
 }
 
+function cedearLotExpenses(lotId) {
+  return (ST.cedearExpenses || []).filter(expense => expense.lotId === lotId);
+}
+
+function cedearLotValues(lot) {
+  const currency=lot.purchaseCurrency||'ARS',quantity=dec(lot.quantityDecimal??lot.qty),ratio=dec(lot.ratioDecimal??lot.ratio??1);
+  const unit=dec(lot.unitPriceDecimal??lot.buyARS),gross=dec(lot.grossAmountDecimal)||decMul(quantity,unit);
+  const total=dec(lot.totalCostDecimal)||gross,expenses=cedearLotExpenses(lot.id);
+  const sameCurrencyExpenses=expenses.filter(expense=>expense.currency===currency&&decPositive(expense.amountDecimal));
+  const crossCurrencyExpenses=expenses.filter(expense=>expense.currency!==currency&&decPositive(expense.amountDecimal));
+  const unitemizedDifference=decSub(total,decAdd(gross,decSum(sameCurrencyExpenses.map(expense=>expense.amountDecimal))));
+  let historicalARS=dec(lot.historicalArsEquivalentDecimal);
+  if(!historicalARS&&currency==='ARS')historicalARS=total;
+  let historicalUSD=null;
+  if(currency==='USD_MEP'||currency==='USD_CABLE')historicalUSD=total;
+  else if(currency==='ARS'&&decPositive(lot.cclAtPurchaseDecimal))historicalUSD=decDiv(total,lot.cclAtPurchaseDecimal,8);
+  if(crossCurrencyExpenses.length) { historicalARS=null; historicalUSD=null; }
+  return {currency,quantity,ratio,unit,gross,total,expenses,sameCurrencyExpenses,crossCurrencyExpenses,
+    unitemizedDifference:decPositive(unitemizedDifference)?unitemizedDifference:null,
+    historicalARS,historicalUSD,equivalentShares:decDiv(quantity,ratio,8)};
+}
+
+function consolidateCedears(lots=(ST.otros||[]).filter(item=>item.type==='cedeaar')) {
+  const groups=new Map();
+  lots.forEach(lot=>{
+    const key=String(lot.sym||'').toUpperCase();if(!key)return;
+    if(!groups.has(key))groups.set(key,{sym:key,name:lot.name||key,lots:[],costs:{ARS:'0',USD_MEP:'0',USD_CABLE:'0'},quantity:'0',equivalentShares:'0'});
+    const group=groups.get(key),values=cedearLotValues(lot);group.lots.push(lot);
+    group.quantity=decAdd(group.quantity,values.quantity)||group.quantity;
+    group.equivalentShares=decAdd(group.equivalentShares,values.equivalentShares)||group.equivalentShares;
+    group.costs[values.currency]=decAdd(group.costs[values.currency],values.total)||group.costs[values.currency];
+    values.crossCurrencyExpenses.forEach(expense=>{group.costs[expense.currency]=decAdd(group.costs[expense.currency],expense.amountDecimal)||group.costs[expense.currency];});
+    if(Number.isFinite(Number(lot.cur))&&Number(lot.cur)>0&&(group.priceUpdatedAt==null||String(lot.priceUpdatedAt||'')>group.priceUpdatedAt)){
+      group.currentPriceARS=dec(lot.cur);group.ch=lot.ch;group.priceSource=lot.priceSource;group.priceUpdatedAt=lot.priceUpdatedAt;group.quoteSymbol=lot.quoteSymbol;
+    }
+  });
+  return [...groups.values()].map(group=>{
+    group.currentValueARS=group.currentPriceARS?decMul(group.quantity,group.currentPriceARS):null;
+    const lotValues=group.lots.map(cedearLotValues);
+    const arsBases=lotValues.map(value=>value.historicalARS);
+    group.historicalARS=arsBases.every(Boolean)?decSum(arsBases):null;
+    group.pnlARS=group.currentValueARS&&group.historicalARS?decSub(group.currentValueARS,group.historicalARS):null;
+    const usdBases=lotValues.map(value=>value.historicalUSD);
+    group.currencies=CEDEAR_CURRENCIES.filter(currency=>decPositive(group.costs[currency]));
+    group.mixedCurrencies=group.currencies.length>1;
+    group.historicalUSD=!group.mixedCurrencies&&usdBases.every(Boolean)?decSum(usdBases):null;
+    const currentCCL=dec(ST.cedearCurrentCclDecimal);
+    group.currentImplicitUSD=group.currentValueARS&&decPositive(currentCCL)?decDiv(group.currentValueARS,currentCCL,8):null;
+    group.pnlImplicitUSD=group.currentImplicitUSD&&group.historicalUSD?decSub(group.currentImplicitUSD,group.historicalUSD):null;
+    group.averages={};CEDEAR_CURRENCIES.forEach(currency=>{if(decPositive(group.costs[currency])){
+      const currencyQty=decSum(lotValues.filter(value=>value.currency===currency).map(value=>value.quantity));
+      group.averages[currency]=decDiv(group.costs[currency],currencyQty,8);
+    }});
+    return group;
+  }).sort((a,b)=>a.sym.localeCompare(b.sym));
+}
+
+function saveCedearCurrentCCL() {
+  const value=dec($('cedCurrentCCL')?.value),source=$('cedCurrentCCLSource')?.value.trim();
+  if(!decPositive(value)||!source){showToast('Indicá un CCL positivo y su fuente','warn');return;}
+  ST.cedearCurrentCclDecimal=value;ST.cedearCurrentCclSource=source;ST.cedearCurrentCclUpdatedAt=new Date().toISOString();
+  if(!ST.cedearValuations)ST.cedearValuations=[];
+  consolidateCedears().forEach(group=>{if(group.currentPriceARS){
+    const existing=ST.cedearValuations.find(item=>item.date===today()&&item.sym===group.sym);
+    const snapshot={id:existing?.id||uid(),date:today(),sym:group.sym,cedearPriceArsDecimal:group.currentPriceARS,cclDecimal:value,source};
+    if(existing)Object.assign(existing,snapshot);else ST.cedearValuations.push(snapshot);
+  }});
+  save();renderOtros();showToast('Referencia CCL guardada');
+}
+
 function showAssetDetails(title, subtitle, fields) {
   $('detailTitle').textContent = title;
   $('detailSub').textContent = subtitle;
@@ -3633,30 +3870,37 @@ function openAssetDetails(scope, id) {
         );
       }
     } else if (asset.type === 'cedeaar') {
-      const ratio = Number(asset.ratio) || 1;
-      const equivalentShares = Number(asset.qty) / ratio;
-      const investedARS = Number(asset.qty) * Number(asset.buyARS);
-      const currentValueARS = asset.cur != null ? Number(asset.qty) * Number(asset.cur) : null;
-      const pnlARS = currentValueARS != null ? currentValueARS - investedARS : null;
-      const roi = pnlARS != null && investedARS > 0 ? pnlARS / investedARS : null;
-      const capitalUSD = asset.capitalUSD != null ? Number(asset.capitalUSD) : Number(asset.qty) * Number(asset.buyUSD || 0);
-      const impliedUnderlyingUSD = equivalentShares > 0 ? capitalUSD / equivalentShares : null;
+      const lot=cedearLotValues(asset);
+      const currentValueARS=asset.cur!=null?decMul(lot.quantity,dec(asset.cur)):null;
+      const pnlARS=currentValueARS&&lot.historicalARS?decSub(currentValueARS,lot.historicalARS):null;
+      const expensesByCurrency=CEDEAR_CURRENCIES.map(currency=>{
+        const total=decSum(lot.expenses.filter(item=>item.currency===currency).map(item=>item.amountDecimal));
+        return decPositive(total)?`${formatDec(total,{digits:2,currency:currencyLabel(currency)})}`:null;
+      }).filter(Boolean).join(' · ')||'Sin gastos desglosados';
+      const expenseDetail=lot.unitemizedDifference
+        ? `${expensesByCurrency} · Diferencia no desglosada: ${formatDec(lot.unitemizedDifference,{digits:2,currency:currencyLabel(lot.currency)})}`
+        : expensesByCurrency;
       fields = [
         { label:'Tipo', value:kind }, { label:'Nombre', value:asset.name },
-        { label:'Cantidad de CEDEARs', value:Number(asset.qty).toLocaleString('es-AR', { maximumFractionDigits:8 }) },
-        { label:'Ratio de conversión', value:`${ratio}:1` },
+        { label:'Cantidad de CEDEARs', value:formatDec(lot.quantity,{digits:4}) },
+        { label:'Ratio de conversión', value:`${formatDec(lot.ratio,{digits:4})}:1` },
         { label:'Fecha de compra', value:asset.date },
-        { label:'Precio de compra', value:formatARS(asset.buyARS) },
+        { label:'Moneda de compra', value:currencyLabel(lot.currency) },
+        { label:'Precio unitario', value:formatDec(lot.unit,{digits:6,currency:currencyLabel(lot.currency)}) },
+        { label:'Importe bruto', value:formatDec(lot.gross,{digits:2,currency:currencyLabel(lot.currency)}) },
+        { label:'Gastos y comisiones', value:expenseDetail, full:true },
+        { label:'Costo total', value:formatDec(lot.total,{digits:2,currency:currencyLabel(lot.currency)}) },
+        { label:'Precio efectivo unitario', value:formatDec(decDiv(lot.total,lot.quantity,8),{digits:6,currency:currencyLabel(lot.currency)}) },
         { label:'Precio actual BYMA', value:asset.cur != null ? formatARS(asset.cur) : 'Sin cotización' },
         { label:'Variación 24 h', value:asset.ch != null ? fmtPct(asset.ch * 100) : '—', tone:asset.ch == null ? null : (asset.ch >= 0 ? 'positive' : 'negative') },
-        { label:'Capital invertido', value:formatARS(investedARS) },
         { label:'Valor actual nominal', value:currentValueARS != null ? formatARS(currentValueARS) : '—' },
-        { label:'Ganancia / pérdida nominal', value:pnlARS != null ? formatARS(pnlARS) : '—', tone:pnlARS == null ? null : (pnlARS >= 0 ? 'positive' : 'negative') },
-        { label:'Rentabilidad nominal', value:roi != null ? fmtPct(roi * 100) : '—', tone:roi == null ? null : (roi >= 0 ? 'positive' : 'negative') },
-        { label:'Dólar CCL de compra', value:asset.ccl ? formatARS(asset.ccl) : '—' },
-        { label:'Acciones equivalentes', value:equivalentShares.toFixed(4) },
-        { label:'Precio USD implícito de compra', value:impliedUnderlyingUSD != null ? fmt(impliedUnderlyingUSD) : '—' },
-        { label:'Capital de compra en USD', value:fmt(capitalUSD) },
+        { label:'Ganancia / pérdida nominal ARS', value:pnlARS != null ? formatDec(pnlARS,{digits:2,currency:'ARS'}) : 'Pendiente: falta equivalente histórico ARS', tone:pnlARS==null?null:(decCmp(pnlARS,'0')>=0?'positive':'negative') },
+        { label:'CCL histórico', value:lot.cclAtPurchaseDecimal?formatDec(lot.cclAtPurchaseDecimal,{digits:2,currency:'ARS'}):'Pendiente' },
+        { label:'MEP histórico', value:lot.mepAtPurchaseDecimal?formatDec(lot.mepAtPurchaseDecimal,{digits:2,currency:'ARS'}):'Pendiente' },
+        { label:'Equivalente histórico ARS', value:lot.historicalARS?formatDec(lot.historicalARS,{digits:2,currency:'ARS'}):'Pendiente' },
+        { label:'Acciones equivalentes', value:formatDec(lot.equivalentShares,{digits:4}) },
+        { label:'Ticket / comprobante', value:asset.ticketNumber||'—' },
+        { label:'Fuente de información', value:asset.informationSource||'—' },
         { label:'Broker', value:asset.broker || '—' },
         { label:'Fuente del precio', value:asset.priceSource || '—' },
         { label:'Símbolo consultado', value:asset.quoteSymbol || `${asset.sym}.BA` },
@@ -3695,8 +3939,12 @@ const OTRO_EDIT_CONFIG = {
   ],
   cedeaar: [
     { key:'sym', label:'Símbolo', readonly:true }, { key:'name', label:'Nombre' },
-    { key:'qty', label:'Cantidad de CEDEARs', type:'number' }, { key:'ratio', label:'Ratio de conversión', type:'number' },
-    { key:'buyARS', label:'Precio compra (ARS)', type:'number' }, { key:'ccl', label:'Dólar CCL compra', type:'number' },
+    { key:'purchaseCurrency', label:'Moneda de compra', type:'select', options:[['ARS','ARS'],['USD_MEP','USD MEP'],['USD_CABLE','USD cable']] },
+    { key:'quantityDecimal', label:'Cantidad de CEDEARs' }, { key:'ratioDecimal', label:'Ratio de conversión' },
+    { key:'unitPriceDecimal', label:'Precio unitario' }, { key:'grossAmountDecimal', label:'Importe bruto', readonly:true },
+    { key:'totalCostDecimal', label:'Costo total' }, { key:'cclAtPurchaseDecimal', label:'CCL histórico (opcional)' },
+    { key:'mepAtPurchaseDecimal', label:'MEP histórico (opcional)' }, { key:'historicalArsEquivalentDecimal', label:'Equivalente histórico ARS (opcional)' },
+    { key:'ticketNumber', label:'Ticket / comprobante' }, { key:'informationSource', label:'Fuente' },
     { key:'date', label:'Fecha compra', type:'date' }, { key:'broker', label:'Broker' },
     { key:'note', label:'Notas', type:'textarea', full:true }
   ],
@@ -3717,6 +3965,13 @@ const OTRO_EDIT_CONFIG = {
     { key:'broker', label:'Broker / Custodio' }, { key:'note', label:'Notas', type:'textarea', full:true }
   ]
 };
+
+function addCEDExpenseEditRow(container, expense={}) {
+  if(!container)return;const id=expense.id||uid();
+  const wrapper=document.createElement('div');wrapper.className='modal-field full oe-ced-expense';wrapper.id=`oeExpense_${id}`;
+  wrapper.innerHTML=`<label>Gasto / comisión</label><div style="display:grid;grid-template-columns:1.4fr 1fr 1fr auto;gap:8px"><input class="oe-exp-concept" placeholder="Concepto" value="${escapeHTML(expense.concept||'')}"><input class="oe-exp-amount" inputmode="decimal" placeholder="Importe" value="${escapeHTML(expense.amountDecimal||'')}"><select class="oe-exp-currency"><option value="ARS">ARS</option><option value="USD_MEP">USD MEP</option><option value="USD_CABLE">USD cable</option></select><button type="button" class="btn-del" onclick="$('oeExpense_${id}').remove()"><i class="ti ti-x"></i></button></div>`;
+  container.appendChild(wrapper);wrapper.querySelector('.oe-exp-currency').value=expense.currency||'ARS';
+}
 
 function openOtroEdit(id) {
   const asset = (ST.otros || []).find(item => item.id === id);
@@ -3758,6 +4013,11 @@ function openOtroEdit(id) {
     wrapper.append(label, input);
     container.appendChild(wrapper);
   });
+  if(asset.type==='cedeaar'){
+    cedearLotExpenses(asset.id).forEach(expense=>addCEDExpenseEditRow(container,expense));
+    const add=document.createElement('button');add.type='button';add.className='btn-cancel';add.textContent='+ Añadir gasto / comisión';
+    add.onclick=()=>addCEDExpenseEditRow(container,{});container.appendChild(add);
+  }
   $('otroEditModalOverlay').classList.add('open');
 }
 
@@ -3777,10 +4037,25 @@ function saveOtroEdit() {
     if (!requirePositive(['qty','buy']) || !value('date')) { showToast('Completá cantidad, precio y fecha', 'warn'); return; }
     Object.assign(asset, { etfType:value('etfType'), index:value('index'), qty:number('qty'), buy:number('buy'), date:value('date'), ter:number('ter') || 0, broker:value('broker'), note:value('note') });
   } else if (asset.type === 'cedeaar') {
-    if (!requirePositive(['qty','ratio','buyARS']) || !value('date')) { showToast('Completá cantidad, ratio, precio y fecha', 'warn'); return; }
-    const ccl = number('ccl') || 0;
-    const priceUSD = ccl > 0 ? number('buyARS') / ccl : 0;
-    Object.assign(asset, { qty:number('qty'), ratio:number('ratio'), buyARS:number('buyARS'), ccl, buyUSD:priceUSD, priceUSD, capitalUSD:number('qty') * priceUSD, date:value('date'), broker:value('broker'), note:value('note') });
+    const currency=value('purchaseCurrency'),quantity=dec(value('quantityDecimal')),ratio=dec(value('ratioDecimal')),
+      unit=dec(value('unitPriceDecimal')),total=dec(value('totalCostDecimal'));
+    if(!CEDEAR_CURRENCIES.includes(currency)||!decPositive(quantity)||!decPositive(ratio)||!decPositive(unit)||!decPositive(total)||!value('date')){showToast('Completá moneda, cantidad, ratio, precio, costo total y fecha','warn');return;}
+    if(value('ticketNumber')&&(ST.otros||[]).some(item=>item.id!==asset.id&&item.type==='cedeaar'&&item.ticketNumber===value('ticketNumber'))){
+      showToast('Ya existe un lote CEDEAR con ese número de ticket','warn');return;
+    }
+    const editedExpenses=[...document.querySelectorAll('#otroEditFields .oe-ced-expense')].map(row=>({id:row.id.replace('oeExpense_',''),lotId:asset.id,concept:row.querySelector('.oe-exp-concept')?.value.trim()||'',amountDecimal:dec(row.querySelector('.oe-exp-amount')?.value),currency:row.querySelector('.oe-exp-currency')?.value||'ARS'}));
+    if(editedExpenses.some(expense=>!expense.concept||!decPositive(expense.amountDecimal)||!CEDEAR_CURRENCIES.includes(expense.currency))){showToast('Cada gasto necesita concepto, importe positivo y moneda','warn');return;}
+    const gross=decMul(quantity,unit);
+    const expenses=editedExpenses.filter(item=>item.currency===currency);
+    const minimum=decAdd(gross,decSum(expenses.map(item=>item.amountDecimal)));
+    if(decCmp(total,minimum)<0){showToast('El costo total no puede ser menor que bruto más gastos','warn');return;}
+    Object.assign(asset,{purchaseCurrency:currency,quantityDecimal:quantity,ratioDecimal:ratio,unitPriceDecimal:unit,
+      grossAmountDecimal:gross,totalCostDecimal:total,cclAtPurchaseDecimal:dec(value('cclAtPurchaseDecimal')),
+      mepAtPurchaseDecimal:dec(value('mepAtPurchaseDecimal')),historicalArsEquivalentDecimal:dec(value('historicalArsEquivalentDecimal')),
+      ticketNumber:value('ticketNumber'),informationSource:value('informationSource'),schemaVersion:'cedear-lots-v1',
+      qty:Number(quantity),ratio:Number(ratio),buyARS:currency==='ARS'?Number(unit):null,ccl:Number(dec(value('cclAtPurchaseDecimal')))||null,
+      date:value('date'),broker:value('broker'),note:value('note')});
+    ST.cedearExpenses=(ST.cedearExpenses||[]).filter(expense=>expense.lotId!==asset.id).concat(editedExpenses);
   } else if (asset.type === 'token') {
     if (!requirePositive(['qty','buy']) || !value('date')) { showToast('Completá cantidad, precio y fecha', 'warn'); return; }
     Object.assign(asset, { tokType:value('tokType'), qty:number('qty'), buy:number('buy'), date:value('date'), exchange:value('exchange'), note:value('note') });
@@ -3799,10 +4074,12 @@ function saveOtroEdit() {
 
 $('detailModalOverlay')?.addEventListener('click', event => { if (event.target === $('detailModalOverlay')) closeDetailModal(); });
 $('otroEditModalOverlay')?.addEventListener('click', event => { if (event.target === $('otroEditModalOverlay')) closeOtroEdit(); });
+$('cedLotsModalOverlay')?.addEventListener('click', event => { if (event.target === $('cedLotsModalOverlay')) closeCEDLots(); });
 document.addEventListener('keydown', event => {
   if (event.key !== 'Escape') return;
   closeDetailModal();
   closeOtroEdit();
+  closeCEDLots();
 });
 
 // ═══════════════════════════════════════════
@@ -5926,21 +6203,48 @@ function acSelectOtros(type, sym, name, extra) {
   }
 }
 
+function updateCEDForm() {
+  const currency = $('cedCurrency')?.value || 'ARS';
+  const label = currencyLabel(currency);
+  if ($('cedUnitPriceLabel')) $('cedUnitPriceLabel').textContent = `Precio unitario (${label}) *`;
+  if ($('cedTotalLabel')) $('cedTotalLabel').textContent = `Costo total (${label}) *`;
+  calcCEDPreview();
+}
+
+function addCEDExpenseRow(expense = {}) {
+  const container = $('cedExpenseRows'); if (!container) return;
+  const id = expense.id || uid();
+  const row = document.createElement('div');
+  row.className = 'ced-expense-row'; row.id = `cedExpenseRow_${id}`;
+  row.style.cssText = 'display:grid;grid-template-columns:1.4fr 1fr 1fr auto;gap:8px;margin-bottom:7px';
+  row.innerHTML = `<input class="inp-h ced-exp-concept" placeholder="Concepto" value="${escapeHTML(expense.concept||'')}"><input class="inp-h ced-exp-amount" inputmode="decimal" placeholder="Importe" value="${escapeHTML(expense.amountDecimal||'')}"><select class="ced-exp-currency" style="height:34px;background:var(--input-bg);border:1px solid var(--br2);border-radius:8px;color:var(--tx1);padding:0 8px"><option value="ARS">ARS</option><option value="USD_MEP">USD MEP</option><option value="USD_CABLE">USD cable</option></select><button type="button" class="btn-del" onclick="$('cedExpenseRow_${id}').remove();calcCEDPreview()"><i class="ti ti-x"></i></button>`;
+  container.appendChild(row);
+  row.querySelector('.ced-exp-currency').value = CEDEAR_CURRENCIES.includes(expense.currency) ? expense.currency : ($('cedCurrency')?.value || 'ARS');
+  row.querySelector('.ced-exp-amount').addEventListener('input', calcCEDPreview);
+}
+
+function readCEDExpenseRows() {
+  return [...document.querySelectorAll('#cedExpenseRows .ced-expense-row')].map(row => ({
+    id:row.id.replace('cedExpenseRow_',''),
+    concept:row.querySelector('.ced-exp-concept')?.value.trim() || '',
+    amountDecimal:dec(row.querySelector('.ced-exp-amount')?.value),
+    currency:row.querySelector('.ced-exp-currency')?.value || 'ARS'
+  }));
+}
+
 function calcCEDPreview() {
-  const qty = parseFloat($('cedQty')?.value)||0;
-  const ratio = parseFloat($('cedRatio')?.value)||1;
-  const priceARS = parseFloat($('cedBuyARS')?.value)||0;
-  const ccl = parseFloat($('cedCCL')?.value)||0;
-  const prev = $('cedPreview'); if (!prev) return;
-  if (!priceARS || !ccl) { prev.style.display='none'; return; }
-  const priceUSD = priceARS / ccl; // price of ONE CEDEAR unit in USD (no ratio division)
-  const capUSD = qty * priceUSD;    // total capital invested in USD
-  const equivShares = qty / ratio;  // equivalent real shares
-  const impliedPricePerShare = equivShares > 0 ? capUSD / equivShares : 0; // what you effectively paid per equivalent share
-  $('cedPriceUSD').textContent = fmt(impliedPricePerShare);
-  $('cedEquivShares').textContent = equivShares.toFixed(4);
-  $('cedCapUSD').textContent = fmt(capUSD);
-  prev.style.display = '';
+  const qty=dec($('cedQty')?.value), ratio=dec($('cedRatio')?.value), unit=dec($('cedUnitPrice')?.value);
+  const currency=$('cedCurrency')?.value||'ARS', prev=$('cedPreview'); if(!prev)return;
+  if(!decPositive(qty)||!decPositive(ratio)||!decPositive(unit)){prev.style.display='none';return;}
+  const calculatedGross=decMul(qty,unit);
+  if ($('cedGross')) $('cedGross').value=calculatedGross;
+  const sameCurrencyExpenses=decSum(readCEDExpenseRows().filter(e=>e.currency===currency&&decPositive(e.amountDecimal)).map(e=>e.amountDecimal));
+  const calculatedTotal=decAdd(calculatedGross,sameCurrencyExpenses);
+  const total=dec($('cedTotalCost')?.value)||calculatedTotal;
+  $('cedPriceUSD').textContent=formatDec(decDiv(total,qty,8),{digits:6,currency:currencyLabel(currency)});
+  $('cedEquivShares').textContent=formatDec(decDiv(qty,ratio,8),{digits:4});
+  $('cedCapUSD').textContent=formatDec(total,{digits:2,currency:currencyLabel(currency)});
+  prev.style.display='';
 }
 
 function addOtro(type) {
@@ -5958,20 +6262,34 @@ function addOtro(type) {
     [$('etfSym'),$('etfName'),$('etfQty'),$('etfBuy'),$('etfIndex'),$('etfTer'),$('etfBroker'),$('etfNote')].forEach(el=>{if(el)el.value='';});
   } else if (type === 'cedeaar') {
     const sym=$('cedSym')?.value.trim().toUpperCase();
-    const qty=parseFloat($('cedQty')?.value);
-    const buyARS=parseFloat($('cedBuyARS')?.value);
-    const ccl=parseFloat($('cedCCL')?.value);
-    const ratio=parseFloat($('cedRatio')?.value)||1;
+    const qty=dec($('cedQty')?.value), ratio=dec($('cedRatio')?.value);
+    const unitPrice=dec($('cedUnitPrice')?.value), currency=$('cedCurrency')?.value;
+    const suppliedGross=dec($('cedGross')?.value), suppliedTotal=dec($('cedTotalCost')?.value);
     const date=$('cedDate')?.value;
-    if (!sym||!qty||!buyARS||!date){showToast('Completá los campos obligatorios','warn');return;}
-    // priceUSD = price per CEDEAR unit in USD (NOT divided by ratio — ratio only converts qty to equivalent shares)
-    const priceUSD = ccl > 0 ? (buyARS/ccl) : 0;
-    const capitalUSD = qty * priceUSD; // total USD capital actually invested
-    const buyUSD = priceUSD; // kept for backward compatibility with existing saved data
+    const expenses=readCEDExpenseRows();
+    if(!/^[A-Z0-9.^-]{1,20}$/.test(sym)||!CEDEAR_CURRENCIES.includes(currency)||!decPositive(qty)||!decPositive(ratio)||!decPositive(unitPrice)||!date){showToast('Completá símbolo válido, moneda, cantidad, ratio, precio y fecha con valores positivos','warn',5000);return;}
+    if(expenses.some(e=>!e.concept||!decPositive(e.amountDecimal)||!CEDEAR_CURRENCIES.includes(e.currency))){showToast('Cada gasto necesita concepto, importe positivo y moneda','warn',5000);return;}
+    const ticket=$('cedTicket')?.value.trim();
+    if(ticket&&(ST.otros||[]).some(item=>item.type==='cedeaar'&&item.ticketNumber===ticket)){
+      showToast('Ya existe un lote CEDEAR con ese número de ticket','warn',5000);return;
+    }
+    const calculatedGross=decMul(qty,unitPrice);
+    if(suppliedGross&&decCmp(suppliedGross,calculatedGross)!==0){showToast(`El importe bruto debe ser ${formatDec(calculatedGross,{digits:4,currency:currencyLabel(currency)})}`,'warn',5000);return;}
+    const sameExpenses=decSum(expenses.filter(e=>e.currency===currency).map(e=>e.amountDecimal));
+    const minimumTotal=decAdd(calculatedGross,sameExpenses);
+    const totalCost=suppliedTotal||minimumTotal;
+    if(decCmp(totalCost,minimumTotal)<0){showToast('El costo total no puede ser menor que bruto más gastos en la moneda de compra','warn',5000);return;}
     obj = {...obj, sym, name:$('cedName')?.value.trim()||sym,
-      qty, ratio, buyARS, ccl, buyUSD, priceUSD, capitalUSD, date,
-      broker:$('cedBroker')?.value.trim(), note:$('cedNote')?.value.trim()};
-    [$('cedSym'),$('cedName'),$('cedQty'),$('cedRatio'),$('cedBuyARS'),$('cedCCL'),$('cedBroker'),$('cedNote')].forEach(el=>{if(el)el.value='';});
+      purchaseCurrency:currency,quantityDecimal:qty,ratioDecimal:ratio,unitPriceDecimal:unitPrice,
+      grossAmountDecimal:calculatedGross,totalCostDecimal:totalCost,cclAtPurchaseDecimal:dec($('cedCCL')?.value),
+      mepAtPurchaseDecimal:dec($('cedMEP')?.value),historicalArsEquivalentDecimal:dec($('cedHistARS')?.value),
+      ticketNumber:ticket,informationSource:$('cedSource')?.value.trim(),schemaVersion:'cedear-lots-v1',
+      qty:Number(qty),ratio:Number(ratio),buyARS:currency==='ARS'?Number(unitPrice):null,ccl:Number(dec($('cedCCL')?.value))||null,date,
+      broker:$('cedBroker')?.value.trim(), note:$('cedNote')?.value.trim(),cur:null,ch:null};
+    if(!ST.cedearExpenses)ST.cedearExpenses=[];
+    ST.cedearExpenses.push(...expenses.map(expense=>({...expense,lotId:obj.id})));
+    [$('cedSym'),$('cedName'),$('cedQty'),$('cedRatio'),$('cedUnitPrice'),$('cedGross'),$('cedTotalCost'),$('cedCCL'),$('cedMEP'),$('cedHistARS'),$('cedBroker'),$('cedTicket'),$('cedSource'),$('cedNote')].forEach(el=>{if(el)el.value='';});
+    if($('cedExpenseRows'))$('cedExpenseRows').replaceChildren();
     if($('cedPreview'))$('cedPreview').style.display='none';
   } else if (type === 'token') {
     const sym=$('tokSym')?.value.trim().toUpperCase();
@@ -6008,6 +6326,7 @@ function addOtro(type) {
 function removeOtro(id) {
   if (!confirm('¿Eliminar esta posición?')) return;
   ST.otros = (ST.otros||[]).filter(o=>o.id!==id);
+  ST.cedearExpenses = (ST.cedearExpenses||[]).filter(expense=>expense.lotId!==id);
   save(); renderOtros();
 }
 
@@ -6074,43 +6393,33 @@ function renderOtros() {
   const ceds = otros.filter(o=>o.type==='cedeaar');
   const cedTb=$('cedTb');
   if(cedTb){
-    if(!ceds.length){cedTb.innerHTML='<tr><td colspan="18" class="empty"><i class="ti ti-building-bank"></i><p>Sin CEDEARs. Agregá tu primera posición.</p></td></tr>';}
+    const currentCCL=dec(ST.cedearCurrentCclDecimal);
+    if($('cedCurrentCCL'))$('cedCurrentCCL').value=currentCCL||'';
+    if($('cedCurrentCCLSource'))$('cedCurrentCCLSource').value=ST.cedearCurrentCclSource||'';
+    if($('cedCurrentCCLStatus'))$('cedCurrentCCLStatus').textContent=currentCCL
+      ? `CCL ${formatDec(currentCCL,{digits:2,currency:'ARS'})} · ${ST.cedearCurrentCclSource||'sin fuente'} · ${quoteUpdatedLabel({priceUpdatedAt:ST.cedearCurrentCclUpdatedAt})}`
+      : 'Sin referencia: métricas CCL pendientes';
+    if(!ceds.length){cedTb.innerHTML='<tr><td colspan="12" class="empty"><i class="ti ti-building-bank"></i><p>Sin CEDEARs. Agregá tu primera compra.</p></td></tr>';}
     else{
-      cedTb.innerHTML=ceds.map(c=>{
-        const ratio=Number(c.ratio)||1;
-        const equivShares=Number(c.qty)/ratio;
-        const d=days(c.date,today());
-        const capUSD = c.capitalUSD != null ? Number(c.capitalUSD) : (Number(c.qty) * Number(c.buyUSD||0));
-        const investedARS=Number(c.qty)*Number(c.buyARS);
-        const currentPrice=Number.isFinite(Number(c.cur))&&Number(c.cur)>0?Number(c.cur):null;
-        const currentValueARS=currentPrice!=null?Number(c.qty)*currentPrice:null;
-        const pnlARS=currentValueARS!=null?currentValueARS-investedARS:null;
-        const roi=pnlARS!=null&&investedARS>0?pnlARS/investedARS:null;
-        const pnlColor=pnlARS==null?'var(--tx3)':(pnlARS>=0?'var(--cg2)':'var(--cr2)');
-        const changeColor=c.ch==null?'var(--tx3)':(c.ch>=0?'var(--cg2)':'var(--cr2)');
-        const impliedUSD=equivShares>0?capUSD/equivShares:null;
+      cedTb.innerHTML=consolidateCedears(ceds).map(group=>{
+        const costs=CEDEAR_CURRENCIES.filter(currency=>decPositive(group.costs[currency])).map(currency=>
+          `<div>${formatDec(group.costs[currency],{digits:2,currency:currencyLabel(currency)})}<br><span class="muted">prom. ${formatDec(group.averages[currency],{digits:6,currency:currencyLabel(currency)})}</span></div>`
+        ).join('');
+        const pnlARSColor=group.pnlARS==null?'var(--tx3)':(decCmp(group.pnlARS,'0')>=0?'var(--cg2)':'var(--cr2)');
+        const pnlUSDColor=group.pnlImplicitUSD==null?'var(--tx3)':(decCmp(group.pnlImplicitUSD,'0')>=0?'var(--cg2)':'var(--cr2)');
+        const representative=group.lots.find(lot=>lot.priceUpdatedAt===group.priceUpdatedAt)||group.lots[0];
         return `<tr>
-          <td class="sym">${escapeHTML(c.sym)}</td>
-          <td class="muted">${escapeHTML(c.name)}</td>
-          <td class="num">${c.qty}</td>
-          <td class="num">${ratio}:1</td>
-          <td class="num">${formatARS(c.buyARS)}</td>
-          <td class="num">${currentPrice!=null?formatARS(currentPrice)+renderPriceSource(c):'<span style="color:var(--tx4)">Sin cotización</span>'}</td>
-          <td style="color:${changeColor};font-weight:700">${c.ch!=null?fmtPct(c.ch*100):'—'}</td>
-          <td class="num">${currentValueARS!=null?formatARS(currentValueARS):'—'}</td>
-          <td class="num" style="color:${pnlColor};font-weight:700">${pnlARS!=null?formatARS(pnlARS):'—'}</td>
-          <td>${roi!=null?`<span class="pill ${roi>=0?'pill-g':'pill-r'}">${fmtPct(roi*100)}</span>`:'—'}</td>
-          <td class="num muted">${c.ccl?'$'+c.ccl.toLocaleString('es-AR',{maximumFractionDigits:0})+' ARS':'—'}</td>
-          <td class="num" style="color:var(--cv3)">${impliedUSD!=null?fmt(impliedUSD):'—'}</td>
-          <td class="num" style="color:var(--ct2)">${equivShares.toFixed(4)}</td>
-          <td class="num">${fmt(capUSD)}</td>
-          <td class="muted">${escapeHTML(c.broker||'—')}</td>
-          <td class="muted">${d}d</td>
-          <td class="note-cell muted" title="${escapeHTML(c.note||'')}">${escapeHTML(c.note||'—')}</td>
+          <td class="sym">${escapeHTML(group.sym)}</td><td class="muted">${escapeHTML(group.name)}</td>
+          <td class="num">${formatDec(group.quantity,{digits:4})}</td><td><span class="pill pill-t">${group.lots.length}</span></td>
+          <td class="num" style="line-height:1.5">${costs}</td>
+          <td class="num">${group.currentPriceARS?formatDec(group.currentPriceARS,{digits:2,currency:'ARS'})+renderPriceSource(representative):'<span style="color:var(--tx4)">Sin cotización</span>'}</td>
+          <td class="num">${group.currentValueARS?formatDec(group.currentValueARS,{digits:2,currency:'ARS'}):'Pendiente'}</td>
+          <td class="num" style="color:${pnlARSColor};font-weight:700">${group.pnlARS?formatDec(group.pnlARS,{digits:2,currency:'ARS'}):'<span title="Falta equivalente histórico ARS en uno o más lotes">Pendiente</span>'}</td>
+          <td class="num" style="color:${pnlUSDColor};font-weight:700">${group.pnlImplicitUSD?formatDec(group.pnlImplicitUSD,{digits:2,currency:'USD'}):'<span title="Falta CCL actual o base histórica USD válida">Pendiente</span>'}</td>
+          <td class="num" style="color:var(--ct2)">${formatDec(group.equivalentShares,{digits:4})}</td>
+          <td class="muted">${group.priceUpdatedAt?quoteUpdatedLabel(representative):'Pendiente'}</td>
           <td style="white-space:nowrap">
-            <button class="btn-view" onclick="openAssetDetails(&quot;otro&quot;,${inlineArg(c.id)})" title="Más información"><i class="ti ti-eye"></i></button>
-            <button class="btn-edit" onclick="openOtroEdit(${inlineArg(c.id)})" title="Editar"><i class="ti ti-pencil"></i></button>
-            <button class="btn-del" onclick="removeOtro(${inlineArg(c.id)})" title="Eliminar"><i class="ti ti-trash"></i></button>
+            <button class="btn-view" onclick="openCEDLots(${inlineArg(group.sym)})" title="Ver compras / lotes"><i class="ti ti-layers"></i> Ver lotes</button>
           </td>
         </tr>`;
       }).join('');
@@ -6185,7 +6494,51 @@ function renderOtros() {
       }).join('');
     }
   }
+  renderCedearTimeline();
 }
+
+function renderCedearTimeline(){
+  const tb=$('cedTimelineTb');if(!tb)return;
+  const lots=(ST.otros||[]).filter(item=>item.type==='cedeaar');
+  const valuations=ST.cedearValuations||[];
+  const events=[...lots.map(lot=>({date:lot.date,type:'Compra',sym:lot.sym,lot})),...valuations.map(valuation=>({date:valuation.date,type:'Valuación',sym:valuation.sym,valuation}))]
+    .sort((a,b)=>a.date.localeCompare(b.date)||(a.type==='Compra'?-1:1));
+  if(!events.length){tb.innerHTML='<tr><td colspan="10" class="empty"><p>Sin eventos CEDEAR.</p></td></tr>';return;}
+  const state=new Map();
+  tb.innerHTML=events.map(event=>{
+    if(!state.has(event.sym))state.set(event.sym,{quantity:'0',costs:{ARS:'0',USD_MEP:'0',USD_CABLE:'0'}});
+    const running=state.get(event.sym);
+    if(event.lot){const values=cedearLotValues(event.lot);running.quantity=decAdd(running.quantity,values.quantity);
+      running.costs[values.currency]=decAdd(running.costs[values.currency],values.total);
+      values.crossCurrencyExpenses.forEach(expense=>{running.costs[expense.currency]=decAdd(running.costs[expense.currency],expense.amountDecimal);});
+    }
+    const valuation=event.valuation||(ST.cedearValuations||[]).find(item=>item.date===event.date&&item.sym===event.sym);
+    const price=valuation?.cedearPriceArsDecimal||null,ccl=valuation?.cclDecimal||null;
+    const valueARS=price?decMul(running.quantity,price):null;
+    const valueUSD=valueARS&&decPositive(ccl)?decDiv(valueARS,ccl,8):null;
+    const costs=CEDEAR_CURRENCIES.filter(currency=>decPositive(running.costs[currency])).map(currency=>formatDec(running.costs[currency],{digits:2,currency:currencyLabel(currency)})).join(' · ')||'—';
+    const status=valuation?escapeHTML(valuation.source||'Valuación guardada'):'Pendiente: sin precio/CCL histórico';
+    return `<tr><td>${escapeHTML(event.date)}</td><td><span class="pill ${event.type==='Compra'?'pill-g':'pill-t'}">${event.type}</span></td><td class="sym">${escapeHTML(event.sym)}</td><td class="num">${formatDec(running.quantity,{digits:4})}</td><td class="num">${costs}</td><td class="num">${price?formatDec(price,{digits:2,currency:'ARS'}):'Pendiente'}</td><td class="num">${ccl?formatDec(ccl,{digits:2,currency:'ARS'}):'Pendiente'}</td><td class="num">${valueARS?formatDec(valueARS,{digits:2,currency:'ARS'}):'Pendiente'}</td><td class="num">${valueUSD?formatDec(valueUSD,{digits:2,currency:'USD'}):'Pendiente'}</td><td class="muted">${status}</td></tr>`;
+  }).join('');
+}
+
+function openCEDLots(symbol) {
+  const lots=(ST.otros||[]).filter(item=>item.type==='cedeaar'&&item.sym===symbol).sort((a,b)=>a.date.localeCompare(b.date));
+  if(!lots.length)return;
+  $('cedLotsTitle').textContent=`${symbol} · Compras / lotes`;
+  $('cedLotsSub').textContent=`${lots.length} ${lots.length===1?'compra registrada':'compras registradas'} · las monedas se muestran por separado`;
+  $('cedLotsTb').innerHTML=lots.map(lot=>{
+    const values=cedearLotValues(lot);
+    let expenseText=CEDEAR_CURRENCIES.map(currency=>{
+      const total=decSum(values.expenses.filter(item=>item.currency===currency).map(item=>item.amountDecimal));
+      return decPositive(total)?formatDec(total,{digits:2,currency:currencyLabel(currency)}):null;
+    }).filter(Boolean).join(' · ')||'—';
+    if(values.unitemizedDifference)expenseText+=` · diferencia no desglosada ${formatDec(values.unitemizedDifference,{digits:2,currency:currencyLabel(values.currency)})}`;
+    return `<tr><td>${escapeHTML(lot.date)}</td><td class="num">${formatDec(values.quantity,{digits:4})}</td><td class="num">${formatDec(values.ratio,{digits:4})}:1</td><td><span class="pill pill-t">${currencyLabel(values.currency)}</span></td><td class="num">${formatDec(values.unit,{digits:6,currency:currencyLabel(values.currency)})}</td><td class="num">${formatDec(values.gross,{digits:2,currency:currencyLabel(values.currency)})}</td><td class="num">${expenseText}</td><td class="num">${formatDec(values.total,{digits:2,currency:currencyLabel(values.currency)})}</td><td class="num">${formatDec(decDiv(values.total,values.quantity,8),{digits:6,currency:currencyLabel(values.currency)})}</td><td>${escapeHTML(lot.ticketNumber||'—')}</td><td style="white-space:nowrap"><button class="btn-view" onclick="openAssetDetails(&quot;otro&quot;,${inlineArg(lot.id)})" title="Más información"><i class="ti ti-eye"></i></button><button class="btn-edit" onclick="openOtroEdit(${inlineArg(lot.id)})" title="Editar lote"><i class="ti ti-pencil"></i></button><button class="btn-del" onclick="removeOtro(${inlineArg(lot.id)});closeCEDLots()" title="Eliminar lote"><i class="ti ti-trash"></i></button></td></tr>`;
+  }).join('');
+  $('cedLotsModalOverlay').classList.add('open');
+}
+function closeCEDLots(){$('cedLotsModalOverlay').classList.remove('open');}
 
 // ═══════════════════════════════════════════
 // PRICE ALERTS
@@ -6976,7 +7329,8 @@ async function checkForConflictsAndSync() {
     }
     if (hasCloudData && !hasLocalData) {
       // Only cloud has data -> pull it, nothing to lose locally
-      ST = sanitizePortfolioState({ ...ST, ...data.data });
+      preserveCedearPreMigrationBackup(data.data);
+      ST = upgradeCedearState(sanitizePortfolioState({ ...ST, ...data.data }));
       save(true, { scheduleSync: false, timestamp: cloudTimestamp });
       renderAll();
       finishSync('ok');
@@ -7015,7 +7369,8 @@ async function checkForConflictsAndSync() {
         return;
       } else {
         // Cloud has newer changes than this device — pull
-        ST = sanitizePortfolioState({ ...ST, ...data.data });
+        preserveCedearPreMigrationBackup(data.data);
+        ST = upgradeCedearState(sanitizePortfolioState({ ...ST, ...data.data }));
         save(true, { scheduleSync: false, timestamp: cloudTimestamp });
         renderAll();
         finishSync('ok');
@@ -7062,7 +7417,7 @@ function hasRealData(state) {
 
 function portfolioStatesEqual(first, second) {
   const comparable = state => {
-    const sanitized = sanitizePortfolioState(state);
+    const sanitized = upgradeCedearState(sanitizePortfolioState(state));
     if (!isPlainRecord(sanitized)) return JSON.stringify(sanitized);
     delete sanitized.selAsset;
 
@@ -7151,7 +7506,8 @@ async function confirmConflictResolution() {
       if (!validatePortfolioStateShape(pendingConflict.cloud)) {
         throw new Error('Selected cloud state has an invalid structure');
       }
-      ST = sanitizePortfolioState({ ...ST, ...pendingConflict.cloud });
+      preserveCedearPreMigrationBackup(pendingConflict.cloud);
+      ST = upgradeCedearState(sanitizePortfolioState({ ...ST, ...pendingConflict.cloud }));
       save(true, { scheduleSync: false, timestamp: pendingConflict.cloudUpdatedAt });
       try { renderAll(); } catch(e) { console.error('renderAll error (non-fatal):', e); }
       finishSync('ok');
@@ -7233,7 +7589,7 @@ function finishSync(status) {
 // INIT
 // ═══════════════════════════════════════════
 const td = today();
-['sD','cD','hD','snapD','aSnapD','incDate'].forEach(id => { const el=$(id); if(el) el.value=td; });
+['sD','cD','hD','cedDate','snapD','aSnapD','incDate'].forEach(id => { const el=$(id); if(el) el.value=td; });
 loadLang();
 loadState();
 initSupabase();
@@ -7245,6 +7601,7 @@ if (!ST.trading) ST.trading = {
 };
 if (!ST.apyPositions) ST.apyPositions = [];
 renderAll();
+updateCEDForm();
 if (window._mrpInvalidLocalState) {
   showToast('Los datos locales tenían un formato inválido y no se cargaron. Restaurá un backup válido antes de guardar cambios.', 'err', 8000);
 }

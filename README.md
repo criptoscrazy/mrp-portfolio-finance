@@ -56,7 +56,7 @@ Las cotizaciones se consultan primero mediante el par Spot `USDT` de Binance. Si
 La sección **Otros** contiene formularios específicos:
 
 - **ETFs**: símbolo, tipo, índice, cantidad, precio, TER, broker y fecha.
-- **CEDEARs**: símbolo, ratio, cantidad, precio en ARS y tipo de cambio CCL. Al actualizar precios, la aplicación consulta el ticker local de BYMA mediante Yahoo Finance (por ejemplo, `AAPL.BA`) y calcula precio actual, valor actual y ganancia o pérdida nominal en ARS.
+- **CEDEARs**: cada compra se registra como un lote independiente. Elegí `ARS`, `USD MEP` o `USD cable`, indicá cantidad, ratio, precio unitario, importe bruto, costo total, fecha, broker y, si corresponde, ticket, fuente, gastos/comisiones y referencias históricas de CCL, MEP o equivalente en ARS. Las monedas no se mezclan: la tabla consolida por símbolo, pero conserva costos y promedios separados por moneda.
 - **Tokenizados**: símbolo, tipo de respaldo, exchange, cantidad y precio.
 - **Bonos**: nominal, precio porcentual, tasa, vencimiento, moneda y broker.
 
@@ -74,6 +74,21 @@ Pulsa **Actualizar precios** en la cabecera.
 - La actualización automática se ejecuta cada tres minutos mientras la pestaña está visible. Solo renueva la caché local de cotizaciones: no crea snapshots, no marca una edición del usuario y no fuerza una subida a la nube.
 
 Las APIs externas pueden fallar, limitar solicitudes o devolver datos temporalmente incompletos. Verifica siempre precios importantes con tu broker o exchange. MRP Portfolio no ejecuta operaciones.
+
+### CEDEARs: precios, resultado y timeline
+
+Los precios actuales de CEDEAR se consultan con el ticker de BYMA en ARS (por ejemplo, `AAPL.BA`). Para calcular el valor actual implícito en USD, guardá una referencia de **CCL actual**, su fuente y la fecha desde la propia sección CEDEARs.
+
+- El resultado nominal ARS solo se muestra si cada lote tiene una base histórica ARS válida.
+- La métrica **G/P USD implícita CCL** usa el CCL actual y solo se muestra si existe una base histórica USD compatible. Si hay monedas distintas o faltan referencias, muestra `Pendiente`.
+- La timeline conserva las fechas reales de compra. Las cotizaciones o referencias de CCL que no se hayan guardado para una fecha histórica se muestran como `Pendiente`, nunca como cero.
+- Al editar o eliminar se trabaja sobre un lote concreto, desde **Ver lotes**. Los gastos de otra moneda se mantienen separados; no se convierten de forma automática.
+
+### Migración de CEDEARs anteriores
+
+Al abrir la versión con lotes, los CEDEARs antiguos se migran de forma compatible: conservan el registro original y se clasifican como compras en `ARS`, usando sus valores existentes de cantidad, ratio, precio y CCL. Antes de la primera migración se conserva en el navegador una copia previa. Desde **Config** podés exportarla como “backup previo a lotes CEDEAR”.
+
+La reversión se hace de forma segura importando ese backup en una versión anterior de la aplicación (9.3 o anterior). No importes el backup previo sobre la misma versión con lotes, porque se migrará de nuevo al abrirse. Exportá siempre un backup completo antes de una actualización importante.
 
 ## 7. Editar y eliminar
 

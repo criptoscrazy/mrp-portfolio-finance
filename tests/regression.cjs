@@ -39,6 +39,7 @@ class ElementStub {
   append(...children) { this.children.push(...children); }
   appendChild(child) { this.children.push(child); return child; }
   replaceChildren(...children) { this.children = [...children]; }
+  setAttribute() {}
   addEventListener() {}
   querySelector() { return null; }
   closest() { return null; }
@@ -119,11 +120,60 @@ const tests = String.raw`
   save(true, { scheduleSync:false, markChanged:false });
   assert.strictEqual(localStorage.getItem('mrp_last_local_change'), '2026-07-31T09:00:00Z', 'Guardar cotizaciones no debe marcar una edición');
 
-  const cedear = {
-    id:'ced1',type:'cedeaar',sym:'AAPL',name:'Apple Inc.',qty:100,ratio:10,buyARS:23000,ccl:1400,
-    buyUSD:23000/1400,priceUSD:23000/1400,capitalUSD:100*(23000/1400),date:'2025-07-01',broker:'Test',note:'Prueba'
-  };
-  ST = sanitizePortfolioState({ ...base, otros:[cedear], snaps:[] });
+  const legacyCedear = {id:'legacy',type:'cedeaar',sym:'KO',name:'Coca-Cola',qty:100,ratio:3,buyARS:23000,ccl:1400,date:'2025-07-01',broker:'Test',note:'Prueba'};
+  const migrated = upgradeCedearState(sanitizePortfolioState({ ...base, otros:[legacyCedear] }));
+  assert.strictEqual(migrated.otros[0].purchaseCurrency,'ARS','La migración debe clasificar registros anteriores como ARS');
+  assert.strictEqual(migrated.otros[0].quantityDecimal,'100','La migración debe preservar la cantidad');
+  assert.strictEqual(migrated.otros[0].unitPriceDecimal,'23000','La migración debe mover el precio unitario');
+  assert.strictEqual(migrated.otros[0].cclAtPurchaseDecimal,'1400','La migración debe preservar el CCL histórico');
+  assert.strictEqual(migrated.otros[0].totalCostDecimal,'2300000','La migración debe preservar el costo histórico conocido');
+  assert.deepStrictEqual(JSON.parse(JSON.stringify(upgradeCedearState(migrated))),JSON.parse(JSON.stringify(migrated)),'La migración debe ser idempotente');
+  assert(portfolioStatesEqual({ ...base, otros:[legacyCedear] },migrated),'La migración compatible no debe provocar un conflicto de sincronización');
+
+  const makeLot=(id,sym,date,qty,unit,total,ticket,ratio='10')=>({id,type:'cedeaar',sym,name:sym,dated:date,date,
+    purchaseCurrency:'USD_MEP',quantityDecimal:qty,ratioDecimal:ratio,unitPriceDecimal:unit,
+    grossAmountDecimal:decMul(qty,unit),totalCostDecimal:total,cclAtPurchaseDecimal:null,mepAtPurchaseDecimal:null,
+    historicalArsEquivalentDecimal:null,ticketNumber:ticket,informationSource:'Caso de aceptación',schemaVersion:'cedear-lots-v1',
+    qty:Number(qty),ratio:Number(ratio),buyARS:null,ccl:null,broker:'Test',note:''});
+  const lots=[
+    makeLot('a1','AAPL','2025-07-29','281','10.6500','3013.29','874213'),
+    makeLot('a2','AAPL','2025-08-06','279','10.7778','3027.75','918256'),
+    makeLot('a3','AAPL','2025-08-08','204','11.2000','2300.55','932233'),
+    makeLot('a4','AAPL','2025-09-16','58','12.0100','701.38','1122656'),
+    makeLot('n1','NVDA','2025-07-29','271','7.3892','2016.29','874215','8'),
+    makeLot('t1','TSLA','2025-07-29','69','21.4993','1493.68','874214','12')
+  ];
+  ST = sanitizePortfolioState({ ...base, otros:lots,cedearExpenses:[],cedearValuations:[],snaps:[] });
+  const groups=consolidateCedears();
+  const apple=groups.find(group=>group.sym==='AAPL');
+  assert.strictEqual(apple.quantity,'822','AAPL debe consolidar 822 CEDEARs exactamente');
+  assert.strictEqual(apple.costs.USD_MEP,'9042.97','AAPL debe consolidar 9042.97 USD MEP exactamente');
+  assert.strictEqual(apple.averages.USD_MEP,'11.00118005','El promedio AAPL debe ser 11.00118005');
+  assert.strictEqual(apple.lots.length,4,'AAPL debe conservar cuatro lotes');
+  assert.strictEqual(decDiv('3013.29','281',8),'10.72345196','El efectivo unitario del primer lote AAPL debe ser exacto');
+  assert.strictEqual(decDiv('3027.75','279',8),'10.85215054','El efectivo unitario del segundo lote AAPL debe ser exacto');
+  assert.strictEqual(decDiv('2300.55','204',8),'11.27720588','El efectivo unitario del tercer lote AAPL debe ser exacto');
+  assert.strictEqual(decDiv('701.38','58',8),'12.09275862','El efectivo unitario del cuarto lote AAPL debe ser exacto');
+  assert.strictEqual(groups.find(group=>group.sym==='NVDA').averages.USD_MEP,'7.4401845','NVDA debe promediar 7.4401845');
+  assert.strictEqual(groups.find(group=>group.sym==='TSLA').averages.USD_MEP,'21.64753623','TSLA debe promediar 21.64753623');
+  assert.strictEqual(apple.pnlARS,null,'Sin equivalente histórico ARS el resultado nominal debe quedar pendiente');
+  assert.strictEqual(apple.pnlImplicitUSD,null,'Sin precio/CCL actual el resultado implícito debe quedar pendiente');
+
+  const mixedLot={...makeLot('mixed','AAPL','2025-10-01','1','10','10','MIXED'),purchaseCurrency:'USD_CABLE'};
+  ST.cedearExpenses=[{id:'fee1',lotId:'mixed',concept:'Comisión ARS',amountDecimal:'100',currency:'ARS'}];
+  const mixedGroup=consolidateCedears([...lots,mixedLot]).find(group=>group.sym==='AAPL');
+  assert.strictEqual(mixedGroup.costs.ARS,'100','Un gasto en otra moneda debe conservarse por separado');
+  assert.strictEqual(mixedGroup.pnlImplicitUSD,null,'No se debe combinar MEP y cable para una G/P implícita');
+  ST.cedearExpenses=[];
+
+  const preMigration={ ...base, otros:[legacyCedear] };
+  localStorage.setItem(SKEY,JSON.stringify(preMigration));
+  localStorage.removeItem(CEDEAR_MIGRATION_BACKUP_KEY);
+  loadState();
+  assert(localStorage.getItem(CEDEAR_MIGRATION_BACKUP_KEY),'La carga debe generar backup antes de migrar');
+  assert.strictEqual(ST.otros[0].schemaVersion,'cedear-lots-v1','La carga debe migrar el registro anterior');
+  ST = sanitizePortfolioState({ ...base, otros:lots,cedearExpenses:[],cedearValuations:[],snaps:[] });
+
   renderAll = () => {};
   updateMarketHours = () => {};
   checkAlerts = () => {};
@@ -134,13 +184,13 @@ const tests = String.raw`
   scheduleCloudSync = () => { scheduledSyncs++; };
   fetchWithFallback = async url => {
     if (url.includes('MSFT')) return { ok:true, json:async () => ({ chart:{ result:[{ meta:{ regularMarketPrice:210, chartPreviousClose:205, currency:'USD', regularMarketTime:1785517200 } }] } }) };
-    if (url.includes('AAPL.BA')) return { ok:true, json:async () => ({ chart:{ result:[{ meta:{ regularMarketPrice:24000, chartPreviousClose:23500, currency:'ARS', regularMarketTime:1785517200 } }] } }) };
+    if (url.includes('AAPL.BA')||url.includes('NVDA.BA')||url.includes('TSLA.BA')) return { ok:true, json:async () => ({ chart:{ result:[{ meta:{ regularMarketPrice:24000, chartPreviousClose:23500, currency:'ARS', regularMarketTime:1785517200 } }] } }) };
     return null;
   };
 
   localStorage.setItem('mrp_last_local_change', '2026-07-31T09:00:00Z');
   await updatePrices({ automatic:true });
-  const updatedCedear = ST.otros.find(item => item.id === 'ced1');
+  const updatedCedear = ST.otros.find(item => item.id === 'a1');
   assert.strictEqual(updatedCedear.cur, 24000, 'Debe cargar el precio actual del CEDEAR');
   assert.strictEqual(updatedCedear.quoteSymbol, 'AAPL.BA', 'Debe consultar el ticker BYMA');
   assert.strictEqual(updatedCedear.quoteCurrency, 'ARS', 'Debe conservar la moneda ARS');
@@ -154,32 +204,33 @@ const tests = String.raw`
   assert.notStrictEqual(localStorage.getItem('mrp_last_local_change'), '2026-07-31T09:00:00Z', 'La actualización manual debe sincronizar su snapshot');
   assert.strictEqual(scheduledSyncs, 1, 'La actualización manual sí debe programar la sincronización');
 
-  $('otroEditId').value = 'ced1';
-  const editValues = { name:'Apple editado', qty:'120', ratio:'10', buyARS:'22000', ccl:'1300', date:'2025-07-02', broker:'Broker editado', note:'Nota editada' };
+  $('otroEditId').value = 'a1';
+  const editValues = { name:'Apple editado',purchaseCurrency:'USD_MEP',quantityDecimal:'281',ratioDecimal:'10',unitPriceDecimal:'10.6500',grossAmountDecimal:'2992.65',totalCostDecimal:'3013.29',cclAtPurchaseDecimal:'',mepAtPurchaseDecimal:'',historicalArsEquivalentDecimal:'',ticketNumber:'874213',informationSource:'Broker',date:'2025-07-29',broker:'Broker editado',note:'Nota editada' };
   Object.entries(editValues).forEach(([key, value]) => { $('oe_' + key).value = value; });
   saveOtroEdit();
-  const editedCedear = ST.otros.find(item => item.id === 'ced1');
+  const editedCedear = ST.otros.find(item => item.id === 'a1');
   assert.strictEqual(editedCedear.name, 'Apple editado', 'Debe editar activos de Otros');
-  assert.strictEqual(editedCedear.qty, 120, 'Debe guardar la cantidad editada');
-  assert(Math.abs(editedCedear.capitalUSD - (120 * 22000 / 1300)) < .001, 'Debe recalcular derivados del CEDEAR');
+  assert.strictEqual(editedCedear.quantityDecimal,'281','Debe guardar la cantidad decimal editada');
+  assert.strictEqual(editedCedear.totalCostDecimal,'3013.29','Debe conservar el costo total del lote');
   assert.strictEqual(editedCedear.cur, 24000, 'Editar no debe borrar la última cotización');
 
-  openOtroEdit('ced1');
+  openOtroEdit('a1');
   assert($('otroEditModalOverlay').classList.contains('open'), 'Debe abrir el editor de Otros');
-  assert.strictEqual($('oe_qty').value, 120, 'El editor debe cargar la cantidad actual');
+  assert.strictEqual($('oe_quantityDecimal').value,'281','El editor debe cargar la cantidad actual');
   assert.strictEqual($('oe_sym').readOnly, true, 'El símbolo debe quedar protegido en la edición');
   closeOtroEdit();
 
   renderOtros();
   assert($('cedTb').innerHTML.includes('24.000,00'), 'La tabla CEDEAR debe mostrar el precio actual ARS');
-  assert($('cedTb').innerHTML.includes('btn-view'), 'La tabla CEDEAR debe incluir Más información');
-  assert($('cedTb').innerHTML.includes('btn-edit'), 'La tabla CEDEAR debe incluir Editar');
+  assert($('cedTb').innerHTML.includes('9.042,97'), 'La tabla CEDEAR debe mostrar el costo MEP consolidado');
+  assert($('cedTb').innerHTML.includes('Ver lotes'), 'La tabla CEDEAR debe abrir compras/lotes');
 
-  openAssetDetails('otro', 'ced1');
+  openAssetDetails('otro', 'a1');
   assert($('detailModalOverlay').classList.contains('open'), 'Debe abrir el detalle de solo lectura');
   const detailText = $('detailGrid').children.flatMap(item => item.children.map(child => child.textContent)).join(' | ');
   assert(detailText.includes('Precio actual BYMA'), 'El detalle debe identificar el precio BYMA');
-  assert(detailText.includes('Ganancia / pérdida nominal'), 'El detalle debe mostrar la rentabilidad CEDEAR');
+  assert(detailText.includes('Costo total'), 'El detalle debe mostrar el costo total del lote');
+  assert(detailText.includes('Ticket / comprobante'), 'El detalle debe mostrar trazabilidad del ticket');
 
   renderTbl(ST.stocks, 'sTb', 'stock');
   assert($('sTb').children[0].innerHTML.includes('btn-view'), 'Acciones también debe ofrecer Más información');
