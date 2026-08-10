@@ -397,6 +397,13 @@ input::placeholder,textarea::placeholder,select::placeholder{color:var(--tx4);op
 .form-row select option{background:var(--bg2)}
 .form-row textarea{resize:vertical;min-height:36px;line-height:1.5}
 .inp-h{height:34px}
+.ced-advanced{width:100%;border-top:1px solid var(--br);padding-top:10px}
+.ced-advanced summary{color:var(--tx2);font-size:11px;font-weight:600;cursor:pointer;list-style:none;display:flex;align-items:center;gap:6px}
+.ced-advanced summary::-webkit-details-marker{display:none}
+.ced-advanced summary::before{content:'›';font-size:16px;line-height:10px;color:var(--cv3);transition:transform .15s}
+.ced-advanced[open] summary::before{transform:rotate(90deg)}
+.ced-advanced-grid{display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap;padding-top:12px}
+.ced-advanced-grid .f{flex:1;min-width:140px}
 .lph{font-size:9px;color:transparent;display:block;margin-bottom:4px}
 .btn-add{
   height:34px;padding:0 16px;
@@ -984,7 +991,7 @@ input::placeholder,textarea::placeholder,select::placeholder{color:var(--tx4);op
         <i class="tip-icon">i</i>
         <div class="tip-box" id="tipValor">
           <div class="tip-box-title">Valor Total del Portafolio</div>
-          Suma de todos tus activos (acciones + cripto) valuados al precio actual de mercado. Es la fotografía de cuánto vale tu inversión hoy.
+          Suma de todos los activos con cotización y conversión válidas, incluidos CEDEARs. Los datos pendientes se identifican como N/D y no se valoran por su coste histórico.
         </div>
       </span>
     </div>
@@ -1082,9 +1089,9 @@ input::placeholder,textarea::placeholder,select::placeholder{color:var(--tx4);op
           <div style="font-size:10px;margin-top:6px" id="dHeroPnlPct">—</div>
         </div>
         <div>
-          <div style="font-size:10px;color:var(--tx3);margin-bottom:4px">Capital invertido</div>
+          <div style="font-size:10px;color:var(--tx3);margin-bottom:4px">Coste histórico validado</div>
           <div style="font-size:22px;font-weight:700;letter-spacing:-.03em;line-height:1" id="dCap">—</div>
-          <div style="font-size:10px;color:var(--tx3);margin-top:6px">total aportado</div>
+          <div style="font-size:10px;color:var(--tx3);margin-top:6px">solo posiciones valoradas</div>
         </div>
       </div>
     </div>
@@ -1337,27 +1344,32 @@ input::placeholder,textarea::placeholder,select::placeholder{color:var(--tx4);op
         <div class="ac-drop" id="acCED"></div>
       </div>
       <div class="f"><label>Nombre</label><input id="cedName" class="inp-h" placeholder="Apple Inc."></div>
-      <div class="f"><label>Moneda de compra *</label><select id="cedCurrency" onchange="updateCEDForm()" style="height:34px;background:var(--input-bg);border:1px solid var(--br2);border-radius:8px;color:var(--tx1);padding:0 10px;width:100%"><option value="ARS">ARS</option><option value="USD_MEP">USD MEP</option><option value="USD_CABLE">USD cable</option></select></div>
+      <div class="f"><label>Moneda de compra *</label><select id="cedCurrency" onchange="updateCEDForm()" style="height:34px;background:var(--input-bg);border:1px solid var(--br2);border-radius:8px;color:var(--tx1);padding:0 10px;width:100%"><option value="ARS">ARS</option><option value="USD_MEP" selected>USD MEP</option><option value="USD_CABLE">USD cable</option></select></div>
       <div class="f"><label>Cantidad de CEDEARs *</label><input id="cedQty" class="inp-h" inputmode="decimal" placeholder="0,00" oninput="calcCEDPreview()"></div>
       <div class="f"><label>Ratio conversión</label>
         <input id="cedRatio" class="inp-h" inputmode="decimal" placeholder="0,00" title="Ej: 10 significa que 10 CEDEARs = 1 acción" oninput="calcCEDPreview()">
       </div>
-      <div class="f"><label id="cedUnitPriceLabel">Precio unitario (ARS) *</label><input id="cedUnitPrice" class="inp-h" inputmode="decimal" placeholder="0,00" oninput="calcCEDPreview()"></div>
-      <div class="f"><label>Importe bruto (calculado)</label><input id="cedGross" class="inp-h" readonly placeholder="se calcula" title="Cantidad × precio unitario"></div>
-      <div class="f"><label id="cedTotalLabel">Costo total (ARS) *</label><input id="cedTotalCost" class="inp-h" inputmode="decimal" placeholder="incluye gastos" oninput="calcCEDPreview()"></div>
+      <div class="f"><label id="cedUnitPriceLabel">Precio unitario (USD MEP) *</label><input id="cedUnitPrice" class="inp-h" inputmode="decimal" placeholder="0,00" oninput="calcCEDPreview()"></div>
+      <div class="f"><label id="cedTotalLabel">Costo total (USD MEP) *</label><input id="cedTotalCost" class="inp-h" inputmode="decimal" placeholder="incluye gastos" oninput="calcCEDPreview()"></div>
       <div class="f"><label>Fecha compra *</label><input id="cedDate" class="inp-h" type="date"></div>
       <div class="f"><label>Broker</label><input id="cedBroker" class="inp-h" list="platformsList" placeholder="IOL, Balanz, PPI..."></div>
       <div class="f"><label>N.º ticket / comprobante</label><input id="cedTicket" class="inp-h" placeholder="874213"></div>
-      <div class="f"><label>Fuente (opcional)</label><input id="cedSource" class="inp-h" placeholder="Broker, extracto..."></div>
-      <div class="f"><label>CCL histórico (opcional)</label><input id="cedCCL" class="inp-h" inputmode="decimal" placeholder="0,00" oninput="calcCEDPreview()"></div>
-      <div class="f"><label>MEP histórico (opcional)</label><input id="cedMEP" class="inp-h" inputmode="decimal" placeholder="0,00"></div>
-      <div class="f"><label>Equivalente histórico ARS (opcional)</label><input id="cedHistARS" class="inp-h" inputmode="decimal" placeholder="0,00"></div>
       <div class="f"><label>Notas</label><input id="cedNote" class="inp-h" placeholder=""></div>
-      <div style="width:100%;padding:10px 12px;background:var(--bg3);border:1px solid var(--br);border-radius:8px">
-        <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:8px"><strong style="font-size:11px">Gastos y comisiones</strong><button class="btn-cancel" type="button" onclick="addCEDExpenseRow()"><i class="ti ti-plus"></i> Añadir gasto</button></div>
-        <div id="cedExpenseRows"></div>
-        <div style="font-size:9px;color:var(--tx3);margin-top:6px">Los gastos en otra moneda se conservan separados y nunca se convierten automáticamente.</div>
-      </div>
+      <details class="ced-advanced">
+        <summary>Más opciones</summary>
+        <div class="ced-advanced-grid">
+          <div class="f"><label>Importe bruto (calculado)</label><input id="cedGross" class="inp-h" readonly placeholder="se calcula" title="Cantidad × precio unitario"></div>
+          <div class="f"><label>Fuente adicional</label><input id="cedSource" class="inp-h" placeholder="Broker, extracto..."></div>
+          <div class="f"><label>CCL histórico</label><input id="cedCCL" class="inp-h" inputmode="decimal" placeholder="0,00" oninput="calcCEDPreview()"></div>
+          <div class="f"><label>MEP histórico</label><input id="cedMEP" class="inp-h" inputmode="decimal" placeholder="0,00"></div>
+          <div class="f"><label>Equivalente histórico ARS</label><input id="cedHistARS" class="inp-h" inputmode="decimal" placeholder="0,00"></div>
+          <div style="width:100%;padding:10px 12px;background:var(--bg2);border:1px solid var(--br);border-radius:8px">
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:8px"><strong style="font-size:11px">Gastos y comisiones</strong><button class="btn-cancel" type="button" onclick="addCEDExpenseRow()"><i class="ti ti-plus"></i> Añadir gasto</button></div>
+            <div id="cedExpenseRows"></div>
+            <div style="font-size:9px;color:var(--tx3);margin-top:6px">Los gastos en otra moneda se conservan separados y nunca se convierten automáticamente.</div>
+          </div>
+        </div>
+      </details>
       <div style="width:100%">
         <div id="cedPreview" style="display:none;padding:10px 12px;background:var(--bg3);border:1px solid var(--br);border-radius:8px;font-size:11px">
           <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px">
@@ -1742,7 +1754,7 @@ input::placeholder,textarea::placeholder,select::placeholder{color:var(--tx4);op
       <div class="card-sub">Información técnica de la aplicación</div>
       <div class="acc-line"></div>
       <div style="font-size:11px;color:var(--tx2);line-height:2">
-        <div style="display:flex;justify-content:space-between;border-bottom:1px solid var(--br);padding:6px 0"><span style="color:var(--tx3)">Versión</span><span style="font-weight:700;color:var(--cv3)">9.5 — CEDEARs en USD MEP</span></div>
+        <div style="display:flex;justify-content:space-between;border-bottom:1px solid var(--br);padding:6px 0"><span style="color:var(--tx3)">Versión</span><span style="font-weight:700;color:var(--cv3)">9.6 — Dashboard USD consolidado</span></div>
         <div style="display:flex;justify-content:space-between;border-bottom:1px solid var(--br);padding:6px 0"><span style="color:var(--tx3)">Precios cripto</span><span>Binance Spot · respaldos CoinGecko/CryptoCompare</span></div>
         <div style="display:flex;justify-content:space-between;border-bottom:1px solid var(--br);padding:6px 0"><span style="color:var(--tx3)">Acciones / ETFs / CEDEARs</span><span>Yahoo Finance · BYMA (.BA)</span></div>
         <div style="display:flex;justify-content:space-between;border-bottom:1px solid var(--br);padding:6px 0"><span style="color:var(--tx3)">Almacenamiento</span><span>localStorage (local)</span></div>
@@ -2740,7 +2752,7 @@ const DEFAULT_TRADING_RULES = [
   ['Nunca operés por venganza después de una pérdida.', 'psych']
 ];
 const NUMERIC_STATE_KEYS = new Set([
-  'qty', 'buy', 'cur', 'ch', 'sl', 'tg', 'price', 'comm', 'amt', 'value',
+  'qty', 'buy', 'cur', 'ch', 'sl', 'tg', 'price', 'comm', 'amt', 'value', 'lastClose',
   'entry', 'tp', 'pnlReal', 'pnl', 'r', 'rest', 'focus', 'stress', 'score',
   'rate', 'capital', 'ter', 'ratio', 'buyARS', 'ccl', 'buyUSD', 'priceUSD',
   'capitalUSD', 'nominal', 'buyPct', 'capUSD', 'annualInterest'
@@ -2752,11 +2764,11 @@ const STRING_STATE_KEYS = new Set([
   'style', 'status', 'exchange', 'signal', 'context', 'error', 'result', 'text',
   'category', 'priority', 'thesis', 'addedDate', 'manifesto', 'dailyContext',
   'etfType', 'index', 'tokType', 'bonType', 'currency', 'cond', 'url', 'link',
-  'image', 'logo', 'priceSource', 'priceUpdatedAt', 'quoteCurrency', 'quoteSymbol'
+  'image', 'logo', 'priceSource', 'priceUpdatedAt', 'priceSourceTimestamp', 'priceRetrievedAt', 'priceStatus', 'priceMarketState', 'quoteCurrency', 'quoteSymbol'
   ,'purchaseCurrency','quantityDecimal','ratioDecimal','unitPriceDecimal','grossAmountDecimal',
   'totalCostDecimal','cclAtPurchaseDecimal','mepAtPurchaseDecimal','historicalArsEquivalentDecimal',
   'ticketNumber','informationSource','amountDecimal','lotId','concept','schemaVersion',
-  'cedearCurrentCclDecimal','cedearCurrentCclSource','cedearCurrentCclUpdatedAt','cedearCurrentCclMode','cedearPriceArsDecimal','cclDecimal'
+  'cedearCurrentCclDecimal','cedearCurrentCclSource','cedearCurrentCclUpdatedAt','cedearCurrentCclSourceTimestamp','cedearCurrentCclRetrievedAt','cedearCurrentCclMethod','cedearCurrentCclMode','cedearPriceArsDecimal','cclDecimal'
 ]);
 
 function isPlainRecord(value) {
@@ -3365,10 +3377,15 @@ function setCryptoMarketPrice(asset, price, changePercent, source, updatedAt = D
   const timestamp = new Date(updatedAt);
   asset.cur = numericPrice;
   asset.ch = Number.isFinite(numericChange) ? numericChange / 100 : null;
-  asset.priceSource = source;
-  asset.priceUpdatedAt = Number.isFinite(timestamp.getTime())
+  const sourceTimestamp = Number.isFinite(timestamp.getTime())
     ? timestamp.toISOString()
     : new Date().toISOString();
+  asset.priceSource = source;
+  asset.priceUpdatedAt = sourceTimestamp;
+  asset.priceSourceTimestamp = sourceTimestamp;
+  asset.priceRetrievedAt = new Date().toISOString();
+  asset.priceStatus = source.includes('Binance') ? 'realtime' : 'delayed';
+  asset.priceMarketState = 'OPEN';
   return true;
 }
 
@@ -3378,6 +3395,8 @@ async function updatePrices({ automatic = false } = {}) {
   $('refIco').classList.add('spin');
   $('btnTxt').textContent = t('btnUpdating');
   let updated = 0, failed = 0;
+  // Empieza CCL junto con el resto de fuentes para acotar el desfase temporal.
+  const cclRefreshPromise = refreshCedearCurrentCCL();
 
   // ── CRYPTO: Binance Spot USDT (primary) → CoinGecko → CryptoCompare ──
   const cryptoUpdated = new Set();
@@ -3458,7 +3477,7 @@ async function updatePrices({ automatic = false } = {}) {
   }
 
   // ── STOCKS: Yahoo Finance query1 → query2 → v7 quote, all stocks fetched in PARALLEL ──
-  function setYahooMarketPrice(asset, price, previousClose, currency, updatedAt) {
+  function setYahooMarketPrice(asset, price, previousClose, currency, updatedAt, marketState) {
     const numericPrice = Number(price);
     const numericPreviousClose = Number(previousClose);
     if (!Number.isFinite(numericPrice) || numericPrice <= 0) return false;
@@ -3466,10 +3485,22 @@ async function updatePrices({ automatic = false } = {}) {
     asset.ch = Number.isFinite(numericPreviousClose) && numericPreviousClose > 0
       ? (numericPrice - numericPreviousClose) / numericPreviousClose
       : null;
-    asset.priceSource = asset.sym.endsWith('.BA') ? 'Yahoo Finance · BYMA' : 'Yahoo Finance';
-    asset.priceUpdatedAt = Number.isFinite(Number(updatedAt))
+    const sourceTimestamp = Number.isFinite(Number(updatedAt))
       ? new Date(Number(updatedAt) * 1000).toISOString()
       : new Date().toISOString();
+    const ageMs = Math.max(0, Date.now() - new Date(sourceTimestamp).getTime());
+    const normalizedMarketState = String(marketState || '').toUpperCase();
+    asset.priceSource = asset.sym.endsWith('.BA') ? 'Yahoo Finance · BYMA' : 'Yahoo Finance';
+    asset.priceUpdatedAt = sourceTimestamp;
+    asset.priceSourceTimestamp = sourceTimestamp;
+    asset.priceRetrievedAt = new Date().toISOString();
+    asset.priceMarketState = normalizedMarketState || 'UNKNOWN';
+    asset.priceStatus = normalizedMarketState === 'CLOSED' || ageMs > 4 * 60 * 60 * 1000
+      ? 'last_close'
+      : 'delayed';
+    asset.lastClose = Number.isFinite(numericPreviousClose) && numericPreviousClose > 0
+      ? numericPreviousClose
+      : null;
     asset.quoteCurrency = String(currency || (asset.sym.endsWith('.BA') ? 'ARS' : 'USD')).toUpperCase();
     asset.quoteSymbol = asset.sym;
     return true;
@@ -3490,7 +3521,8 @@ async function updatePrices({ automatic = false } = {}) {
             m.regularMarketPrice,
             m.chartPreviousClose ?? m.previousClose,
             m.currency,
-            m.regularMarketTime
+            m.regularMarketTime,
+            m.marketState
           )) return true;
         }
       } catch(e) {}
@@ -3508,7 +3540,8 @@ async function updatePrices({ automatic = false } = {}) {
           q.regularMarketPrice,
           q.regularMarketPreviousClose,
           q.currency,
-          q.regularMarketTime
+            q.regularMarketTime,
+            q.marketState
         )) return true;
       }
     } catch(e) {}
@@ -3540,7 +3573,7 @@ async function updatePrices({ automatic = false } = {}) {
     const ok = await fetchOneStockPrice(quote);
     if (ok) {
       assets.forEach(asset => {
-        ['cur', 'ch', 'priceSource', 'priceUpdatedAt', 'quoteCurrency', 'quoteSymbol']
+        ['cur', 'ch', 'lastClose', 'priceSource', 'priceUpdatedAt', 'priceSourceTimestamp', 'priceRetrievedAt', 'priceStatus', 'priceMarketState', 'quoteCurrency', 'quoteSymbol']
           .forEach(key => { asset[key] = quote[key]; });
       });
     }
@@ -3551,10 +3584,10 @@ async function updatePrices({ automatic = false } = {}) {
 
   // CCL actual para valorar CEDEARs en USD. Si las fuentes no responden,
   // se conserva el último valor válido o el respaldo manual, nunca cero.
-  await refreshCedearCurrentCCL();
+  await cclRefreshPromise;
 
   const now = new Date();
-  $('updTime').textContent = (t('updPrefix') || 'Actualizado ') + now.toLocaleTimeString(LANG === 'en' ? 'en-US' : 'es-AR', { hour:'2-digit', minute:'2-digit' });
+  $('updTime').textContent = (t('updPrefix') || 'Consultado ') + now.toLocaleTimeString(LANG === 'en' ? 'en-US' : 'es-ES', { timeZone:'Europe/Madrid', hour:'2-digit', minute:'2-digit' }) + ' Madrid';
   $('updDot').classList.add('live');
   btn.classList.remove('loading');
   $('refIco').classList.remove('spin');
@@ -3562,12 +3595,11 @@ async function updatePrices({ automatic = false } = {}) {
   // A manual refresh records today's evolution snapshot. Automatic refreshes
   // only update the local quote cache and never create user-data changes.
   if (!automatic) {
-    const allAssets = [...ST.stocks, ...ST.crypto];
-    const snapTotal = allAssets.reduce((s, a) => {
-      const { cur, cap } = calc(a);
-      return s + (cur ?? cap);
-    }, 0);
-    if (snapTotal > 0) {
+    const snapshotSummary=portfolioSummary();
+    const snapTotal=snapshotSummary.totalUSD;
+    // Una serie de evolución no debe mezclar valores actuales con costes
+    // históricos. Se guarda solo cuando todas las posiciones son valorables.
+    if (snapTotal > 0 && snapshotSummary.pending.length===0) {
       if (!ST.snaps) ST.snaps = [];
       const todaySnap = ST.snaps.find(s => s.date === today());
       if (!todaySnap) {
@@ -3698,9 +3730,7 @@ const formatARS = value => {
 };
 
 function quoteUpdatedLabel(asset) {
-  if (!asset?.priceUpdatedAt) return '—';
-  const date = new Date(asset.priceUpdatedAt);
-  return Number.isFinite(date.getTime()) ? date.toLocaleString('es-AR') : '—';
+  return madridDateTime(asset?.priceSourceTimestamp || asset?.priceUpdatedAt);
 }
 
 function cedearLotExpenses(lotId) {
@@ -3736,7 +3766,7 @@ function consolidateCedears(lots=(ST.otros||[]).filter(item=>item.type==='cedeaa
     group.costs[values.currency]=decAdd(group.costs[values.currency],values.total)||group.costs[values.currency];
     values.crossCurrencyExpenses.forEach(expense=>{group.costs[expense.currency]=decAdd(group.costs[expense.currency],expense.amountDecimal)||group.costs[expense.currency];});
     if(Number.isFinite(Number(lot.cur))&&Number(lot.cur)>0&&(group.priceUpdatedAt==null||String(lot.priceUpdatedAt||'')>group.priceUpdatedAt)){
-      group.currentPriceARS=dec(lot.cur);group.ch=lot.ch;group.priceSource=lot.priceSource;group.priceUpdatedAt=lot.priceUpdatedAt;group.quoteSymbol=lot.quoteSymbol;
+      group.currentPriceARS=dec(lot.cur);group.ch=lot.ch;group.priceSource=lot.priceSource;group.priceUpdatedAt=lot.priceUpdatedAt;group.priceSourceTimestamp=lot.priceSourceTimestamp||lot.priceUpdatedAt;group.priceRetrievedAt=lot.priceRetrievedAt;group.priceStatus=lot.priceStatus;group.quoteSymbol=lot.quoteSymbol;
     }
   });
   return [...groups.values()].map(group=>{
@@ -3758,6 +3788,12 @@ function consolidateCedears(lots=(ST.otros||[]).filter(item=>item.type==='cedeaa
     // Compatibilidad interna para la timeline y estados guardados de v9.4.
     group.currentImplicitUSD=group.currentValueUSD;
     group.pnlImplicitUSD=group.pnlUSD;
+    const cclTimestamp=ST.cedearCurrentCclSourceTimestamp||ST.cedearCurrentCclUpdatedAt;
+    const quoteTimestamp=group.priceSourceTimestamp||group.priceUpdatedAt;
+    const cclDate=new Date(cclTimestamp),quoteDate=new Date(quoteTimestamp);
+    group.quoteCclSkewMs=Number.isFinite(cclDate.getTime())&&Number.isFinite(quoteDate.getTime())
+      ? Math.abs(cclDate.getTime()-quoteDate.getTime())
+      : null;
     group.averages={};CEDEAR_CURRENCIES.forEach(currency=>{if(decPositive(group.costs[currency])){
       const currencyQty=decSum(lotValues.filter(value=>value.currency===currency).map(value=>value.quantity));
       group.averages[currency]=decDiv(group.costs[currency],currencyQty,8);
@@ -3786,10 +3822,14 @@ async function refreshCedearCurrentCCL({manual=false} = {}) {
       const parsed=source.read(await response.json()),value=dec(parsed.value);
       if(!decPositive(value))continue;
       const apiDate=new Date(parsed.updatedAt);
+      const sourceTimestamp=Number.isFinite(apiDate.getTime())?apiDate.toISOString():new Date().toISOString();
       ST.cedearCurrentCclDecimal=value;
       ST.cedearCurrentCclSource=source.label;
+      ST.cedearCurrentCclMethod='CCL venta';
       ST.cedearCurrentCclMode='auto';
-      ST.cedearCurrentCclUpdatedAt=Number.isFinite(apiDate.getTime())?apiDate.toISOString():new Date().toISOString();
+      ST.cedearCurrentCclUpdatedAt=sourceTimestamp;
+      ST.cedearCurrentCclSourceTimestamp=sourceTimestamp;
+      ST.cedearCurrentCclRetrievedAt=new Date().toISOString();
       if(manual){save();renderOtros();showToast('CCL actualizado automáticamente desde '+source.label);}
       return true;
     }catch(e){}
@@ -3801,7 +3841,8 @@ async function refreshCedearCurrentCCL({manual=false} = {}) {
 function saveCedearCurrentCCL() {
   const value=dec($('cedCurrentCCL')?.value),source=$('cedCurrentCCLSource')?.value.trim();
   if(!decPositive(value)||!source){showToast('Indicá un CCL positivo y su fuente','warn');return;}
-  ST.cedearCurrentCclDecimal=value;ST.cedearCurrentCclSource=source;ST.cedearCurrentCclMode='manual';ST.cedearCurrentCclUpdatedAt=new Date().toISOString();
+  const timestamp=new Date().toISOString();
+  ST.cedearCurrentCclDecimal=value;ST.cedearCurrentCclSource=source;ST.cedearCurrentCclMethod='CCL manual';ST.cedearCurrentCclMode='manual';ST.cedearCurrentCclUpdatedAt=timestamp;ST.cedearCurrentCclSourceTimestamp=timestamp;ST.cedearCurrentCclRetrievedAt=timestamp;
   if(!ST.cedearValuations)ST.cedearValuations=[];
   consolidateCedears().forEach(group=>{if(group.currentPriceARS){
     const existing=ST.cedearValuations.find(item=>item.date===today()&&item.sym===group.sym);
@@ -4206,6 +4247,88 @@ function calc(a) {
   return { cap, cur, pnl, pp, d };
 }
 
+const PORTFOLIO_BASE_CURRENCY = 'USD';
+const CEDEAR_CCL_SKEW_WARNING_MS = 15 * 60 * 1000;
+const QUOTE_STATUS_LABELS = {
+  realtime:'En tiempo real', delayed:'Cotización demorada', last_close:'Último cierre disponible',
+  pending:'Dato pendiente', conversion_pending:'Conversión pendiente'
+};
+function madridDateTime(value) {
+  if (!value) return 'N/D';
+  const date = new Date(value);
+  return Number.isFinite(date.getTime())
+    ? date.toLocaleString('es-ES', { timeZone:'Europe/Madrid', dateStyle:'short', timeStyle:'medium' })
+    : 'N/D';
+}
+function priceStatusFor(asset) {
+  if (!Number.isFinite(Number(asset?.cur)) || Number(asset.cur) <= 0) return 'pending';
+  if (asset?.priceStatus) return asset.priceStatus;
+  if (!asset?.priceSourceTimestamp && !asset?.priceUpdatedAt) return 'pending';
+  const timestamp = new Date(asset.priceSourceTimestamp || asset.priceUpdatedAt);
+  if (!Number.isFinite(timestamp.getTime())) return 'pending';
+  return Date.now() - timestamp.getTime() > 4 * 60 * 60 * 1000 ? 'last_close' : 'delayed';
+}
+function isValuationAvailable(item) {
+  return Number.isFinite(item?.currentUSD) && item.currentUSD >= 0 &&
+    !['pending','conversion_pending'].includes(item.status);
+}
+function directUSDValuation(asset, assetClass) {
+  const quantity=Number(asset?.qty), cost=Number(asset?.qty) * Number(asset?.buy);
+  const status=priceStatusFor(asset);
+  const quoteCurrency=String(asset?.quoteCurrency || 'USD').toUpperCase();
+  const currentRaw=Number(asset?.cur);
+  const currentUSD=Number.isFinite(quantity) && Number.isFinite(currentRaw) && currentRaw > 0 && quoteCurrency === PORTFOLIO_BASE_CURRENCY
+    ? quantity * currentRaw : null;
+  const finalStatus=currentUSD == null && quoteCurrency !== PORTFOLIO_BASE_CURRENCY ? 'conversion_pending' : status;
+  return {
+    id:asset.id, sym:asset.sym, name:asset.name||asset.sym, assetClass, sourceAsset:asset,
+    costUSD:Number.isFinite(cost)&&cost>0?cost:null, currentUSD,
+    pnlUSD:currentUSD != null&&Number.isFinite(cost)&&cost>0?currentUSD-cost:null,
+    status:finalStatus, quoteCurrency, sourceTimestamp:asset.priceSourceTimestamp||asset.priceUpdatedAt||null,
+    retrievedAt:asset.priceRetrievedAt||null, source:asset.priceSource||'', marketState:asset.priceMarketState||''
+  };
+}
+function portfolioValuations() {
+  const values=[];
+  (ST.stocks||[]).forEach(asset=>values.push(directUSDValuation(asset,'Acciones')));
+  (ST.crypto||[]).forEach(asset=>values.push(directUSDValuation(asset,'Cripto')));
+  (ST.otros||[]).filter(asset=>asset.type==='etf').forEach(asset=>values.push(directUSDValuation(asset,'ETFs')));
+  (ST.otros||[]).filter(asset=>asset.type==='token').forEach(asset=>values.push(directUSDValuation(asset,'Tokenizadas')));
+  (ST.otros||[]).filter(asset=>asset.type==='bono').forEach(asset=>values.push({
+    id:asset.id,sym:asset.sym,name:asset.name||asset.sym,assetClass:'Bonos',sourceAsset:asset,
+    costUSD:Number.isFinite(Number(asset.capUSD))&&Number(asset.capUSD)>0?Number(asset.capUSD):null,
+    currentUSD:null,pnlUSD:null,status:'pending',source:'',sourceTimestamp:null,retrievedAt:null,marketState:''
+  }));
+  consolidateCedears().forEach(group=>{
+    const status=group.currentValueUSD==null
+      ? (group.currentPriceARS==null?'pending':'conversion_pending')
+      : (group.priceStatus||'delayed');
+    values.push({
+      id:`cedear:${group.sym}`,sym:group.sym,name:group.name,assetClass:'CEDEARs',sourceAsset:group,
+      costUSD:group.historicalUSD==null?null:Number(group.historicalUSD),
+      currentUSD:group.currentValueUSD==null?null:Number(group.currentValueUSD),
+      pnlUSD:group.pnlUSD==null?null:Number(group.pnlUSD),status,
+      source:group.priceSource||'',sourceTimestamp:group.priceSourceTimestamp||group.priceUpdatedAt||null,
+      retrievedAt:group.priceRetrievedAt||null,marketState:'',quoteCclSkewMs:group.quoteCclSkewMs
+    });
+  });
+  return values;
+}
+function portfolioSummary() {
+  const items=portfolioValuations(), valued=items.filter(isValuationAvailable);
+  const pnlItems=valued.filter(item=>Number.isFinite(item.costUSD)&&Number.isFinite(item.pnlUSD));
+  // Un portafolio con posiciones pero sin ninguna valoración válida no vale
+  // cero: su valor es desconocido hasta obtener precio y conversión.
+  const totalUSD=valued.length
+    ? valued.reduce((sum,item)=>sum+item.currentUSD,0)
+    : (items.length ? null : 0);
+  const costUSD=pnlItems.reduce((sum,item)=>sum+item.costUSD,0);
+  const pnlUSD=pnlItems.reduce((sum,item)=>sum+item.pnlUSD,0);
+  const byClass={};
+  valued.forEach(item=>{byClass[item.assetClass]=(byClass[item.assetClass]||0)+item.currentUSD;});
+  return {items,valued,pnlItems,totalUSD,costUSD,pnlUSD,roiUSD:costUSD>0?pnlUSD/costUSD:null,byClass,pending:items.filter(item=>!isValuationAvailable(item))};
+}
+
 function calcDCA(sym) {
   const ops = ST.hist.filter(h => h.sym === sym && h.type === 'COMPRA');
   if (!ops.length) return null;
@@ -4234,83 +4357,34 @@ function calcIRR(cashflows) {
 }
 
 function calcPortfolioMetrics() {
-  const all = [...ST.stocks, ...ST.crypto];
-  let tCap = 0, tCur = 0;
-  all.forEach(a => { const { cap, cur } = calc(a); tCap += cap; tCur += cur ?? cap; });
-  const pnl = tCur - tCap;
-  const roi = tCap > 0 ? pnl / tCap : 0;
-
-  // IRR — use hist operations as cashflows
-  const ops = ST.hist.slice().sort((a, b) => a.date.localeCompare(b.date));
-  let irr = null;
-  if (ops.length >= 1) {
-    const t0 = new Date(ops[0].date).getTime();
-    const cashflows = ops.map(h => {
-      const t = (new Date(h.date).getTime() - t0) / (365.25 * 864e5);
-      const cf = h.type === 'COMPRA' ? -(h.qty * h.price + h.comm) : (h.qty * h.price - h.comm);
-      return [t, cf];
-    });
-    cashflows.push([((Date.now()) - t0) / (365.25 * 864e5), tCur]);
-    const r = calcIRR(cashflows);
-    if (r !== null && isFinite(r) && r > -1 && r < 10) irr = r;
-  }
-
-  // Sharpe — approximate: ROI / stdDev of asset returns
-  const returns = all.map(a => calc(a).pp ?? 0);
-  const mean = returns.reduce((s,v) => s+v, 0) / (returns.length || 1);
-  const variance = returns.reduce((s,v) => s + Math.pow(v - mean, 2), 0) / (returns.length || 1);
-  const stdDev = Math.sqrt(variance);
-  const riskFreeRate = 0.05;
-  const sharpe = stdDev > 0 ? (roi - riskFreeRate) / stdDev : null;
-
-  // Beta — approximate: weighted avg of asset betas vs market (crypto ~1.5, tech ~1.2, other ~0.9)
-  const ASSET_BETAS = { BTC:1.6, ETH:1.7, SOL:1.9, BNB:1.5, DOGE:2.0, AAPL:1.2, MSFT:1.1, NVDA:1.6, AMZN:1.3, GOOGL:1.1, TSLA:1.8, META:1.3 };
-  let wBeta = 0, wTotal = 0;
-  all.forEach(a => {
-    const { cur, cap } = calc(a); const w = cur ?? cap;
-    const beta = ASSET_BETAS[a.sym] || 1.0;
-    wBeta += beta * w; wTotal += w;
-  });
-  const beta = wTotal > 0 ? wBeta / wTotal : null;
-
-  return { tCap, tCur, pnl, roi, irr, sharpe, beta };
+  const summary=portfolioSummary();
+  // IRR, Sharpe y beta requieren series o flujos homogéneos de todas las
+  // clases. Se dejan pendientes en vez de fingir una métrica parcial.
+  return { tCap:summary.costUSD,tCur:summary.totalUSD,pnl:summary.pnlUSD,roi:summary.roiUSD,
+    irr:null,sharpe:null,beta:null,summary };
 }
 
 // ═══════════════════════════════════════════
 // RENDER KPIs
 // ═══════════════════════════════════════════
 function renderKPIs() {
-  const all = [...ST.stocks, ...ST.crypto];
-  let tCap=0, tCur=0, sCap=0, sCur=0, crCap=0, crCur=0, pos=0;
-  all.forEach(a => {
-    const { cap, cur } = calc(a);
-    const isS = ST.stocks.includes(a);
-    tCap += cap; tCur += cur ?? cap;
-    if (cur != null) pos++;
-    if (isS) { sCap += cap; sCur += cur ?? cap; }
-    else { crCap += cap; crCur += cur ?? cap; }
-  });
-  const pnl = tCur - tCap;
-  const pp = tCap > 0 ? pnl / tCap * 100 : 0;
-  $('kV').textContent = fmt(tCur);
-  $('kPnl').textContent = fmt(pnl);
-  $('kPnl').style.color = '';
-  $('kPnl').className = 'kpi-v ' + (pnl >= 0 ? 'gradient-up' : 'gradient-dn');
-  $('kPnlS').textContent = fmtPct(pp) + ' ROI';
-  $('kPnlS').className = 'kpi-s ' + (pnl >= 0 ? 'up' : 'dn');
-  $('kROI').textContent = fmtPct(pp);
-  $('kROI').style.color = '';
-  $('kROI').className = 'kpi-v ' + (pp >= 0 ? 'gradient-up' : 'gradient-dn');
-  $('kROIS').textContent = t('kpiROISub');
-  $('kSt').textContent = fmt(sCur);
-  const sP = sCur - sCap;
-  $('kStS').textContent = (sP >= 0?'+':'') + fmt(sP);
-  $('kStS').className = 'kpi-s ' + (sP >= 0 ? 'up' : 'dn');
-  $('kCr').textContent = fmt(crCur);
-  const crP = crCur - crCap;
-  $('kCrS').textContent = (crP >= 0?'+':'') + fmt(crP);
-  $('kCrS').className = 'kpi-s ' + (crP >= 0 ? 'up' : 'dn');
-  $('kPos').textContent = pos || all.length;
+  const summary=portfolioSummary(), byClass=summary.byClass;
+  const pendingLabel=summary.pending.length?` · N/D: ${summary.pending.length}`:'';
+  const pnlKnown=summary.pnlItems.length>0;
+  $('kV').textContent=fmt(summary.totalUSD);
+  $('kVs').textContent=`USD valorados${pendingLabel}`;
+  $('kPnl').textContent=pnlKnown?fmt(summary.pnlUSD):'N/D';
+  $('kPnl').className='kpi-v '+(summary.pnlUSD>=0?'gradient-up':'gradient-dn');
+  $('kPnlS').textContent=summary.roiUSD!=null?fmtPct(summary.roiUSD*100)+' ROI'+pendingLabel:'N/D: falta valoración válida';
+  $('kPnlS').className='kpi-s '+(summary.pnlUSD>=0?'up':'dn');
+  $('kROI').textContent=summary.roiUSD!=null?fmtPct(summary.roiUSD*100):'N/D';
+  $('kROI').className='kpi-v '+(summary.roiUSD==null?'':(summary.roiUSD>=0?'gradient-up':'gradient-dn'));
+  $('kROIS').textContent=summary.pending.length?'parcial por datos pendientes':t('kpiROISub');
+  const stockValue=byClass['Acciones']||0,cryptoValue=byClass['Cripto']||0;
+  $('kSt').textContent=fmt(stockValue);$('kStS').textContent='USD valorados';$('kStS').className='kpi-s';
+  $('kCr').textContent=fmt(cryptoValue);$('kCrS').textContent='USD valorados';$('kCrS').className='kpi-s';
+  $('kPos').textContent=summary.items.length;
+  const posSub=$('kpiPosSub');if(posSub)posSub.textContent=summary.pending.length?`${summary.pending.length} pendientes de valorar`:'activas en cartera';
 }
 
 // ═══════════════════════════════════════════
@@ -4322,48 +4396,41 @@ function renderDash() {
   if (m.irr !== null) {
     $('dIRR').textContent = fmtPct(m.irr * 100);
     $('dIRR').style.color = m.irr >= 0 ? 'var(--cg2)' : 'var(--cr2)';
-  }
+  } else { $('dIRR').textContent='N/D'; $('dIRR').style.color='var(--tx3)'; }
   if (m.sharpe !== null) {
     $('dSharpe').textContent = m.sharpe.toFixed(2);
     const sc = m.sharpe < 1 ? 'var(--cr2)' : m.sharpe < 2 ? 'var(--ca2)' : 'var(--cg2)';
     $('dSharpe').style.color = sc;
     const lbl = m.sharpe < 1 ? 'Malo — revisar estrategia' : m.sharpe < 2 ? 'Bueno' : m.sharpe < 3 ? 'Muy bueno' : 'Excepcional';
     $('dSharpeLabel').textContent = lbl;
-  }
+  } else { $('dSharpe').textContent='N/D'; $('dSharpe').style.color='var(--tx3)'; $('dSharpeLabel').textContent='requiere serie completa'; }
   if (m.beta !== null) {
     $('dBeta').textContent = m.beta.toFixed(2);
     $('dBeta').style.color = m.beta > 1.3 ? 'var(--cr2)' : m.beta < 0.8 ? 'var(--cg2)' : 'var(--ca2)';
-  }
+  } else { $('dBeta').textContent='N/D'; $('dBeta').style.color='var(--tx3)'; }
 
-  const all = [...ST.stocks, ...ST.crypto];
-  const sVal = ST.stocks.reduce((s,a) => { const {cur,cap}=calc(a); return s+(cur??cap); }, 0);
-  const cVal = ST.crypto.reduce((s,a) => { const {cur,cap}=calc(a); return s+(cur??cap); }, 0);
-  const tot = sVal + cVal;
+  const summary=m.summary||portfolioSummary();
+  const tot=summary.totalUSD;
+  const pendingLabel=summary.pending.length?` · ${summary.pending.length} N/D`:'';
 
   // Hero KPIs
   const heroTotal = $('dHeroTotal');
   if (heroTotal) { heroTotal.textContent = fmt(tot); heroTotal.style.background='linear-gradient(135deg,var(--cv3),var(--ct2))'; heroTotal.style.webkitBackgroundClip='text'; heroTotal.style.webkitTextFillColor='transparent'; heroTotal.style.backgroundClip='text'; }
-  const tCap2 = [...ST.stocks,...ST.crypto].reduce((s,a)=>s+calc(a).cap,0);
-  const pnl2 = tot - tCap2;
-  const pp2 = tCap2>0?pnl2/tCap2*100:0;
+  const heroTotalSub=$('dHeroTotalSub');if(heroTotalSub)heroTotalSub.textContent=`USD valorados${pendingLabel}`;
+  const pnl2=summary.pnlUSD,pp2=summary.roiUSD;
   const heroPnl = $('dHeroPnl');
   const heroPnlPct = $('dHeroPnlPct');
-  if (heroPnl) { heroPnl.textContent = fmt(pnl2); heroPnl.style.color = pnl2>=0?'var(--cg2)':'var(--cr2)'; }
-  if (heroPnlPct) { heroPnlPct.textContent = (pp2>=0?'+':'')+pp2.toFixed(2)+'% ROI'; heroPnlPct.style.color = pnl2>=0?'var(--cg2)':'var(--cr2)'; }
+  if (heroPnl) { heroPnl.textContent = summary.pnlItems.length?fmt(pnl2):'N/D'; heroPnl.style.color = pnl2>=0?'var(--cg2)':'var(--cr2)'; }
+  if (heroPnlPct) { heroPnlPct.textContent = pp2!=null?(pp2>=0?'+':'')+(pp2*100).toFixed(2)+'% ROI'+pendingLabel:'N/D: falta valoración'; heroPnlPct.style.color = pnl2>=0?'var(--cg2)':'var(--cr2)'; }
   const dPos = $('dPositions');
-  if (dPos) dPos.textContent = [...ST.stocks,...ST.crypto].filter(a=>a.cur!=null).length || [...ST.stocks,...ST.crypto].length;
+  if (dPos) dPos.textContent = summary.items.length;
 
   // Custodio chart
   const custodioData = {};
-  ST.stocks.forEach(a => {
-    const {cur,cap}=calc(a); const v=cur??cap;
-    const key = a.broker || 'Sin especificar';
-    custodioData[key] = (custodioData[key]||0) + v;
-  });
-  ST.crypto.forEach(a => {
-    const {cur,cap}=calc(a); const v=cur??cap;
-    const key = a.wallet || a.custody || 'Sin especificar';
-    custodioData[key] = (custodioData[key]||0) + v;
+  summary.valued.forEach(item => {
+    const asset=item.sourceAsset||{};
+    const key = asset.broker || asset.wallet || asset.custody || 'Sin especificar';
+    custodioData[key] = (custodioData[key]||0) + item.currentUSD;
   });
   destroyChart('custodio');
   if ($('cCustodio') && Object.keys(custodioData).length > 0) {
@@ -4375,36 +4442,34 @@ function renderDash() {
       options: { responsive:true, maintainAspectRatio:false, cutout:'60%', plugins: { legend: { position:'right', labels: { color:getTick(), font:{size:9}, padding:8 } }, tooltip: { callbacks: { label: c => ' '+fmt(c.raw)+' ('+((c.raw/tot*100).toFixed(1))+'%)' } } } }
     });
   }
-  const sp = tot > 0 ? (sVal/tot*100).toFixed(1) : 0;
-  const cp = tot > 0 ? (cVal/tot*100).toFixed(1) : 0;
-  $('allocLeg').innerHTML = `
-    <span class="leg-i"><span class="leg-dot" style="background:#7c3aed"></span>Acciones ${sp}%</span>
-    <span class="leg-i"><span class="leg-dot" style="background:#0891b2"></span>Cripto ${cp}%</span>`;
+  const classes=Object.keys(summary.byClass),classValues=classes.map(key=>summary.byClass[key]);
+  $('allocLeg').innerHTML=classes.map((assetClass,index)=>`<span class="leg-i"><span class="leg-dot" style="background:${PALETTE[index%PALETTE.length]}"></span>${escapeHTML(assetClass)} ${(tot>0?summary.byClass[assetClass]/tot*100:0).toFixed(1)}%</span>`).join('')+
+    (summary.pending.length?`<span class="leg-i"><span class="leg-dot" style="background:var(--tx3)"></span>N/D ${summary.pending.length}</span>`:'');
   destroyChart('alloc');
   safeCreateChart('alloc', $('cAlloc'), {
     type:'doughnut',
-    data:{labels:['Acciones','Cripto'],datasets:[{data:[sVal,cVal],backgroundColor:['#7c3aed','#0891b2'],borderWidth:3,borderColor:getComputedStyle(document.documentElement).getPropertyValue('--bg2').trim(),hoverOffset:6}]},
+    data:{labels:classes,datasets:[{data:classValues,backgroundColor:PALETTE.slice(0,classes.length),borderWidth:3,borderColor:getComputedStyle(document.documentElement).getPropertyValue('--bg2').trim(),hoverOffset:6}]},
     options:{responsive:true,maintainAspectRatio:false,cutout:'68%',plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>' '+fmt(c.raw)}}}}
   });
 
-  const rA = all.filter(a => a.cur != null);
+  const rA = summary.valued.filter(item=>item.pnlUSD!=null);
   const rH = Math.max(160, rA.length*30+50);
   $('retWrap').style.height = rH + 'px';
   destroyChart('ret');
   if (rA.length) {
     safeCreateChart('ret', $('cRet'), {
       type:'bar',
-      data:{labels:rA.map(a=>a.sym),datasets:[{data:rA.map(a=>+((calc(a).pp||0)*100).toFixed(2)),backgroundColor:rA.map(a=>(calc(a).pp||0)>=0?'rgba(16,185,129,.7)':'rgba(244,63,94,.7)'),borderRadius:5,borderSkipped:false}]},
+      data:{labels:rA.map(item=>item.sym),datasets:[{data:rA.map(item=>+((item.pnlUSD/item.costUSD||0)*100).toFixed(2)),backgroundColor:rA.map(item=>(item.pnlUSD/item.costUSD||0)>=0?'rgba(16,185,129,.7)':'rgba(244,63,94,.7)'),borderRadius:5,borderSkipped:false}]},
       options:{...baseOpts(),indexAxis:'y',plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>' '+(c.raw>=0?'+':'')+c.raw+'%'}}},scales:{x:{ticks:{color:getTick(),font:{size:9},callback:v=>v+'%'},grid:{color:getGrid()}},y:{ticks:{color:getTick(),font:{size:9}},grid:{display:false}}}}
     });
   }
 
-  const pA = all.filter(a => a.cur != null);
+  const pA = summary.valued.filter(item=>item.pnlUSD!=null);
   destroyChart('pnl');
   if (pA.length) {
     safeCreateChart('pnl', $('cPnl'), {
       type:'bar',
-      data:{labels:pA.map(a=>a.sym),datasets:[{data:pA.map(a=>+(calc(a).pnl||0).toFixed(2)),backgroundColor:pA.map(a=>(calc(a).pnl||0)>=0?'rgba(16,185,129,.65)':'rgba(244,63,94,.65)'),borderRadius:5,borderSkipped:false}]},
+      data:{labels:pA.map(item=>item.sym),datasets:[{data:pA.map(item=>+item.pnlUSD.toFixed(2)),backgroundColor:pA.map(item=>item.pnlUSD>=0?'rgba(16,185,129,.65)':'rgba(244,63,94,.65)'),borderRadius:5,borderSkipped:false}]},
       options:{...baseOpts(),plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>' '+fmt(c.raw)}}},scales:{x:{ticks:{color:getTick(),font:{size:9}},grid:{display:false}},y:{ticks:{color:getTick(),font:{size:9},callback:v=>fmt(v,0)},grid:{color:getGrid()}}}}
     });
   }
@@ -4416,16 +4481,11 @@ function renderDash() {
 function renderPriceSource(asset) {
   const source = String(asset?.priceSource || '').trim();
   if (!source) return '';
-  const timestamp = new Date(asset.priceUpdatedAt);
-  const hasValidTime = Number.isFinite(timestamp.getTime());
-  const locale = LANG === 'en' ? 'en-US' : 'es-AR';
-  const timeLabel = hasValidTime
-    ? timestamp.toLocaleTimeString(locale, { hour:'2-digit', minute:'2-digit' })
-    : '';
-  const shortLabel = [source, timeLabel].filter(Boolean).join(' · ');
-  const fullLabel = hasValidTime
-    ? `${source} · ${timestamp.toLocaleString(locale)}`
-    : source;
+  const status=priceStatusFor(asset),statusLabel=QUOTE_STATUS_LABELS[status]||QUOTE_STATUS_LABELS.pending;
+  const sourceTime=madridDateTime(asset.priceSourceTimestamp||asset.priceUpdatedAt);
+  const retrievedTime=madridDateTime(asset.priceRetrievedAt);
+  const shortLabel = [source, statusLabel].filter(Boolean).join(' · ');
+  const fullLabel = `${source} · ${statusLabel} · Fuente: ${sourceTime} (Madrid) · Consultado por MRP: ${retrievedTime} (Madrid)${asset.lastClose!=null?` · Último cierre: ${fmt(asset.lastClose)}`:''}`;
   const sourceClass = source.includes('Binance') ? ' binance' : '';
   return `<div class="price-source${sourceClass}" title="${escapeHTML(fullLabel)}">${escapeHTML(shortLabel)}</div>`;
 }
@@ -4526,13 +4586,14 @@ function renderDCA() {
 // RENDER RISK
 // ═══════════════════════════════════════════
 function renderRisk() {
-  const all = [...ST.stocks, ...ST.crypto];
-  const total = all.reduce((s,a) => { const {cur,cap}=calc(a); return s+(cur??cap); }, 0);
+  const summary=portfolioSummary();
+  const all=summary.valued;
+  const total=summary.totalUSD;
   const tb = $('riskTb'); tb.innerHTML = '';
 
   // By asset chart
-  const labels = all.map(a => a.sym);
-  const vals = all.map(a => { const {cur,cap}=calc(a); return cur??cap; });
+  const labels = all.map(item => item.sym);
+  const vals = all.map(item => item.currentUSD);
   destroyChart('risk');
   safeCreateChart('risk', $('cRisk'), {
     type:'doughnut',
@@ -4542,11 +4603,9 @@ function renderRisk() {
 
   // By sector
   const sectors = {};
-  all.forEach(a => {
-    const s = ST.stocks.find(x=>x.id===a.id);
-    const sec = s ? (s.sector||'Sin sector') : (ST.crypto.find(x=>x.id===a.id) ? 'Cripto' : 'Otro');
-    const {cur,cap}=calc(a); const v=cur??cap;
-    sectors[sec] = (sectors[sec]||0) + v;
+  all.forEach(item => {
+    const sector=item.assetClass==='Acciones' ? (item.sourceAsset.sector||'Sin sector') : item.assetClass;
+    sectors[sector] = (sectors[sector]||0) + item.currentUSD;
   });
   destroyChart('sector');
   safeCreateChart('sector', $('cSector'), {
@@ -4556,18 +4615,18 @@ function renderRisk() {
   });
 
   // Table
-  const sorted = all.slice().sort((a,b) => { const av=(calc(a).cur??calc(a).cap), bv=(calc(b).cur??calc(b).cap); return bv-av; });
+  const sorted = all.slice().sort((a,b)=>b.currentUSD-a.currentUSD);
   let maxConc = 0, maxAsset = '';
-  sorted.forEach((a,i) => {
-    const {cur,cap}=calc(a); const v=cur??cap;
+  sorted.forEach(item => {
+    const v=item.currentUSD;
     const pct = total > 0 ? v/total*100 : 0;
-    if (pct > maxConc) { maxConc=pct; maxAsset=a.sym; }
-    const type = ST.stocks.find(s=>s.id===a.id) ? 'Acción' : 'Cripto';
+    if (pct > maxConc) { maxConc=pct; maxAsset=item.sym; }
+    const type=item.assetClass;
     const alert = pct > 25 ? `<span class="pill pill-r">${t('alertHigh')}</span>` : pct > 15 ? `<span class="pill pill-y">${t('alertMed')}</span>` : `<span class="pill pill-g">${t('alertOk')}</span>`;
     const barColor = pct > 25 ? 'var(--cr)' : pct > 15 ? 'var(--ca)' : 'var(--cg)';
     const tr = document.createElement('tr');
     tr.innerHTML = `
-      <td class="sym">${a.sym} <span class="muted" style="font-size:10px">${a.name}</span></td>
+      <td class="sym">${item.sym} <span class="muted" style="font-size:10px">${item.name}</span></td>
       <td><span class="pill ${type==='Cripto'?'pill-y':'pill-b'}">${type}</span></td>
       <td class="num">${fmt(v)}</td>
       <td class="num" style="font-weight:700">${pct.toFixed(1)}%</td>
@@ -4581,7 +4640,7 @@ function renderRisk() {
   $('rBeta').textContent = m.beta != null ? m.beta.toFixed(2) : '—';
   $('rMaxConc').textContent = maxConc.toFixed(1) + '%';
   $('rMaxConcAsset').textContent = maxAsset || '—';
-  $('rCount').textContent = all.length;
+  $('rCount').textContent = summary.items.length;
 
   // Sharpe meter
   if (m.sharpe != null) {
@@ -4828,11 +4887,8 @@ function updateMarketHours() {
 
   // Clock
   const now = new Date();
-  $('mktClock').textContent = now.toLocaleTimeString(LANG === 'en' ? 'en-US' : 'es-AR', { hour:'2-digit', minute:'2-digit', second:'2-digit' });
-  try {
-    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
-    $('mktTZ').textContent = tz.split('/').pop().replace('_',' ');
-  } catch(e) {}
+  $('mktClock').textContent = now.toLocaleTimeString(LANG === 'en' ? 'en-US' : 'es-ES', { timeZone:'Europe/Madrid', hour:'2-digit', minute:'2-digit', second:'2-digit' });
+  $('mktTZ').textContent = 'Madrid';
 }
 
 // Update every second
@@ -6447,7 +6503,7 @@ function renderOtros() {
     if($('cedCurrentCCL'))$('cedCurrentCCL').value=currentCCL||'';
     if($('cedCurrentCCLSource'))$('cedCurrentCCLSource').value=ST.cedearCurrentCclSource||'';
     if($('cedCurrentCCLStatus'))$('cedCurrentCCLStatus').textContent=currentCCL
-      ? `CCL usado: ${formatDec(currentCCL,{digits:2,currency:'ARS'})} · ${ST.cedearCurrentCclSource||'sin fuente'} · ${ST.cedearCurrentCclMode==='manual'?'manual':'automático'} · ${quoteUpdatedLabel({priceUpdatedAt:ST.cedearCurrentCclUpdatedAt})}`
+      ? `CCL usado: ${formatDec(currentCCL,{digits:2,currency:'ARS'})} · ${ST.cedearCurrentCclMethod||'modalidad N/D'} · ${ST.cedearCurrentCclSource||'sin fuente'} · ${ST.cedearCurrentCclMode==='manual'?'manual':'automático'} · fuente ${madridDateTime(ST.cedearCurrentCclSourceTimestamp||ST.cedearCurrentCclUpdatedAt)} Madrid · consultado ${madridDateTime(ST.cedearCurrentCclRetrievedAt)} Madrid`
       : 'Sin CCL actual: métricas USD pendientes';
     if(!ceds.length){cedTb.innerHTML='<tr><td colspan="12" class="empty"><i class="ti ti-building-bank"></i><p>Sin CEDEARs. Agregá tu primera compra.</p></td></tr>';}
     else{
@@ -6465,7 +6521,7 @@ function renderOtros() {
           <td class="num" style="color:${roiUSDColor};font-weight:700">${group.roiUSD?`${decCmp(group.roiUSD,'0')>=0?'+':''}${formatDec(group.roiUSD,{digits:2})}%`:'Pendiente'}</td>
           <td class="num muted">${group.currentPriceARS?formatDec(group.currentPriceARS,{digits:2,currency:'ARS'})+renderPriceSource(representative):'<span style="color:var(--tx4)">Pendiente</span>'}</td>
           <td class="num" style="color:${pnlARSColor};font-weight:700">${group.pnlARS?formatDec(group.pnlARS,{digits:2,currency:'ARS'}):'<span title="Falta equivalente histórico ARS en uno o más lotes">Pendiente</span>'}</td>
-          <td class="muted">${group.priceUpdatedAt?quoteUpdatedLabel(representative):'Pendiente'}</td>
+          <td class="muted">${group.priceUpdatedAt?`${QUOTE_STATUS_LABELS[group.priceStatus]||QUOTE_STATUS_LABELS.pending} · ${quoteUpdatedLabel(representative)}${group.quoteCclSkewMs!=null&&group.quoteCclSkewMs>CEDEAR_CCL_SKEW_WARNING_MS?` · desfase CCL ${Math.round(group.quoteCclSkewMs/60000)} min`:''}`:'Pendiente'}</td>
           <td style="white-space:nowrap">
             <button class="btn-view" onclick="openCEDLots(${inlineArg(group.sym)})" title="Ver compras / lotes"><i class="ti ti-layers"></i> Ver lotes</button>
           </td>
@@ -6688,15 +6744,13 @@ async function fetchBenchmarks() {
 }
 
 function renderBenchmarks() {
-  const all = [...ST.stocks,...ST.crypto];
-  const tCap = all.reduce((s,a)=>s+calc(a).cap,0);
-  const tCur = all.reduce((s,a)=>s+(calc(a).cur??calc(a).cap),0);
-  const portfolioROI = tCap>0?(tCur-tCap)/tCap*100:0;
+  const summary=portfolioSummary();
+  const portfolioROI=summary.roiUSD==null?null:summary.roiUSD*100;
 
   const portEl=$('benchPortfolio');
   if(portEl){
-    portEl.textContent=(portfolioROI>=0?'+':'')+portfolioROI.toFixed(2)+'%';
-    portEl.style.color=portfolioROI>=0?'var(--cg2)':'var(--cr2)';
+    portEl.textContent=portfolioROI==null?'N/D':(portfolioROI>=0?'+':'')+portfolioROI.toFixed(2)+'%';
+    portEl.style.color=portfolioROI==null?'var(--tx3)':(portfolioROI>=0?'var(--cg2)':'var(--cr2)');
   }
 
   // For S&P and BTC we show their 24h change as a proxy (simplified)
@@ -6736,6 +6790,7 @@ function renderAll() {
   renderKPIs();
   renderTbl(ST.stocks, 'sTb', 'stock');
   renderTbl(ST.crypto, 'cTb', 'crypto');
+  renderOtros();
   renderHist();
   renderDash();
   if($('alertsList')) renderAlerts();
@@ -7472,7 +7527,7 @@ function portfolioStatesEqual(first, second) {
     // Quotes are derived cache data and can legitimately differ by seconds
     // between devices. They must never trigger a destructive conflict choice.
     const derivedQuoteFields = [
-      'cur', 'ch', 'priceSource', 'priceUpdatedAt', 'quoteCurrency', 'quoteSymbol'
+      'cur', 'ch', 'lastClose', 'priceSource', 'priceUpdatedAt', 'priceSourceTimestamp', 'priceRetrievedAt', 'priceStatus', 'priceMarketState', 'quoteCurrency', 'quoteSymbol'
     ];
     ['stocks', 'crypto', 'otros'].forEach(collection => {
       if (!Array.isArray(sanitized[collection])) return;
@@ -7484,7 +7539,7 @@ function portfolioStatesEqual(first, second) {
     // mercado. Cada dispositivo puede actualizarlo en segundos distintos y
     // eso no debe disparar una elección destructiva de datos.
     if (sanitized.cedearCurrentCclMode === 'auto') {
-      ['cedearCurrentCclDecimal','cedearCurrentCclSource','cedearCurrentCclUpdatedAt','cedearCurrentCclMode']
+      ['cedearCurrentCclDecimal','cedearCurrentCclSource','cedearCurrentCclUpdatedAt','cedearCurrentCclSourceTimestamp','cedearCurrentCclRetrievedAt','cedearCurrentCclMethod','cedearCurrentCclMode']
         .forEach(field => { delete sanitized[field]; });
     }
 

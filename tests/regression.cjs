@@ -198,10 +198,21 @@ const tests = String.raw`
   assert(updatedCedear.priceSource.includes('BYMA'), 'Debe identificar la fuente BYMA');
   assert.strictEqual(ST.cedearCurrentCclDecimal, '1200', 'Debe guardar el CCL automático válido');
   assert.strictEqual(ST.cedearCurrentCclMode, 'auto', 'Debe identificar la fuente automática del CCL');
+  assert.strictEqual(ST.cedearCurrentCclMethod, 'CCL venta', 'Debe conservar la modalidad de CCL utilizada');
+  assert(ST.cedearCurrentCclSourceTimestamp, 'Debe conservar el timestamp de la fuente del CCL');
+  assert(ST.cedearCurrentCclRetrievedAt, 'Debe conservar cuándo MRP consultó el CCL');
+  assert(updatedCedear.priceSourceTimestamp, 'Debe conservar el timestamp de la cotización BYMA');
+  assert(updatedCedear.priceRetrievedAt, 'Debe conservar cuándo MRP consultó la cotización BYMA');
+  assert.strictEqual(updatedCedear.priceStatus, 'last_close', 'Una cotización antigua debe identificarse como último cierre, no como tiempo real');
   const valuedApple=consolidateCedears().find(group=>group.sym==='AAPL');
   assert.strictEqual(valuedApple.historicalUSD, '9042.97', 'El coste USD MEP debe ser el importe histórico real pagado');
   assert.strictEqual(valuedApple.currentValueUSD, '16440', 'El valor actual USD debe ser ARS dividido por CCL actual');
   assert.strictEqual(valuedApple.pnlUSD, '7397.03', 'La G/P USD no debe depender del CCL histórico');
+  assert(valuedApple.quoteCclSkewMs >= 0, 'La valoración CEDEAR debe conservar el desfase entre CCL y cotización');
+  const consolidatedSummary=portfolioSummary();
+  const consolidatedCedears=consolidatedSummary.valued.filter(item=>item.assetClass==='CEDEARs');
+  assert.strictEqual(consolidatedCedears.length, 3, 'El Dashboard debe consolidar los seis lotes en tres posiciones CEDEAR sin duplicarlos');
+  assert.strictEqual(consolidatedSummary.byClass.CEDEARs, 23240, 'El Dashboard debe incorporar los CEDEARs en USD');
   const retainedCCL=ST.cedearCurrentCclDecimal;
   fetchWithFallback = async () => null;
   assert.strictEqual(await refreshCedearCurrentCCL(), false, 'Debe informar si no hay CCL automático disponible');
@@ -221,8 +232,18 @@ const tests = String.raw`
   assert.notStrictEqual(localStorage.getItem('mrp_last_local_change'), '2026-07-31T09:00:00Z', 'La actualización manual debe sincronizar su snapshot');
   assert.strictEqual(scheduledSyncs, 1, 'La actualización manual sí debe programar la sincronización');
 
+  const totalBeforePending=portfolioSummary().totalUSD;
+  ST.stocks.push({id:'pending',sym:'PEND',name:'Activo sin cotización',qty:5,buy:999,date:'2026-08-01'});
+  const pendingSummary=portfolioSummary();
+  assert.strictEqual(pendingSummary.totalUSD, totalBeforePending, 'Un coste histórico no puede sustituir silenciosamente una cotización faltante');
+  assert(pendingSummary.pending.some(item=>item.id==='pending'&&item.status==='pending'), 'El activo sin precio debe permanecer identificado como pendiente');
+  const stateBeforeOnlyPending=ST;
+  ST=sanitizePortfolioState({ ...base, stocks:[{id:'only-pending',sym:'N/D',name:'Solo pendiente',qty:1,buy:100,date:'2026-08-01'}], otros:[] });
+  assert.strictEqual(portfolioSummary().totalUSD, null, 'Un portafolio con posiciones sin valoración debe mostrar N/D, no cero');
+  ST=stateBeforeOnlyPending;
+
   $('otroEditId').value = 'a1';
-  const editValues = { name:'Apple editado',purchaseCurrency:'USD_MEP',quantityDecimal:'281',ratioDecimal:'10',unitPriceDecimal:'10.6500',grossAmountDecimal:'2992.65',totalCostDecimal:'3013.29',cclAtPurchaseDecimal:'',mepAtPurchaseDecimal:'',historicalArsEquivalentDecimal:'',ticketNumber:'874213',informationSource:'Broker',date:'2025-07-29',broker:'Broker editado',note:'Nota editada' };
+  const editValues = { name:'Apple editado',purchaseCurrency:'USD_MEP',quantityDecimal:'281',ratioDecimal:'10',unitPriceDecimal:'10.6500',grossAmountDecimal:'2992.65',totalCostDecimal:'3013.29',cclAtPurchaseDecimal:'',mepAtPurchaseDecimal:'',historicalArsEquivalentDecimal:'',ticketNumber:'874213',informationSource:'Broker',date:'2025-07-30',broker:'Broker editado',note:'Nota editada' };
   Object.entries(editValues).forEach(([key, value]) => { $('oe_' + key).value = value; });
   saveOtroEdit();
   const editedCedear = ST.otros.find(item => item.id === 'a1');
@@ -230,6 +251,8 @@ const tests = String.raw`
   assert.strictEqual(editedCedear.quantityDecimal,'281','Debe guardar la cantidad decimal editada');
   assert.strictEqual(editedCedear.totalCostDecimal,'3013.29','Debe conservar el costo total del lote');
   assert.strictEqual(editedCedear.cur, 24000, 'Editar no debe borrar la última cotización');
+  renderCedearTimeline();
+  assert($('cedTimelineTb').innerHTML.includes('2025-07-30'), 'El Timeline debe recalcularse inmediatamente desde los lotes editados');
 
   openOtroEdit('a1');
   assert($('otroEditModalOverlay').classList.contains('open'), 'Debe abrir el editor de Otros');
