@@ -1388,8 +1388,8 @@ input::placeholder,textarea::placeholder,select::placeholder{color:var(--tx4);op
       </table></div>
     </div>
     <div class="card" style="padding:0;overflow:hidden;margin-top:12px">
-      <div style="padding:12px 14px"><div class="card-head"><i class="ti ti-timeline" style="color:var(--cv3)"></i> Timeline CEDEAR</div><div class="card-sub">Compras reales por fecha y valuaciones disponibles. Mercado o tipo de cambio faltante se muestra como pendiente.</div></div>
-      <div class="tbl-wrap"><table><thead><tr><th>Fecha</th><th>Evento</th><th>Símbolo</th><th>Cantidad acumulada</th><th>Costos acumulados</th><th>Precio mercado ARS</th><th>CCL</th><th>Valor ARS</th><th>Valor USD implícito</th><th>Fuente / estado</th></tr></thead><tbody id="cedTimelineTb"></tbody></table></div>
+      <div style="padding:12px 14px"><div class="card-head"><i class="ti ti-timeline" style="color:var(--cv3)"></i> Timeline histórica CEDEAR <span class="pill pill-t" style="margin-left:6px">Histórico · inmutable</span></div><div class="card-sub">Registro de compras y snapshots guardados en su fecha. No representa la valoración actual: la tabla superior utiliza la cotización y el CCL vigentes.</div></div>
+      <div class="tbl-wrap"><table><thead><tr><th>Fecha</th><th>Evento</th><th>Símbolo</th><th>Cantidad acumulada</th><th>Costos acumulados</th><th>Precio histórico ARS</th><th>CCL histórico</th><th>Valor histórico ARS</th><th>Valor histórico USD</th><th>Fuente / estado</th></tr></thead><tbody id="cedTimelineTb"></tbody></table></div>
     </div>
   </div>
 
@@ -6605,7 +6605,7 @@ function renderCedearTimeline(){
   const tb=$('cedTimelineTb');if(!tb)return;
   const lots=(ST.otros||[]).filter(item=>item.type==='cedeaar');
   const valuations=ST.cedearValuations||[];
-  const events=[...lots.map(lot=>({date:lot.date,type:'Compra',sym:lot.sym,lot})),...valuations.map(valuation=>({date:valuation.date,type:'Valuación',sym:valuation.sym,valuation}))]
+  const events=[...lots.map(lot=>({date:lot.date,type:'Compra',sym:lot.sym,lot})),...valuations.map(valuation=>({date:valuation.date,type:'Valuación histórica',sym:valuation.sym,valuation}))]
     .sort((a,b)=>a.date.localeCompare(b.date)||(a.type==='Compra'?-1:1));
   if(!events.length){tb.innerHTML='<tr><td colspan="10" class="empty"><p>Sin eventos CEDEAR.</p></td></tr>';return;}
   const state=new Map();
@@ -6621,7 +6621,7 @@ function renderCedearTimeline(){
     const valueARS=price?decMul(running.quantity,price):null;
     const valueUSD=valueARS&&decPositive(ccl)?decDiv(valueARS,ccl,8):null;
     const costs=CEDEAR_CURRENCIES.filter(currency=>decPositive(running.costs[currency])).map(currency=>formatDec(running.costs[currency],{digits:2,currency:currencyLabel(currency)})).join(' · ')||'—';
-    const status=valuation?escapeHTML(valuation.source||'Valuación guardada'):'Pendiente: sin precio/CCL histórico';
+    const status=valuation?`Snapshot histórico · ${escapeHTML(valuation.source||'fuente no indicada')}`:'Pendiente: sin precio/CCL histórico';
     return `<tr><td>${escapeHTML(event.date)}</td><td><span class="pill ${event.type==='Compra'?'pill-g':'pill-t'}">${event.type}</span></td><td class="sym">${escapeHTML(event.sym)}</td><td class="num">${formatDec(running.quantity,{digits:4})}</td><td class="num">${costs}</td><td class="num">${price?formatDec(price,{digits:2,currency:'ARS'}):'Pendiente'}</td><td class="num">${ccl?formatDec(ccl,{digits:2,currency:'ARS'}):'Pendiente'}</td><td class="num">${valueARS?formatDec(valueARS,{digits:2,currency:'ARS'}):'Pendiente'}</td><td class="num">${valueUSD?formatDec(valueUSD,{digits:2,currency:'USD'}):'Pendiente'}</td><td class="muted">${status}</td></tr>`;
   }).join('');
 }

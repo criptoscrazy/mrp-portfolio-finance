@@ -251,8 +251,11 @@ const tests = String.raw`
   assert.strictEqual(editedCedear.quantityDecimal,'281','Debe guardar la cantidad decimal editada');
   assert.strictEqual(editedCedear.totalCostDecimal,'3013.29','Debe conservar el costo total del lote');
   assert.strictEqual(editedCedear.cur, 24000, 'Editar no debe borrar la última cotización');
+  const historicalValuationsBeforeRender=JSON.stringify(ST.cedearValuations);
   renderCedearTimeline();
   assert($('cedTimelineTb').innerHTML.includes('2025-07-30'), 'El Timeline debe recalcularse inmediatamente desde los lotes editados');
+  assert($('cedTimelineTb').innerHTML.includes('Valuación histórica'), 'El Timeline debe identificar sus valuaciones como históricas');
+  assert.strictEqual(JSON.stringify(ST.cedearValuations), historicalValuationsBeforeRender, 'Renderizar el Timeline no debe modificar los snapshots históricos');
 
   openOtroEdit('a1');
   assert($('otroEditModalOverlay').classList.contains('open'), 'Debe abrir el editor de Otros');
