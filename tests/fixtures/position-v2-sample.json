@@ -1,0 +1,17 @@
+{
+  "stocks": [{"id":"s1","sym":"AAPL","name":"Apple","qty":2,"buy":100,"date":"2025-01-01","broker":"Broker A"}],
+  "crypto": [
+    {"id":"c1","sym":"BTC","name":"Bitcoin","qty":1,"buy":30000,"date":"2025-01-01","custody":"exchange","wallet":"Binance"},
+    {"id":"c2","sym":"BTC","name":"Bitcoin","qty":2,"buy":35000,"date":"2025-01-02","custody":"hot","wallet":"Exodus"}
+  ],
+  "hist": [{"id":"h1","date":"2025-01-01","type":"COMPRA","sym":"BTC","qty":1,"price":30000,"comm":0,"notes":"Carga V2"}],
+  "income": [],
+  "apyPositions": [],
+  "alerts": [],
+  "otros": [{"id":"ced1","type":"cedeaar","sym":"MSFT","name":"Microsoft","qty":10,"ratio":30,"buyARS":12000,"date":"2025-02-01","broker":"Broker A"}],
+  "cedearExpenses": [],
+  "cedearValuations": [{"id":"v1","date":"2025-02-02","sym":"MSFT","cedearPriceArsDecimal":"12500","cclDecimal":"1200","source":"Prueba"}],
+  "snaps": [{"date":"2025-02-02","value":100000}],
+  "aSnaps": {"BTC":[{"date":"2025-01-01","value":30000}]},
+  "selAsset": null
+}

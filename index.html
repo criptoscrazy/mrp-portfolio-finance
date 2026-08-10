@@ -442,7 +442,7 @@ input::placeholder,textarea::placeholder,select::placeholder{color:var(--tx4);op
 .ac-name{color:var(--tx2)}
 
 /* ── MINI BUTTONS ── */
-.btn-del,.btn-edit,.btn-view{
+.btn-del,.btn-edit,.btn-view,.btn-buy,.btn-sell{
   width:26px;height:26px;border-radius:6px;
   background:transparent;border:1px solid var(--br2);
   color:var(--tx3);font-size:12px;
@@ -452,6 +452,8 @@ input::placeholder,textarea::placeholder,select::placeholder{color:var(--tx4);op
 .btn-del:hover{border-color:var(--cr);color:var(--cr2);background:rgba(244,63,94,.08)}
 .btn-edit:hover{border-color:var(--cv);color:var(--cv3);background:rgba(124,58,237,.08)}
 .btn-view:hover{border-color:var(--ct);color:var(--ct2);background:rgba(8,145,178,.08)}
+.btn-buy:hover{border-color:var(--cg);color:var(--cg2);background:rgba(16,185,129,.08)}
+.btn-sell:hover{border-color:var(--ca);color:var(--ca2);background:rgba(245,158,11,.08)}
 
 .detail-grid{
   display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-bottom:14px;
@@ -1319,7 +1321,7 @@ input::placeholder,textarea::placeholder,select::placeholder{color:var(--tx4);op
     </div>
     <div class="card" style="padding:0;overflow:hidden">
       <div class="tbl-wrap"><table>
-        <thead><tr><th>Símbolo</th><th>Nombre</th><th>Tipo</th><th>Índice</th><th>Cant.</th><th>P. Compra</th><th>P. Actual</th><th>24h</th><th>Capital</th><th>Valor act.</th><th>G/P $</th><th>G/P %</th><th>TER</th><th>Broker</th><th>Días</th><th>Notas</th><th></th></tr></thead>
+        <thead><tr><th>Símbolo</th><th>Nombre</th><th>Tipo</th><th>Índice</th><th>Cant.</th><th>P. Compra</th><th>P. Prom. DCA</th><th>P. Actual</th><th>24h</th><th>Capital</th><th>Valor act.</th><th>G/P $</th><th>G/P %</th><th>TER</th><th>Broker</th><th>Días</th><th>Notas</th><th>Acc.</th></tr></thead>
         <tbody id="etfTb"></tbody>
       </table></div>
     </div>
@@ -1383,7 +1385,7 @@ input::placeholder,textarea::placeholder,select::placeholder{color:var(--tx4);op
     </div>
     <div class="card" style="padding:0;overflow:hidden">
       <div class="tbl-wrap"><table>
-        <thead><tr><th>Símbolo</th><th>Nombre</th><th>Cant.</th><th>Lotes</th><th>Coste histórico USD</th><th>Valor actual USD</th><th>G/P USD</th><th>Rentab. %</th><th>Precio ARS</th><th>G/P ARS nominal</th><th>Actualización</th><th>Acc.</th></tr></thead>
+        <thead><tr><th>Símbolo</th><th>Nombre</th><th>Broker</th><th>Cant.</th><th>Lotes</th><th>Coste histórico USD</th><th>Valor actual USD</th><th>G/P USD</th><th>Rentab. %</th><th>Precio ARS</th><th>G/P ARS nominal</th><th>Actualización</th><th>Acc.</th></tr></thead>
         <tbody id="cedTb"></tbody>
       </table></div>
     </div>
@@ -1416,7 +1418,7 @@ input::placeholder,textarea::placeholder,select::placeholder{color:var(--tx4);op
     </div>
     <div class="card" style="padding:0;overflow:hidden">
       <div class="tbl-wrap"><table>
-        <thead><tr><th>Símbolo</th><th>Nombre</th><th>Tipo</th><th>Cant.</th><th>P. Compra</th><th>P. Actual</th><th>Capital</th><th>Valor act.</th><th>G/P $</th><th>G/P %</th><th>Exchange</th><th>Días</th><th>Notas</th><th></th></tr></thead>
+        <thead><tr><th>Símbolo</th><th>Nombre</th><th>Tipo</th><th>Cant.</th><th>P. Compra</th><th>P. Prom. DCA</th><th>P. Actual</th><th>Capital</th><th>Valor act.</th><th>G/P $</th><th>G/P %</th><th>Exchange</th><th>Días</th><th>Notas</th><th>Acc.</th></tr></thead>
         <tbody id="tokTb"></tbody>
       </table></div>
     </div>
@@ -1453,7 +1455,7 @@ input::placeholder,textarea::placeholder,select::placeholder{color:var(--tx4);op
     </div>
     <div class="card" style="padding:0;overflow:hidden">
       <div class="tbl-wrap"><table>
-        <thead><tr><th>Código</th><th>Nombre</th><th>Tipo</th><th>Nominal</th><th>Precio %</th><th>Cupón</th><th>Capital USD</th><th>Interés anual</th><th>Vencimiento</th><th>Moneda</th><th>Broker</th><th>Notas</th><th></th></tr></thead>
+        <thead><tr><th>Código</th><th>Nombre</th><th>Tipo</th><th>Nominal</th><th>P. Compra %</th><th>P. Prom. %</th><th>Cupón</th><th>Capital USD</th><th>Interés anual</th><th>Vencimiento</th><th>Moneda</th><th>Broker</th><th>Notas</th><th>Acc.</th></tr></thead>
         <tbody id="bonTb"></tbody>
       </table></div>
     </div>
@@ -1653,24 +1655,13 @@ input::placeholder,textarea::placeholder,select::placeholder{color:var(--tx4);op
 
 <!-- ═══ HISTORIAL ═══ -->
 <div class="section" id="tab-hist">
-  <div class="form-row">
-    <div class="f"><label>Tipo</label>
-      <select id="hT" style="height:34px;background:var(--input-bg);border:1px solid var(--br2);border-radius:8px;color:var(--tx1);padding:0 10px;width:100%">
-        <option>COMPRA</option><option>VENTA</option>
-      </select>
-    </div>
-    <div class="f"><label>Símbolo</label><input id="hSym" class="inp-h" placeholder="AAPL" oninput="this.value=this.value.toUpperCase()"></div>
-    <div class="f"><label>Cantidad</label><input id="hQ" class="inp-h" type="number" step="any" placeholder="0.00"></div>
-    <div class="f"><label>Precio (USD)</label><input id="hP" class="inp-h" type="number" step="0.01" placeholder="0.00"></div>
-    <div class="f"><label>Comisión</label><input id="hC" class="inp-h" type="number" step="0.01" placeholder="0.00"></div>
-    <div class="f"><label>Fecha</label><input id="hD" class="inp-h" type="date"></div>
-    <div class="f"><label>Exchange / Broker</label><input id="hN" class="inp-h" placeholder="Binance, TD Ameritrade..."></div>
-    <div><span class="lph">.</span><button class="btn-add" onclick="addHist()"><i class="ti ti-plus"></i> Registrar</button></div>
+  <div style="padding:11px 14px;background:rgba(8,145,178,.08);border:1px solid rgba(8,145,178,.2);border-radius:8px;margin-bottom:12px;font-size:11px;color:var(--ct2)">
+    <i class="ti ti-lock"></i> El Historial se genera automáticamente al usar <strong>Comprar</strong> o <strong>Vender</strong> en cada posición.
   </div>
   <div class="card" style="padding:0;overflow:hidden">
     <div class="tbl-wrap">
       <table>
-        <thead><tr><th>Fecha</th><th>Tipo</th><th>Símbolo</th><th>Cantidad</th><th>Precio</th><th>Comisión</th><th>Total operación</th><th>Exchange</th><th></th></tr></thead>
+        <thead><tr><th>Fecha</th><th>Tipo</th><th>Símbolo</th><th>Cantidad</th><th>Precio individual</th><th>Comisión</th><th>Total operación</th><th>Custodio</th><th>Estado</th></tr></thead>
         <tbody id="hTb"></tbody>
       </table>
     </div>
@@ -1754,7 +1745,7 @@ input::placeholder,textarea::placeholder,select::placeholder{color:var(--tx4);op
       <div class="card-sub">Información técnica de la aplicación</div>
       <div class="acc-line"></div>
       <div style="font-size:11px;color:var(--tx2);line-height:2">
-        <div style="display:flex;justify-content:space-between;border-bottom:1px solid var(--br);padding:6px 0"><span style="color:var(--tx3)">Versión</span><span style="font-weight:700;color:var(--cv3)">9.6 — Dashboard USD consolidado</span></div>
+        <div style="display:flex;justify-content:space-between;border-bottom:1px solid var(--br);padding:6px 0"><span style="color:var(--tx3)">Versión</span><span style="font-weight:700;color:var(--cv3)">10.0 — Posiciones V3</span></div>
         <div style="display:flex;justify-content:space-between;border-bottom:1px solid var(--br);padding:6px 0"><span style="color:var(--tx3)">Precios cripto</span><span>Binance Spot · respaldos CoinGecko/CryptoCompare</span></div>
         <div style="display:flex;justify-content:space-between;border-bottom:1px solid var(--br);padding:6px 0"><span style="color:var(--tx3)">Acciones / ETFs / CEDEARs</span><span>Yahoo Finance · BYMA (.BA)</span></div>
         <div style="display:flex;justify-content:space-between;border-bottom:1px solid var(--br);padding:6px 0"><span style="color:var(--tx3)">Almacenamiento</span><span>localStorage (local)</span></div>
@@ -2235,6 +2226,31 @@ input::placeholder,textarea::placeholder,select::placeholder{color:var(--tx4);op
 </div>
 
 <!-- EDIT MODAL -->
+<div class="modal-overlay" id="positionOperationOverlay" role="dialog" aria-modal="true" aria-labelledby="positionOperationTitle">
+  <div class="modal" style="max-width:560px">
+    <div class="modal-head" id="positionOperationTitle"><i class="ti ti-arrows-exchange" style="color:var(--cv3)"></i> Operar posición</div>
+    <div class="modal-sub" id="positionOperationSub">La posición y el Historial se actualizarán juntos.</div>
+    <input type="hidden" id="positionOperationId">
+    <input type="hidden" id="positionOperationScope">
+    <input type="hidden" id="positionOperationType">
+    <div class="modal-grid">
+      <div class="modal-field"><label>Operación</label><input id="positionOperationLabel" readonly></div>
+      <div class="modal-field"><label>Posición</label><input id="positionOperationAsset" readonly></div>
+      <div class="modal-field"><label>Cantidad</label><input id="positionOperationQty" type="number" min="0" step="any" placeholder="0.00"></div>
+      <div class="modal-field"><label id="positionOperationPriceLabel">Precio unitario (USD)</label><input id="positionOperationPrice" type="number" min="0" step="any" placeholder="0.00"></div>
+      <div class="modal-field"><label>Comisión</label><input id="positionOperationCommission" type="number" min="0" step="any" value="0"></div>
+      <div class="modal-field" id="positionOperationCurrencyWrap" style="display:none"><label>Moneda</label><select id="positionOperationCurrency"><option value="USD_MEP">USD MEP</option><option value="USD_CABLE">USD cable</option><option value="ARS">ARS</option></select></div>
+      <div class="modal-field"><label>Fecha</label><input id="positionOperationDate" type="date"></div>
+      <div class="modal-field full"><label>Notas (opcional)</label><textarea id="positionOperationNotes" placeholder="Detalle breve de la operación"></textarea></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closePositionOperation()">Cancelar</button>
+      <button class="btn-save" id="positionOperationSave" onclick="savePositionOperation()"><i class="ti ti-check"></i> Registrar</button>
+    </div>
+  </div>
+</div>
+
+<!-- EDIT MODAL -->
 <div class="modal-overlay" id="modalOverlay">
   <div class="modal">
     <div class="modal-head"><i class="ti ti-edit" style="color:var(--cv3)"></i> Editar activo</div>
@@ -2247,14 +2263,14 @@ input::placeholder,textarea::placeholder,select::placeholder{color:var(--tx4);op
         <input id="eName" oninput="acSearchEditName(this)" autocomplete="off">
         <div class="ac-drop" id="acEditName"></div>
       </div>
-      <div class="modal-field"><label>Cantidad</label><input id="eQty" type="number" step="any"></div>
-      <div class="modal-field"><label>Precio compra (USD)</label><input id="eBuy" type="number" step="0.01"></div>
-      <div class="modal-field"><label>Fecha compra</label><input id="eDate" type="date"></div>
+      <div class="modal-field"><label>Cantidad (usar Comprar/Vender)</label><input id="eQty" readonly style="opacity:.6;cursor:not-allowed"></div>
+      <div class="modal-field"><label>P. compra original</label><input id="eBuy" readonly style="opacity:.6;cursor:not-allowed"></div>
+      <div class="modal-field"><label>Fecha de primera compra</label><input id="eDate" readonly style="opacity:.6;cursor:not-allowed"></div>
       <div class="modal-field" id="eExtraWrap"><label id="eExtraLabel">Sector</label><input id="eExtra"></div>
       <div class="modal-field"><label>Stop Loss</label><input id="eSL" type="number" step="0.01"></div>
       <div class="modal-field"><label>Target Price</label><input id="eTG" type="number" step="0.01"></div>
       <div class="modal-field"><label>Broker / Custodio</label>
-        <input id="eBrokerEdit" list="platformsList" placeholder="Elegí o escribí uno...">
+        <input id="eBrokerEdit" readonly style="opacity:.6;cursor:not-allowed" title="El custodio identifica la posición">
       </div>
       <div class="modal-field full"><label>Notas</label><textarea id="eNote" style="min-height:70px"></textarea></div>
     </div>
@@ -2296,7 +2312,7 @@ input::placeholder,textarea::placeholder,select::placeholder{color:var(--tx4);op
   <div class="modal" style="max-width:1050px">
     <div class="modal-head" id="cedLotsTitle"><i class="ti ti-layers" style="color:var(--ct2)"></i> Compras / lotes</div>
     <div class="modal-sub" id="cedLotsSub">Cada compra conserva su moneda, gastos y trazabilidad.</div>
-    <div class="tbl-wrap"><table><thead><tr><th>Fecha</th><th>Cantidad</th><th>Ratio</th><th>Moneda</th><th>P. unitario</th><th>Bruto</th><th>Gastos</th><th>Total</th><th>P. efectivo</th><th>Ticket</th><th>Acc.</th></tr></thead><tbody id="cedLotsTb"></tbody></table></div>
+    <div class="tbl-wrap"><table><thead><tr><th>Fecha</th><th>Original</th><th>Disponible</th><th>Ratio</th><th>Moneda</th><th>P. unitario</th><th>Bruto</th><th>Gastos</th><th>Total</th><th>P. efectivo</th><th>Ticket</th><th>Acc.</th></tr></thead><tbody id="cedLotsTb"></tbody></table></div>
     <div class="modal-actions"><button class="btn-save" onclick="closeCEDLots()">Cerrar</button></div>
   </div>
 </div>
@@ -2713,8 +2729,14 @@ const PALETTE = ['#7c3aed','#0891b2','#10b981','#f59e0b','#f43f5e','#ec4899','#8
 // ═══════════════════════════════════════════
 // STATE
 // ═══════════════════════════════════════════
-const SKEY = 'mrp_portfolio_v2';
+const SCHEMA_VERSION = 'position-v3';
+const SKEY = 'mrp_portfolio_v3';
+const LEGACY_SKEY = 'mrp_portfolio_v2';
+const V3_MIGRATION_BACKUP_KEY = 'mrp_portfolio_v2_pre_position_v3';
+const V3_MIGRATION_DONE_KEY = 'mrp_position_v3_migrated';
+const PORTFOLIO_TABLE = 'portfolio_data_v3';
 let ST = {
+  schemaVersion: SCHEMA_VERSION,
   stocks: [],
   crypto: [],
   hist: [],
@@ -2724,13 +2746,14 @@ let ST = {
   otros: [],
   cedearExpenses: [],
   cedearValuations: [],
+  cedearSales: [],
   snaps: [],
   aSnaps: {},
   selAsset: null
 };
 
 const PORTFOLIO_ARRAY_KEYS = [
-  'stocks', 'crypto', 'hist', 'income', 'apyPositions', 'alerts', 'otros', 'cedearExpenses', 'cedearValuations', 'snaps'
+  'stocks', 'crypto', 'hist', 'income', 'apyPositions', 'alerts', 'otros', 'cedearExpenses', 'cedearValuations', 'cedearSales', 'snaps'
 ];
 const TRADING_ARRAY_KEYS = [
   'positions', 'journal', 'watchlist', 'checklist', 'rules', 'psychEntries'
@@ -2755,7 +2778,9 @@ const NUMERIC_STATE_KEYS = new Set([
   'qty', 'buy', 'cur', 'ch', 'sl', 'tg', 'price', 'comm', 'amt', 'value', 'lastClose',
   'entry', 'tp', 'pnlReal', 'pnl', 'r', 'rest', 'focus', 'stress', 'score',
   'rate', 'capital', 'ter', 'ratio', 'buyARS', 'ccl', 'buyUSD', 'priceUSD',
-  'capitalUSD', 'nominal', 'buyPct', 'capUSD', 'annualInterest'
+  'capitalUSD', 'nominal', 'buyPct', 'capUSD', 'annualInterest',
+  'avgBuy', 'openCost', 'realizedPnl', 'qtyBefore', 'qtyAfter', 'avgBefore', 'avgAfter',
+  'openCostBefore', 'openCostAfter'
 ]);
 const BOOLEAN_STATE_KEYS = new Set(['checked', 'triggered']);
 const STRING_STATE_KEYS = new Set([
@@ -2768,7 +2793,9 @@ const STRING_STATE_KEYS = new Set([
   ,'purchaseCurrency','quantityDecimal','ratioDecimal','unitPriceDecimal','grossAmountDecimal',
   'totalCostDecimal','cclAtPurchaseDecimal','mepAtPurchaseDecimal','historicalArsEquivalentDecimal',
   'ticketNumber','informationSource','amountDecimal','lotId','concept','schemaVersion',
-  'cedearCurrentCclDecimal','cedearCurrentCclSource','cedearCurrentCclUpdatedAt','cedearCurrentCclSourceTimestamp','cedearCurrentCclRetrievedAt','cedearCurrentCclMethod','cedearCurrentCclMode','cedearPriceArsDecimal','cclDecimal'
+  'cedearCurrentCclDecimal','cedearCurrentCclSource','cedearCurrentCclUpdatedAt','cedearCurrentCclSourceTimestamp','cedearCurrentCclRetrievedAt','cedearCurrentCclMethod','cedearCurrentCclMode','cedearPriceArsDecimal','cclDecimal',
+  'positionId','assetType','custodian','operationId','operationStatus','migrationStatus','legacyReason',
+  'saleGroupId','currency','costCurrency','quantityBeforeDecimal','quantityAfterDecimal','costRemovedDecimal'
 ]);
 
 function isPlainRecord(value) {
@@ -2864,6 +2891,103 @@ function sanitizePortfolioState(value, key = '', depth = 0) {
   return value;
 }
 
+function normalizedPositionPart(value) {
+  return String(value || 'sin-especificar').trim().toLowerCase().replace(/[^a-z0-9._-]+/g, '-').replace(/^-+|-+$/g, '') || 'sin-especificar';
+}
+
+function positionCustodian(asset, assetType) {
+  if (assetType === 'crypto') return asset.wallet || asset.custody || 'sin-especificar';
+  if (assetType === 'token') return asset.exchange || 'sin-especificar';
+  return asset.broker || 'sin-especificar';
+}
+
+function positionQuantity(asset, assetType) {
+  return Number(assetType === 'bono' ? asset?.nominal : asset?.qty) || 0;
+}
+
+function positionIsClosed(asset, assetType) {
+  return asset?.status === 'closed' || positionQuantity(asset, assetType) <= 0;
+}
+
+function deterministicPositionId(asset, assetType, index = 0) {
+  if (asset.positionId) return asset.positionId;
+  const stableId = asset.id || `${asset.sym || 'activo'}-${index}`;
+  return `pos_${normalizedPositionPart(assetType)}_${normalizedPositionPart(stableId)}`;
+}
+
+function positionAverage(asset) {
+  const qty = Number(asset?.qty ?? asset?.nominal);
+  const openCost = Number(asset?.openCost);
+  if (Number.isFinite(qty) && qty > 0 && Number.isFinite(openCost)) {
+    const average = openCost / qty;
+    return asset?.assetType === 'bono' || asset?.type === 'bono' ? average * 100 : average;
+  }
+  const average = Number(asset?.avgBuy);
+  return Number.isFinite(average) && average > 0 ? average : Number(asset?.buy ?? asset?.buyPct) || 0;
+}
+
+function migrationPreservationSummary(state) {
+  const standard=(assets,quantityKey='qty',priceKey='buy')=>({
+    count:(assets||[]).length,
+    quantity:(assets||[]).reduce((sum,item)=>sum+(Number(item[quantityKey])||0),0),
+    cost:(assets||[]).reduce((sum,item)=>sum+(Number.isFinite(Number(item.openCost))?Number(item.openCost):(Number(item[quantityKey])||0)*(Number(item[priceKey])||0)),0)
+  });
+  const cedearLots=(state.otros||[]).filter(item=>item.type==='cedeaar');
+  return {
+    stocks:standard(state.stocks),crypto:standard(state.crypto),
+    etfs:standard((state.otros||[]).filter(item=>item.type==='etf')),
+    tokens:standard((state.otros||[]).filter(item=>item.type==='token')),
+    bonds:{count:(state.otros||[]).filter(item=>item.type==='bono').length,quantity:(state.otros||[]).filter(item=>item.type==='bono').reduce((sum,item)=>sum+(Number(item.nominal)||0),0),cost:(state.otros||[]).filter(item=>item.type==='bono').reduce((sum,item)=>sum+(Number.isFinite(Number(item.openCost))?Number(item.openCost):(Number(item.capUSD)||((Number(item.nominal)||0)*(Number(item.buyPct)||0)/100))),0)},
+    cedears:{count:cedearLots.length,quantity:decSum(cedearLots.map(item=>item.quantityDecimal??item.qty)),costs:Object.fromEntries(CEDEAR_CURRENCIES.map(currency=>[currency,decSum(cedearLots.filter(item=>(item.purchaseCurrency||'ARS')===currency).map(item=>item.totalCostDecimal||decMul(item.quantityDecimal??item.qty,item.unitPriceDecimal??item.buyARS)))]))},
+    history:(state.hist||[]).length,expenses:(state.cedearExpenses||[]).length,valuations:(state.cedearValuations||[]).length,
+    snapshots:JSON.stringify(state.snaps||[]),assetSnapshots:JSON.stringify(state.aSnaps||{})
+  };
+}
+
+function migratePortfolioV2ToV3(input, { dryRun = false } = {}) {
+  if (!isPlainRecord(input)) throw new Error('El backup V2 no contiene un estado válido');
+  const source = sanitizePortfolioState(JSON.parse(JSON.stringify(input)));
+  if (!validatePortfolioStateShape(source)) throw new Error('El backup V2 no supera la validación estructural');
+  if (source.schemaVersion === SCHEMA_VERSION) {
+    return { state: source, report: { dryRun, alreadyMigrated:true, errors:[], warnings:[], positions:0, legacyHistory:(source.hist||[]).filter(item=>item.legacy).length } };
+  }
+  const before=migrationPreservationSummary(source);
+  const state = upgradeCedearState(source);
+  const report = { dryRun, alreadyMigrated:false, errors:[], warnings:[], positions:0, legacyHistory:0, cedearLots:0, snapshots:(state.snaps||[]).length, assetSnapshots:Object.values(state.aSnaps||{}).reduce((sum,items)=>sum+(Array.isArray(items)?items.length:0),0) };
+  const migrateStandard = (assets, assetType) => (assets || []).map((asset, index) => {
+    const migrated = { ...asset };
+    migrated.positionId = deterministicPositionId(migrated, assetType, index);
+    migrated.assetType = assetType;
+    const qty = Number(migrated.qty ?? migrated.nominal) || 0;
+    const original = Number(migrated.buy ?? migrated.buyPct) || 0;
+    migrated.avgBuy = original;
+    migrated.openCost = assetType === 'bono' ? Number(migrated.capUSD) || qty * original / 100 : qty * original;
+    migrated.status = qty > 0 ? 'active' : 'closed';
+    report.positions++;
+    return migrated;
+  });
+  state.stocks = migrateStandard(state.stocks, 'stock');
+  state.crypto = migrateStandard(state.crypto, 'crypto');
+  state.otros = (state.otros || []).map((asset, index) => {
+    if (asset.type === 'cedeaar') {
+      report.cedearLots++;
+      return { ...asset, positionId:asset.positionId || `pos_cedear_${normalizedPositionPart(asset.sym)}_${normalizedPositionPart(asset.broker)}`, assetType:'cedeaar' };
+    }
+    return migrateStandard([asset], asset.type || 'otro')[0];
+  });
+  state.hist = (state.hist || []).map(item => {
+    if (item.positionId) return item;
+    report.legacyHistory++;
+    return { ...item, legacy:true, operationStatus:'legacy', legacyReason:'Registro V2 conservado; no modifica posiciones V3' };
+  });
+  state.schemaVersion = SCHEMA_VERSION;
+  state.migrationStatus = 'complete';
+  const after=migrationPreservationSummary(state);
+  report.before=before;report.after=after;
+  if(JSON.stringify(before)!==JSON.stringify(after))report.errors.push('La migración alteró cantidades, costes o colecciones históricas');
+  return { state, report };
+}
+
 function save(silent = true, { scheduleSync = true, timestamp = null, markChanged = true } = {}) {
   try {
     const sanitizedState = sanitizePortfolioState(ST);
@@ -2896,6 +3020,7 @@ function upgradeCedearState(state) {
   if (!isPlainRecord(state)) return state;
   if (!Array.isArray(state.cedearExpenses)) state.cedearExpenses = [];
   if (!Array.isArray(state.cedearValuations)) state.cedearValuations = [];
+  if (!Array.isArray(state.cedearSales)) state.cedearSales = [];
   if (!Array.isArray(state.otros)) return state;
   state.otros.forEach(lot => {
     if (lot?.type !== 'cedeaar' || lot.schemaVersion === 'cedear-lots-v1') return;
@@ -2946,8 +3071,24 @@ function loadState() {
         throw new Error('Stored portfolio state has an invalid structure');
       }
       preserveCedearPreMigrationBackup(parsed);
-      ST = upgradeCedearState(sanitizePortfolioState({ ...ST, ...parsed }));
+      if(parsed.schemaVersion!==SCHEMA_VERSION){
+        if(!localStorage.getItem(V3_MIGRATION_BACKUP_KEY))localStorage.setItem(V3_MIGRATION_BACKUP_KEY,raw);
+        const migration=migratePortfolioV2ToV3(parsed);ST=sanitizePortfolioState({...ST,...migration.state});window._mrpV3MigrationReport=migration.report;
+      }else ST=upgradeCedearState(sanitizePortfolioState({...ST,...parsed}));
+      localStorage.setItem(V3_MIGRATION_DONE_KEY,'true');
       localStorage.setItem(SKEY, JSON.stringify(ST));
+    } else {
+      const legacyRaw = localStorage.getItem(LEGACY_SKEY);
+      if (legacyRaw && localStorage.getItem(V3_MIGRATION_DONE_KEY)!=='true') {
+        const legacy = JSON.parse(legacyRaw);
+        if (!validatePortfolioStateShape(legacy)) throw new Error('Stored V2 state has an invalid structure');
+        if (!localStorage.getItem(V3_MIGRATION_BACKUP_KEY)) localStorage.setItem(V3_MIGRATION_BACKUP_KEY, legacyRaw);
+        const migration = migratePortfolioV2ToV3(legacy);
+        ST = sanitizePortfolioState({ ...ST, ...migration.state });
+        localStorage.setItem(SKEY, JSON.stringify(ST));
+        localStorage.setItem(V3_MIGRATION_DONE_KEY,'true');
+        window._mrpV3MigrationReport = migration.report;
+      }
     }
   } catch(e) {
     console.error('Local state load error:', e);
@@ -3015,14 +3156,20 @@ function importData(e) {
 
       // Fill in any missing keys with safe defaults so a partial-but-valid backup doesn't break rendering
       preserveCedearPreMigrationBackup(parsed);
-      ST = upgradeCedearState(sanitizePortfolioState({
+      const importedState = sanitizePortfolioState({
         stocks: [], crypto: [], otros: [], cedearExpenses: [], cedearValuations: [], hist: [], income: [], apyPositions: [],
         alerts: [], snaps: [], aSnaps: {}, selAsset: null,
         trading: { positions:[], journal:[], watchlist:[], checklist:[], rules:[], psychEntries:[],
                    riskLimits:{monthlyGoal:'',dailyLoss:'',monthlyLoss:'',maxOpsDay:''},
                    manifesto:'', capital:10000, dailyContext:'' },
         ...parsed
-      }));
+      });
+      const migration = importedState.schemaVersion===SCHEMA_VERSION
+        ? {state:upgradeCedearState(importedState),report:{alreadyMigrated:true,errors:[]}}
+        : migratePortfolioV2ToV3(importedState);
+      if(migration.report.errors?.length)throw new Error(migration.report.errors.join('. '));
+      ST = migration.state;
+      localStorage.setItem(V3_MIGRATION_DONE_KEY,'true');
       save(true);
       renderAll();
       showToast(t('toastImported'));
@@ -3040,7 +3187,7 @@ async function clearAll() {
   if (sb && syncUser) {
     updateSyncButton('syncing');
     const { error } = await sb
-      .from('portfolio_data')
+      .from(PORTFOLIO_TABLE)
       .delete()
       .eq('user_id', syncUser.id);
     if (error) {
@@ -3051,6 +3198,7 @@ async function clearAll() {
     }
   }
   localStorage.removeItem(SKEY);
+  localStorage.setItem(V3_MIGRATION_DONE_KEY,'true');
   localStorage.removeItem('mrp_last_local_change');
   localStorage.removeItem('mrp_last_sync');
   location.reload();
@@ -3188,6 +3336,17 @@ function csvFilterChange() {
   if (countEl) countEl.textContent = `${filtered.length} ${LANG === 'en' ? 'shown' : 'mostrando'}`;
 }
 
+function resolveImportedPosition(operation) {
+  let candidates=Object.entries(standardPositionCollections()).flatMap(([scope,items])=>
+    items.filter(item=>item.sym===operation.sym&&!positionIsClosed(item,scope)).map(asset=>({scope,asset}))
+  );
+  if(String(operation.notes||'').toLowerCase().includes('binance')){
+    const binance=candidates.filter(item=>item.scope==='crypto'&&String(item.asset.wallet||'').toLowerCase().includes('binance'));
+    if(binance.length)candidates=binance;
+  }
+  return candidates.length===1?candidates[0]:null;
+}
+
 function confirmCSVImport() {
   const symF = $('csvSymFilter')?.value || 'all';
   const typeF = $('csvTypeFilter')?.value || 'all';
@@ -3195,18 +3354,20 @@ function confirmCSVImport() {
     (symF === 'all' || o.sym === symF) &&
     (typeF === 'all' || o.type === typeF)
   );
-  let added = 0, skipped = 0;
+  let added = 0, skipped = 0, ambiguous = 0;
   toImport.forEach(o => {
-    const isDup = !!ST.hist.find(h => h.sym === o.sym && Math.abs(h.qty - o.qty) < 0.000001 && h.date === o.date);
+    const isDup = !!ST.hist.find(h => h.sym === o.sym && Math.abs(h.qty - o.qty) < 0.000001 && h.date === o.date && Math.abs(Number(h.price)-Number(o.price))<0.000001);
     if (isDup) { skipped++; return; }
-    ST.hist.unshift({ ...o, id: uid(), notes: o.notes || 'Binance import' });
-    added++;
+    const target=resolveImportedPosition(o);
+    if(!target||!Number(o.price)){ambiguous++;return;}
+    try{applyPositionOperation(target.asset,target.scope,o.type,{qty:o.qty,price:o.price,comm:o.comm||0,date:o.date,notes:o.notes||'Importación CSV'});added++;}
+    catch(_){skipped++;}
   });
   ST.hist.sort((a, b) => b.date.localeCompare(a.date));
   save(); renderHist();
   $('csvModal')?.remove();
-  $('csvPreview').innerHTML = `<div style="font-size:11px;color:var(--cg2);margin-top:8px"><i class="ti ti-check"></i> ${added} ${LANG === 'en' ? 'imported' : 'importados'} · ${skipped} ${LANG === 'en' ? 'duplicates skipped' : 'duplicados omitidos'}</div>`;
-  showToast(`${added} ${LANG === 'en' ? 'operations imported' : 'operaciones importadas'}`, added > 0 ? 'ok' : 'warn', 4000);
+  $('csvPreview').innerHTML = `<div style="font-size:11px;color:var(--cg2);margin-top:8px"><i class="ti ti-check"></i> ${added} importados · ${skipped} duplicados o inválidos · ${ambiguous} sin posición única</div>`;
+  showToast(`${added} operaciones importadas · ${ambiguous} requieren revisión`, added > 0 ? 'ok' : 'warn', 5000);
 }
 
 function processCSV(file) {
@@ -3644,7 +3805,25 @@ function addAsset(type) {
   const buy = parseFloat($(p+'P').value);
   const date = $(p+'D').value;
   if (!sym || !name || !qty || !buy || !date) { showToast(t('toastFillFields'), 'warn'); return; }
-  const obj = { id:uid(), sym, name, qty, buy, date, cur:null, ch:null };
+  const custodian = type === 'stock' ? ($('sBroker')?.value || '') : ($('cW')?.value.trim() || $('cCust')?.value || '');
+  const existing = (type === 'stock' ? ST.stocks : ST.crypto).find(asset =>
+    asset.sym === sym && normalizedPositionPart(positionCustodian(asset, type)) === normalizedPositionPart(custodian)
+  );
+  if (existing && !positionIsClosed(existing,type)) { showToast(`${sym} ya existe en ese custodio. Usá Comprar en su fila.`, 'warn', 5000); return; }
+  if (existing) {
+    applyPositionOperation(existing, type, 'COMPRA', { qty, price:buy, comm:0, date, notes:'Reapertura de posición' });
+    if(type==='stock'){
+      [$('sS'),$('sN'),$('sQ'),$('sP'),$('sSec'),$('sSL'),$('sTG')].forEach(el=>el.value='');
+      $('sNote').value='';if($('sBroker'))$('sBroker').value='';
+    }else{
+      [$('cS'),$('cN'),$('cQ'),$('cP'),$('cW'),$('cAddr')].forEach(el=>el.value='');$('cNote').value='';
+    }
+    save(); renderAll();
+    showToast(`${sym} reabierto en ${custodian || 'ese custodio'}`);
+    return;
+  }
+  const id = uid();
+  const obj = { id, positionId:`pos_${type}_${id}`, assetType:type, sym, name, qty, buy, avgBuy:buy, openCost:qty*buy, status:'active', date, cur:null, ch:null };
   if (type === 'stock') {
     obj.sector = $('sSec').value.trim();
     obj.sl = parseFloat($('sSL').value) || null;
@@ -3664,17 +3843,9 @@ function addAsset(type) {
     [$('cS'),$('cN'),$('cQ'),$('cP'),$('cW'),$('cAddr')].forEach(el=>el.value='');
     $('cNote').value = '';
   }
-  // Auto-add to hist
-  ST.hist.unshift({ id:uid(), date, type:'COMPRA', sym, qty, price:buy, comm:0, notes:'Carga inicial' });
+  appendPositionHistory(obj, type, 'COMPRA', { qty, price:buy, comm:0, date, notes:'Carga inicial' }, { qty:0, openCost:0, avgBuy:0 });
   save(); renderAll();
   showToast(`${sym} ${t('toastAdded')}`);
-}
-
-function removeAsset(type, id) {
-  if (!confirm(t('confirmDelete'))) return;
-  if (type === 'stock') ST.stocks = ST.stocks.filter(a => a.id !== id);
-  else ST.crypto = ST.crypto.filter(a => a.id !== id);
-  save(); renderAll();
 }
 
 function openEdit(type, id) {
@@ -3686,8 +3857,8 @@ function openEdit(type, id) {
   $('eDate').value = a.date;
   $('eSL').value = a.sl || ''; $('eTG').value = a.tg || ''; $('eBrokerEdit').value = a.broker || '';
   $('eNote').value = a.note || '';
-  if (type === 'stock') { $('eExtraLabel').textContent = 'Sector'; $('eExtra').value = a.sector || ''; }
-  else { $('eExtraLabel').textContent = 'Exchange / Wallet'; $('eExtra').value = a.wallet || ''; }
+  if (type === 'stock') { $('eExtraLabel').textContent = 'Sector'; $('eExtra').value = a.sector || ''; $('eExtra').readOnly = false; }
+  else { $('eExtraLabel').textContent = 'Exchange / Wallet (solo lectura)'; $('eExtra').value = a.wallet || ''; $('eExtra').readOnly = true; }
   $('modalSub').textContent = `Editando posición en ${a.sym} · ${a.name}`;
   $('modalOverlay').classList.add('open');
   setTimeout(() => acSearchEditName($('eName')), 50);
@@ -3706,21 +3877,146 @@ function saveEdit() {
     return;
   }
   a.name = newName;
-  a.qty  = parseFloat($('eQty').value) || a.qty;
-  a.buy  = parseFloat($('eBuy').value) || a.buy;
-  a.date = $('eDate').value || a.date;
   a.sl   = parseFloat($('eSL').value) || null;
   a.tg   = parseFloat($('eTG').value) || null;
-  if (type === 'stock') a.broker = $('eBrokerEdit')?.value || '';
   a.note = $('eNote').value.trim();
   if (type === 'stock') a.sector = $('eExtra').value.trim();
-  else a.wallet = $('eExtra').value.trim();
   closeModal(); save(); renderAll();
   showToast(`${a.sym} ${t('toastUpdatedAsset')}`);
 }
 
 // Click outside modal
 $('modalOverlay')?.addEventListener('click', e => { if (e.target === $('modalOverlay')) closeModal(); });
+
+function standardPositionCollections() {
+  return {
+    stock: ST.stocks || [], crypto: ST.crypto || [],
+    etf: (ST.otros || []).filter(item => item.type === 'etf'),
+    token: (ST.otros || []).filter(item => item.type === 'token'),
+    bono: (ST.otros || []).filter(item => item.type === 'bono')
+  };
+}
+
+function findPosition(positionId, scope) {
+  if (scope === 'cedeaar') return consolidateCedears().find(group=>group.positionId===positionId) || null;
+  const collection = standardPositionCollections()[scope] || [];
+  return collection.find(asset => asset.positionId === positionId || asset.id === positionId) || null;
+}
+
+function appendPositionHistory(asset, scope, type, operation, before) {
+  const qtyAfter = Number(asset.qty ?? asset.nominal) || 0;
+  const avgAfter = positionAverage(asset);
+  const entry = {
+    id:uid(), operationId:uid(), operationStatus:'confirmed', positionId:asset.positionId,
+    assetType:scope, date:operation.date, type, sym:asset.sym, qty:operation.qty,
+    price:operation.price, comm:operation.comm || 0, notes:operation.notes || '',
+    custodian:positionCustodian(asset, scope), qtyBefore:Number(before.qty)||0, qtyAfter,
+    avgBefore:Number(before.avgBuy)||0, avgAfter, openCostBefore:Number(before.openCost)||0,
+    openCostAfter:Number(asset.openCost)||0, realizedPnl:Number(operation.realizedPnl)||0
+  };
+  ST.hist.unshift(entry);
+  return entry;
+}
+
+function applyPositionOperation(asset, scope, type, operation) {
+  const qty = Number(operation.qty), price = Number(operation.price), comm = Number(operation.comm) || 0;
+  if (!asset || !['COMPRA','VENTA'].includes(type)) throw new Error('Operación no válida');
+  if (!Number.isFinite(qty) || qty <= 0 || !Number.isFinite(price) || price <= 0 || comm < 0) throw new Error('Cantidad, precio y comisión no son válidos');
+  const quantityField = scope === 'bono' ? 'nominal' : 'qty';
+  const currentQty = Number(asset[quantityField]) || 0;
+  const currentOpenCost = Number.isFinite(Number(asset.openCost)) ? Number(asset.openCost) : (scope === 'bono' ? Number(asset.capUSD)||0 : currentQty * (Number(asset.avgBuy ?? asset.buy)||0));
+  const before = { qty:currentQty, openCost:currentOpenCost, avgBuy:positionAverage(asset) };
+  const grossCost = scope === 'bono' ? qty * price / 100 : qty * price;
+  if (type === 'COMPRA') {
+    const nextQty = currentQty + qty;
+    const nextCost = currentOpenCost + grossCost + comm;
+    asset[quantityField] = nextQty;
+    asset.openCost = nextCost;
+    asset.avgBuy = scope === 'bono' ? nextCost / nextQty * 100 : nextCost / nextQty;
+    if (scope === 'bono') asset.capUSD = nextCost;
+    asset.status = 'active';
+  } else {
+    if (qty > currentQty + 1e-10) throw new Error(`No podés vender más de ${currentQty} unidades`);
+    const average = positionAverage(asset);
+    const removedCost = scope === 'bono' ? qty * average / 100 : qty * average;
+    const proceeds = grossCost - comm;
+    const nextQty = Math.max(0, currentQty - qty);
+    const nextCost = nextQty === 0 ? 0 : Math.max(0, currentOpenCost - removedCost);
+    asset[quantityField] = nextQty;
+    asset.openCost = nextCost;
+    asset.avgBuy = nextQty === 0 ? average : (scope === 'bono' ? nextCost / nextQty * 100 : nextCost / nextQty);
+    if (scope === 'bono') asset.capUSD = nextCost;
+    asset.status = nextQty === 0 ? 'closed' : 'active';
+    operation.realizedPnl = proceeds - removedCost;
+  }
+  appendPositionHistory(asset, scope, type, operation, before);
+  return asset;
+}
+
+function openPositionOperation(scope, positionId, type) {
+  const asset = findPosition(positionId, scope); if (!asset) return;
+  $('positionOperationId').value = asset.positionId;
+  $('positionOperationScope').value = scope;
+  $('positionOperationType').value = type;
+  $('positionOperationLabel').value = type === 'COMPRA' ? 'Comprar' : 'Vender';
+  $('positionOperationAsset').value = `${asset.sym} · ${positionCustodian(asset, scope)}`;
+  $('positionOperationQty').value = '';
+  $('positionOperationPrice').value = '';
+  $('positionOperationCommission').value = '0';
+  $('positionOperationDate').value = today();
+  $('positionOperationNotes').value = '';
+  $('positionOperationPriceLabel').textContent = scope === 'bono' ? 'Precio (%)' : 'Precio unitario (USD)';
+  $('positionOperationSave').innerHTML = `<i class="ti ti-check"></i> ${t('btnRecord')}`;
+  $('positionOperationCurrencyWrap').style.display=scope==='cedeaar'?'':'none';
+  if(scope==='cedeaar'){
+    const currencies=asset.currencies||[];
+    $('positionOperationCurrency').value=currencies.length===1?currencies[0]:'USD_MEP';
+    $('positionOperationPriceLabel').textContent='Precio unitario de venta';
+  }
+  $('positionOperationTitle').innerHTML = `<i class="ti ${type==='COMPRA'?'ti-shopping-cart-plus':'ti-cash'}" style="color:${type==='COMPRA'?'var(--cg2)':'var(--ca2)'}"></i> ${type==='COMPRA'?'Comprar':'Vender'} ${escapeHTML(asset.sym)}`;
+  $('positionOperationSub').textContent = type === 'VENTA' ? `Disponible: ${Number(asset.qty ?? asset.nominal).toLocaleString('es-AR',{maximumFractionDigits:8})}` : 'La posición y el Historial se actualizarán juntos.';
+  $('positionOperationOverlay').classList.add('open');
+}
+
+function closePositionOperation() { $('positionOperationOverlay').classList.remove('open'); }
+
+function savePositionOperation() {
+  const scope=$('positionOperationScope').value, positionId=$('positionOperationId').value, type=$('positionOperationType').value;
+  const asset=findPosition(positionId,scope);
+  try {
+    const date=$('positionOperationDate').value;
+    if (!date) throw new Error('Indicá la fecha de la operación');
+    const operation={qty:Number($('positionOperationQty').value),price:Number($('positionOperationPrice').value),comm:Number($('positionOperationCommission').value)||0,date,notes:$('positionOperationNotes').value.trim(),currency:$('positionOperationCurrency').value};
+    if(scope==='cedeaar') applyCedearSale(positionId,operation); else applyPositionOperation(asset,scope,type,operation);
+    save(); closePositionOperation(); renderAll(); showToast(`${type==='COMPRA'?'Compra':'Venta'} de ${asset.sym} registrada`);
+  } catch (error) { showToast(error.message || 'No se pudo registrar la operación','err',5000); }
+}
+
+$('positionOperationOverlay')?.addEventListener('click', event => { if (event.target === $('positionOperationOverlay')) closePositionOperation(); });
+
+function applyCedearSale(positionId, operation) {
+  const group=consolidateCedears().find(item=>item.positionId===positionId);
+  const requested=dec(operation.qty),price=dec(operation.price),commission=dec(operation.comm||0);
+  if(!group||!decPositive(requested)||!decPositive(price)||!operation.date)throw new Error('Cantidad, precio y fecha no son válidos');
+  if(decCmp(requested,group.quantity)>0)throw new Error(`No podés vender más de ${formatDec(group.quantity,{digits:8})} CEDEARs`);
+  if(!Array.isArray(ST.cedearSales))ST.cedearSales=[];
+  let pending=requested,costRemoved='0',comparable=true;
+  const saleGroupId=uid(),ordered=[...group.lots].sort((a,b)=>a.date.localeCompare(b.date));
+  ordered.forEach(lot=>{
+    if(!decPositive(pending))return;
+    const values=cedearLotValues(lot),available=values.quantity;
+    if(!decPositive(available))return;
+    const allocated=decCmp(available,pending)<=0?available:pending;
+    const originalTotal=dec(lot.totalCostDecimal)||decMul(values.originalQuantity,values.unit);
+    const lotCost=decMul(decDiv(originalTotal,values.originalQuantity,12),allocated);
+    if(values.currency===operation.currency)costRemoved=decAdd(costRemoved,lotCost);else comparable=false;
+    ST.cedearSales.push({id:uid(),saleGroupId,positionId,lotId:lot.id,sym:group.sym,date:operation.date,quantityDecimal:allocated,price:Number(price),currency:operation.currency,costRemovedDecimal:lotCost,costCurrency:values.currency,custodian:group.broker||'sin-especificar'});
+    pending=decSub(pending,allocated);
+  });
+  const proceeds=decSub(decMul(requested,price),commission);
+  const realizedPnl=comparable?Number(decSub(proceeds,costRemoved)):null;
+  ST.hist.unshift({id:uid(),operationId:saleGroupId,operationStatus:'confirmed',positionId,assetType:'cedeaar',date:operation.date,type:'VENTA',sym:group.sym,qty:Number(requested),price:Number(price),comm:Number(commission),currency:operation.currency,custodian:group.broker||'sin-especificar',notes:operation.notes||'',realizedPnl});
+}
 
 const formatARS = value => {
   const number = Number(value);
@@ -3737,12 +4033,19 @@ function cedearLotExpenses(lotId) {
   return (ST.cedearExpenses || []).filter(expense => expense.lotId === lotId);
 }
 
-function cedearLotValues(lot) {
-  const currency=lot.purchaseCurrency||'ARS',quantity=dec(lot.quantityDecimal??lot.qty),ratio=dec(lot.ratioDecimal??lot.ratio??1);
-  const unit=dec(lot.unitPriceDecimal??lot.buyARS),gross=dec(lot.grossAmountDecimal)||decMul(quantity,unit);
-  const total=dec(lot.totalCostDecimal)||gross,expenses=cedearLotExpenses(lot.id);
-  const sameCurrencyExpenses=expenses.filter(expense=>expense.currency===currency&&decPositive(expense.amountDecimal));
-  const crossCurrencyExpenses=expenses.filter(expense=>expense.currency!==currency&&decPositive(expense.amountDecimal));
+function cedearLotSoldQuantity(lotId) {
+  return decSum((ST.cedearSales||[]).filter(sale=>sale.lotId===lotId).map(sale=>sale.quantityDecimal||sale.qty));
+}
+
+function cedearLotValues(lot, { historical = false } = {}) {
+  const currency=lot.purchaseCurrency||'ARS',originalQuantity=dec(lot.quantityDecimal??lot.qty),sold=historical?'0':cedearLotSoldQuantity(lot.id);
+  const quantity=historical?originalQuantity:decSub(originalQuantity,sold),ratio=dec(lot.ratioDecimal??lot.ratio??1);
+  const unit=dec(lot.unitPriceDecimal??lot.buyARS),originalGross=dec(lot.grossAmountDecimal)||decMul(originalQuantity,unit);
+  const originalTotal=dec(lot.totalCostDecimal)||originalGross,proportion=decPositive(originalQuantity)?decDiv(quantity,originalQuantity,12):'0';
+  const gross=historical?originalGross:decMul(originalGross,proportion),total=historical?originalTotal:decMul(originalTotal,proportion),expenses=cedearLotExpenses(lot.id);
+  const scaledExpense=expense=>historical?expense:{...expense,amountDecimal:decMul(expense.amountDecimal,proportion)};
+  const sameCurrencyExpenses=expenses.filter(expense=>expense.currency===currency&&decPositive(expense.amountDecimal)).map(scaledExpense);
+  const crossCurrencyExpenses=expenses.filter(expense=>expense.currency!==currency&&decPositive(expense.amountDecimal)).map(scaledExpense);
   const unitemizedDifference=decSub(total,decAdd(gross,decSum(sameCurrencyExpenses.map(expense=>expense.amountDecimal))));
   let historicalARS=dec(lot.historicalArsEquivalentDecimal);
   if(!historicalARS&&currency==='ARS')historicalARS=total;
@@ -3750,7 +4053,7 @@ function cedearLotValues(lot) {
   if(currency==='USD_MEP'||currency==='USD_CABLE')historicalUSD=total;
   else if(currency==='ARS'&&decPositive(lot.cclAtPurchaseDecimal))historicalUSD=decDiv(total,lot.cclAtPurchaseDecimal,8);
   if(crossCurrencyExpenses.length) { historicalARS=null; historicalUSD=null; }
-  return {currency,quantity,ratio,unit,gross,total,expenses,sameCurrencyExpenses,crossCurrencyExpenses,
+  return {currency,quantity,originalQuantity,ratio,unit,gross,total,expenses,sameCurrencyExpenses,crossCurrencyExpenses,
     unitemizedDifference:decPositive(unitemizedDifference)?unitemizedDifference:null,
     historicalARS,historicalUSD,equivalentShares:decDiv(quantity,ratio,8)};
 }
@@ -3758,8 +4061,10 @@ function cedearLotValues(lot) {
 function consolidateCedears(lots=(ST.otros||[]).filter(item=>item.type==='cedeaar')) {
   const groups=new Map();
   lots.forEach(lot=>{
-    const key=String(lot.sym||'').toUpperCase();if(!key)return;
-    if(!groups.has(key))groups.set(key,{sym:key,name:normalizedCedearName(key,lot.name),lots:[],costs:{ARS:'0',USD_MEP:'0',USD_CABLE:'0'},quantity:'0',equivalentShares:'0'});
+    const symbol=String(lot.sym||'').toUpperCase();if(!symbol)return;
+    const positionId=lot.positionId||`pos_cedear_${normalizedPositionPart(symbol)}_${normalizedPositionPart(lot.broker)}`;
+    const key=positionId;
+    if(!groups.has(key))groups.set(key,{positionId,sym:symbol,name:normalizedCedearName(symbol,lot.name),broker:lot.broker||'',lots:[],costs:{ARS:'0',USD_MEP:'0',USD_CABLE:'0'},quantity:'0',equivalentShares:'0'});
     const group=groups.get(key),values=cedearLotValues(lot);group.lots.push(lot);
     group.quantity=decAdd(group.quantity,values.quantity)||group.quantity;
     group.equivalentShares=decAdd(group.equivalentShares,values.equivalentShares)||group.equivalentShares;
@@ -3883,7 +4188,7 @@ function openAssetDetails(scope, id) {
     if (!asset) return;
     kind = scope === 'stock' ? 'Acción' : 'Criptomoneda';
     const { cap, cur, pnl, pp, d } = calc(asset);
-    const dca = calcDCA(asset.sym);
+    const dca = calcDCA(asset);
     const avgPrice = dca ? dca.avgPrice : asset.buy;
     fields = [
       { label:'Tipo', value:kind },
@@ -3922,7 +4227,7 @@ function openAssetDetails(scope, id) {
     const otherTypeNames = { etf:'ETF', cedeaar:'CEDEAR', token:'Acción tokenizada', bono:'Bono' };
     kind = otherTypeNames[asset.type] || 'Otro activo';
     if (asset.type === 'etf' || asset.type === 'token') {
-      const cap = Number(asset.qty) * Number(asset.buy);
+      const cap = Number.isFinite(Number(asset.openCost)) ? Number(asset.openCost) : Number(asset.qty) * Number(asset.buy);
       const currentValue = asset.cur != null ? Number(asset.qty) * Number(asset.cur) : null;
       const pnl = currentValue != null ? currentValue - cap : null;
       const roi = pnl != null && cap > 0 ? pnl / cap : null;
@@ -3930,7 +4235,8 @@ function openAssetDetails(scope, id) {
         { label:'Tipo', value:kind }, { label:'Nombre', value:asset.name },
         { label:'Cantidad', value:Number(asset.qty).toLocaleString('es-AR', { maximumFractionDigits:8 }) },
         { label:'Fecha de compra', value:asset.date },
-        { label:'Precio de compra', value:fmt(asset.buy) },
+        { label:'Precio de compra original', value:fmt(asset.buy) },
+        { label:'Precio promedio ponderado', value:fmt(positionAverage(asset)) },
         { label:'Precio actual', value:asset.cur != null ? fmt(asset.cur) : 'Sin cotización' },
         { label:'Variación 24 h', value:asset.ch != null ? fmtPct(asset.ch * 100) : '—', tone:asset.ch == null ? null : (asset.ch >= 0 ? 'positive' : 'negative') },
         { label:'Capital invertido', value:fmt(cap) },
@@ -4016,37 +4322,37 @@ const OTRO_EDIT_CONFIG = {
   etf: [
     { key:'sym', label:'Símbolo', readonly:true }, { key:'name', label:'Nombre' },
     { key:'etfType', label:'Tipo ETF', type:'select', options:[['indice','Índice'],['sector','Sector'],['commodity','Commodity'],['apalancado','Apalancado'],['inverso','Inverso'],['tematico','Temático'],['bono_etf','Bonos']] },
-    { key:'index', label:'Índice que replica' }, { key:'qty', label:'Cantidad', type:'number' },
-    { key:'buy', label:'Precio compra (USD)', type:'number' }, { key:'date', label:'Fecha compra', type:'date' },
-    { key:'ter', label:'TER / Expense ratio (%)', type:'number' }, { key:'broker', label:'Broker / Custodio' },
+    { key:'index', label:'Índice que replica' }, { key:'qty', label:'Cantidad (usar Comprar/Vender)', type:'number', readonly:true },
+    { key:'buy', label:'P. compra original', type:'number', readonly:true }, { key:'date', label:'Fecha inicial', type:'date', readonly:true },
+    { key:'ter', label:'TER / Expense ratio (%)', type:'number' }, { key:'broker', label:'Broker / Custodio', readonly:true },
     { key:'note', label:'Notas', type:'textarea', full:true }
   ],
   cedeaar: [
     { key:'sym', label:'Símbolo', readonly:true }, { key:'name', label:'Nombre' },
-    { key:'purchaseCurrency', label:'Moneda de compra', type:'select', options:[['ARS','ARS'],['USD_MEP','USD MEP'],['USD_CABLE','USD cable']] },
-    { key:'quantityDecimal', label:'Cantidad de CEDEARs' }, { key:'ratioDecimal', label:'Ratio de conversión' },
-    { key:'unitPriceDecimal', label:'Precio unitario' }, { key:'grossAmountDecimal', label:'Importe bruto', readonly:true },
-    { key:'totalCostDecimal', label:'Costo total' }, { key:'cclAtPurchaseDecimal', label:'CCL histórico (opcional)' },
-    { key:'mepAtPurchaseDecimal', label:'MEP histórico (opcional)' }, { key:'historicalArsEquivalentDecimal', label:'Equivalente histórico ARS (opcional)' },
-    { key:'ticketNumber', label:'Ticket / comprobante' }, { key:'informationSource', label:'Fuente' },
-    { key:'date', label:'Fecha compra', type:'date' }, { key:'broker', label:'Broker' },
+    { key:'purchaseCurrency', label:'Moneda de compra', type:'select', readonly:true, options:[['ARS','ARS'],['USD_MEP','USD MEP'],['USD_CABLE','USD cable']] },
+    { key:'quantityDecimal', label:'Cantidad original', readonly:true }, { key:'ratioDecimal', label:'Ratio de conversión', readonly:true },
+    { key:'unitPriceDecimal', label:'Precio unitario', readonly:true }, { key:'grossAmountDecimal', label:'Importe bruto', readonly:true },
+    { key:'totalCostDecimal', label:'Costo total', readonly:true }, { key:'cclAtPurchaseDecimal', label:'CCL histórico', readonly:true },
+    { key:'mepAtPurchaseDecimal', label:'MEP histórico', readonly:true }, { key:'historicalArsEquivalentDecimal', label:'Equivalente histórico ARS', readonly:true },
+    { key:'ticketNumber', label:'Ticket / comprobante', readonly:true }, { key:'informationSource', label:'Fuente' },
+    { key:'date', label:'Fecha compra', type:'date', readonly:true }, { key:'broker', label:'Broker', readonly:true },
     { key:'note', label:'Notas', type:'textarea', full:true }
   ],
   token: [
     { key:'sym', label:'Símbolo', readonly:true }, { key:'name', label:'Nombre' },
     { key:'tokType', label:'Tipo respaldo', type:'select', options:[['custodiado','Custodiado 1:1'],['sintetico','Sintético']] },
-    { key:'qty', label:'Cantidad', type:'number' }, { key:'buy', label:'Precio compra (USD)', type:'number' },
-    { key:'date', label:'Fecha compra', type:'date' }, { key:'exchange', label:'Exchange' },
+    { key:'qty', label:'Cantidad (usar Comprar/Vender)', type:'number', readonly:true }, { key:'buy', label:'P. compra original', type:'number', readonly:true },
+    { key:'date', label:'Fecha inicial', type:'date', readonly:true }, { key:'exchange', label:'Exchange', readonly:true },
     { key:'note', label:'Notas', type:'textarea', full:true }
   ],
   bono: [
     { key:'sym', label:'Código / Ticker', readonly:true }, { key:'name', label:'Nombre' },
     { key:'bonType', label:'Tipo', type:'select', options:[['soberano_ar','Soberano Argentina'],['soberano_us','Soberano USA'],['corporativo','Corporativo'],['plazo_fijo','Plazo Fijo'],['on','Obligación Negociable']] },
-    { key:'nominal', label:'Valor nominal', type:'number' }, { key:'buyPct', label:'Precio compra (%)', type:'number' },
-    { key:'rate', label:'Tasa cupón (%)', type:'number' }, { key:'date', label:'Fecha compra', type:'date' },
+    { key:'nominal', label:'Valor nominal (usar Comprar/Vender)', type:'number', readonly:true }, { key:'buyPct', label:'P. compra original (%)', type:'number', readonly:true },
+    { key:'rate', label:'Tasa cupón (%)', type:'number' }, { key:'date', label:'Fecha inicial', type:'date', readonly:true },
     { key:'expiry', label:'Vencimiento', type:'date' },
-    { key:'currency', label:'Moneda', type:'select', options:[['USD','USD'],['ARS','ARS']] },
-    { key:'broker', label:'Broker / Custodio' }, { key:'note', label:'Notas', type:'textarea', full:true }
+    { key:'currency', label:'Moneda', type:'select', readonly:true, options:[['USD','USD'],['ARS','ARS']] },
+    { key:'broker', label:'Broker / Custodio', readonly:true }, { key:'note', label:'Notas', type:'textarea', full:true }
   ]
 };
 
@@ -4090,6 +4396,7 @@ function openOtroEdit(id) {
     input.value = asset[field.key] ?? '';
     if (field.readonly) {
       input.readOnly = true;
+      if(input.tagName==='SELECT')input.disabled=true;
       input.style.opacity = '.6';
       input.style.cursor = 'not-allowed';
       input.title = 'Para cambiar el símbolo, eliminá el activo y creá uno nuevo';
@@ -4097,11 +4404,6 @@ function openOtroEdit(id) {
     wrapper.append(label, input);
     container.appendChild(wrapper);
   });
-  if(asset.type==='cedeaar'){
-    cedearLotExpenses(asset.id).forEach(expense=>addCEDExpenseEditRow(container,expense));
-    const add=document.createElement('button');add.type='button';add.className='btn-cancel';add.textContent='+ Añadir gasto / comisión';
-    add.onclick=()=>addCEDExpenseEditRow(container,{});container.appendChild(add);
-  }
   $('otroEditModalOverlay').classList.add('open');
 }
 
@@ -4112,43 +4414,19 @@ function saveOtroEdit() {
   if (!asset || !OTRO_EDIT_CONFIG[asset.type]) return;
   const value = key => $(`oe_${key}`)?.value?.trim() ?? '';
   const number = key => Number.parseFloat(value(key));
-  const requirePositive = keys => keys.every(key => Number.isFinite(number(key)) && number(key) > 0);
   const name = value('name');
   if (!name) { showToast('El nombre no puede quedar vacío', 'warn'); return; }
 
   asset.name = name;
   if (asset.type === 'etf') {
-    if (!requirePositive(['qty','buy']) || !value('date')) { showToast('Completá cantidad, precio y fecha', 'warn'); return; }
-    Object.assign(asset, { etfType:value('etfType'), index:value('index'), qty:number('qty'), buy:number('buy'), date:value('date'), ter:number('ter') || 0, broker:value('broker'), note:value('note') });
+    Object.assign(asset, { etfType:value('etfType'), index:value('index'), ter:number('ter') || 0, note:value('note') });
   } else if (asset.type === 'cedeaar') {
-    const currency=value('purchaseCurrency'),quantity=dec(value('quantityDecimal')),ratio=dec(value('ratioDecimal')),
-      unit=dec(value('unitPriceDecimal')),total=dec(value('totalCostDecimal'));
-    if(!CEDEAR_CURRENCIES.includes(currency)||!decPositive(quantity)||!decPositive(ratio)||!decPositive(unit)||!decPositive(total)||!value('date')){showToast('Completá moneda, cantidad, ratio, precio, costo total y fecha','warn');return;}
-    if(value('ticketNumber')&&(ST.otros||[]).some(item=>item.id!==asset.id&&item.type==='cedeaar'&&item.ticketNumber===value('ticketNumber'))){
-      showToast('Ya existe un lote CEDEAR con ese número de ticket','warn');return;
-    }
-    const editedExpenses=[...document.querySelectorAll('#otroEditFields .oe-ced-expense')].map(row=>({id:row.id.replace('oeExpense_',''),lotId:asset.id,concept:row.querySelector('.oe-exp-concept')?.value.trim()||'',amountDecimal:dec(row.querySelector('.oe-exp-amount')?.value),currency:row.querySelector('.oe-exp-currency')?.value||'ARS'}));
-    if(editedExpenses.some(expense=>!expense.concept||!decPositive(expense.amountDecimal)||!CEDEAR_CURRENCIES.includes(expense.currency))){showToast('Cada gasto necesita concepto, importe positivo y moneda','warn');return;}
-    const gross=decMul(quantity,unit);
-    const expenses=editedExpenses.filter(item=>item.currency===currency);
-    const minimum=decAdd(gross,decSum(expenses.map(item=>item.amountDecimal)));
-    if(decCmp(total,minimum)<0){showToast('El costo total no puede ser menor que bruto más gastos','warn');return;}
-    Object.assign(asset,{purchaseCurrency:currency,quantityDecimal:quantity,ratioDecimal:ratio,unitPriceDecimal:unit,
-      grossAmountDecimal:gross,totalCostDecimal:total,cclAtPurchaseDecimal:dec(value('cclAtPurchaseDecimal')),
-      mepAtPurchaseDecimal:dec(value('mepAtPurchaseDecimal')),historicalArsEquivalentDecimal:dec(value('historicalArsEquivalentDecimal')),
-      ticketNumber:value('ticketNumber'),informationSource:value('informationSource'),schemaVersion:'cedear-lots-v1',
-      qty:Number(quantity),ratio:Number(ratio),buyARS:currency==='ARS'?Number(unit):null,ccl:Number(dec(value('cclAtPurchaseDecimal')))||null,
-      date:value('date'),broker:value('broker'),note:value('note')});
-    ST.cedearExpenses=(ST.cedearExpenses||[]).filter(expense=>expense.lotId!==asset.id).concat(editedExpenses);
+    Object.assign(asset,{informationSource:value('informationSource'),note:value('note')});
   } else if (asset.type === 'token') {
-    if (!requirePositive(['qty','buy']) || !value('date')) { showToast('Completá cantidad, precio y fecha', 'warn'); return; }
-    Object.assign(asset, { tokType:value('tokType'), qty:number('qty'), buy:number('buy'), date:value('date'), exchange:value('exchange'), note:value('note') });
+    Object.assign(asset, { tokType:value('tokType'), note:value('note') });
   } else if (asset.type === 'bono') {
-    if (!requirePositive(['nominal','buyPct']) || !value('date')) { showToast('Completá nominal, precio y fecha', 'warn'); return; }
-    const nominal = number('nominal');
-    const buyPct = number('buyPct');
     const rate = number('rate') || 0;
-    Object.assign(asset, { bonType:value('bonType'), nominal, buyPct, capUSD:nominal * buyPct / 100, rate, annualInterest:nominal * rate / 100, date:value('date'), expiry:value('expiry'), currency:value('currency') || 'USD', broker:value('broker'), note:value('note') });
+    Object.assign(asset, { bonType:value('bonType'), rate, annualInterest:Number(asset.nominal)*rate/100, expiry:value('expiry'), note:value('note') });
   }
   closeOtroEdit();
   save();
@@ -4169,21 +4447,6 @@ document.addEventListener('keydown', event => {
 // ═══════════════════════════════════════════
 // HISTORIAL
 // ═══════════════════════════════════════════
-function addHist() {
-  const type = $('hT').value, sym = $('hSym').value.trim().toUpperCase();
-  const qty = parseFloat($('hQ').value), price = parseFloat($('hP').value);
-  const comm = parseFloat($('hC').value) || 0;
-  const date = $('hD').value, notes = $('hN').value.trim();
-  if (!sym || !qty || !price || !date) { showToast(t('toastFillRequired'), 'warn'); return; }
-  ST.hist.unshift({ id:uid(), date, type, sym, qty, price, comm, notes });
-  [$('hSym'),$('hQ'),$('hP'),$('hC'),$('hN')].forEach(el=>el.value='');
-  save(); renderHist();
-}
-function removeHist(id) {
-  if (!confirm('¿Eliminar esta operación del historial?')) return;
-  ST.hist = ST.hist.filter(h => h.id !== id); save(); renderHist();
-}
-
 // ═══════════════════════════════════════════
 // INCOME
 // ═══════════════════════════════════════════
@@ -4239,7 +4502,7 @@ function selectAsset(a) {
 // CALC HELPERS
 // ═══════════════════════════════════════════
 function calc(a) {
-  const cap = a.qty * a.buy;
+  const cap = Number.isFinite(Number(a.openCost)) ? Number(a.openCost) : a.qty * a.buy;
   const cur = a.cur != null ? a.qty * a.cur : null;
   const pnl = cur != null ? cur - cap : null;
   const pp  = (pnl != null && cap > 0) ? pnl / cap : null;
@@ -4273,7 +4536,7 @@ function isValuationAvailable(item) {
     !['pending','conversion_pending'].includes(item.status);
 }
 function directUSDValuation(asset, assetClass) {
-  const quantity=Number(asset?.qty), cost=Number(asset?.qty) * Number(asset?.buy);
+  const quantity=Number(asset?.qty), cost=Number.isFinite(Number(asset?.openCost)) ? Number(asset.openCost) : Number(asset?.qty) * Number(asset?.buy);
   const status=priceStatusFor(asset);
   const quoteCurrency=String(asset?.quoteCurrency || 'USD').toUpperCase();
   const currentRaw=Number(asset?.cur);
@@ -4290,21 +4553,21 @@ function directUSDValuation(asset, assetClass) {
 }
 function portfolioValuations() {
   const values=[];
-  (ST.stocks||[]).forEach(asset=>values.push(directUSDValuation(asset,'Acciones')));
-  (ST.crypto||[]).forEach(asset=>values.push(directUSDValuation(asset,'Cripto')));
-  (ST.otros||[]).filter(asset=>asset.type==='etf').forEach(asset=>values.push(directUSDValuation(asset,'ETFs')));
-  (ST.otros||[]).filter(asset=>asset.type==='token').forEach(asset=>values.push(directUSDValuation(asset,'Tokenizadas')));
-  (ST.otros||[]).filter(asset=>asset.type==='bono').forEach(asset=>values.push({
+  (ST.stocks||[]).filter(asset=>asset.status!=='closed'&&Number(asset.qty)>0).forEach(asset=>values.push(directUSDValuation(asset,'Acciones')));
+  (ST.crypto||[]).filter(asset=>asset.status!=='closed'&&Number(asset.qty)>0).forEach(asset=>values.push(directUSDValuation(asset,'Cripto')));
+  (ST.otros||[]).filter(asset=>asset.type==='etf'&&asset.status!=='closed'&&Number(asset.qty)>0).forEach(asset=>values.push(directUSDValuation(asset,'ETFs')));
+  (ST.otros||[]).filter(asset=>asset.type==='token'&&asset.status!=='closed'&&Number(asset.qty)>0).forEach(asset=>values.push(directUSDValuation(asset,'Tokenizadas')));
+  (ST.otros||[]).filter(asset=>asset.type==='bono'&&asset.status!=='closed'&&Number(asset.nominal)>0).forEach(asset=>values.push({
     id:asset.id,sym:asset.sym,name:asset.name||asset.sym,assetClass:'Bonos',sourceAsset:asset,
     costUSD:Number.isFinite(Number(asset.capUSD))&&Number(asset.capUSD)>0?Number(asset.capUSD):null,
     currentUSD:null,pnlUSD:null,status:'pending',source:'',sourceTimestamp:null,retrievedAt:null,marketState:''
   }));
-  consolidateCedears().forEach(group=>{
+  consolidateCedears().filter(group=>decPositive(group.quantity)).forEach(group=>{
     const status=group.currentValueUSD==null
       ? (group.currentPriceARS==null?'pending':'conversion_pending')
       : (group.priceStatus||'delayed');
     values.push({
-      id:`cedear:${group.sym}`,sym:group.sym,name:group.name,assetClass:'CEDEARs',sourceAsset:group,
+      id:group.positionId,sym:group.sym,name:group.name,assetClass:'CEDEARs',sourceAsset:group,
       costUSD:group.historicalUSD==null?null:Number(group.historicalUSD),
       currentUSD:group.currentValueUSD==null?null:Number(group.currentValueUSD),
       pnlUSD:group.pnlUSD==null?null:Number(group.pnlUSD),status,
@@ -4329,12 +4592,12 @@ function portfolioSummary() {
   return {items,valued,pnlItems,totalUSD,costUSD,pnlUSD,roiUSD:costUSD>0?pnlUSD/costUSD:null,byClass,pending:items.filter(item=>!isValuationAvailable(item))};
 }
 
-function calcDCA(sym) {
-  const ops = ST.hist.filter(h => h.sym === sym && h.type === 'COMPRA');
-  if (!ops.length) return null;
-  const totalQty = ops.reduce((s, h) => s + h.qty, 0);
-  const totalInv = ops.reduce((s, h) => s + h.qty * h.price + h.comm, 0);
-  return { totalQty, totalInv, avgPrice: totalQty > 0 ? totalInv / totalQty : 0, count: ops.length };
+function calcDCA(assetOrPositionId) {
+  const asset = typeof assetOrPositionId === 'object' ? assetOrPositionId : Object.values(standardPositionCollections()).flat().find(item=>item.positionId===assetOrPositionId);
+  if (!asset) return null;
+  const totalQty=Number(asset.qty ?? asset.nominal)||0, totalInv=Number(asset.openCost)||0;
+  const count=(ST.hist||[]).filter(h=>h.positionId===asset.positionId&&h.type==='COMPRA'&&h.operationStatus!=='reversed').length || (totalQty>0?1:0);
+  return { totalQty, totalInv, avgPrice:positionAverage(asset), count };
 }
 
 function calcIRR(cashflows) {
@@ -4495,7 +4758,7 @@ function renderTbl(assets, tbodyId, type) {
   if (!assets.length) { tb.innerHTML = `<tr><td colspan="17" class="empty"><i class="ti ti-inbox"></i><p>${t('emptyStocks')}</p></td></tr>`; return; }
   assets.forEach(a => {
     const { cap, cur, pnl, pp, d } = calc(a);
-    const dca = calcDCA(a.sym);
+    const dca = calcDCA(a);
     const avgP = dca ? dca.avgPrice : a.buy;
     const ch = a.ch != null ? fmtPct(a.ch*100) : '—';
     const chC = a.ch != null ? (a.ch>=0?'var(--cg2)':'var(--cr2)') : 'var(--tx3)';
@@ -4503,15 +4766,15 @@ function renderTbl(assets, tbodyId, type) {
     const ppPill = pp!=null ? `<span class="pill ${pp>=0?'pill-g':'pill-r'}">${fmtPct(pp*100)}</span>` : '—';
     const custIcon = type==='crypto' ? { exchange:'ti-building-store', hot:'ti-device-mobile', cold:'ti-device-usb', defi:'ti-link' }[a.custody||'exchange'] || 'ti-building-store' : '';
     const extraCols = type === 'stock'
-      ? `<td class="muted">${a.sector||'—'}</td>`
+      ? `<td class="muted">${escapeHTML(a.sector||'—')}</td>`
       : ``;
     const extraCols2 = type === 'stock'
-      ? `<td class="num" style="color:var(--cr2)">${a.sl?fmt(a.sl):'—'}</td><td class="num" style="color:var(--cg2)">${a.tg?fmt(a.tg):'—'}</td><td class="muted">${a.broker||'—'}</td>`
-      : `<td><i class="ti ${custIcon}" style="color:var(--cv3)" title="${escapeHTML(a.custody||'exchange')}"></i> <span class="pill pill-t" style="font-size:8px">${a.custody||'exchange'}</span></td><td class="muted">${a.wallet||'—'}</td>`;
+      ? `<td class="num" style="color:var(--cr2)">${a.sl?fmt(a.sl):'—'}</td><td class="num" style="color:var(--cg2)">${a.tg?fmt(a.tg):'—'}</td><td class="muted">${escapeHTML(a.broker||'—')}</td>`
+      : `<td><i class="ti ${custIcon}" style="color:var(--cv3)" title="${escapeHTML(a.custody||'exchange')}"></i> <span class="pill pill-t" style="font-size:8px">${escapeHTML(a.custody||'exchange')}</span></td><td class="muted">${escapeHTML(a.wallet||'—')}</td>`;
     const tr = document.createElement('tr');
     tr.innerHTML = `
-      <td class="sym">${a.sym}</td>
-      <td class="muted">${a.name}</td>
+      <td class="sym">${escapeHTML(a.sym)}</td>
+      <td class="muted">${escapeHTML(a.name)}</td>
       ${extraCols}
       <td class="num">${a.qty.toLocaleString('es-AR',{maximumFractionDigits:8})}</td>
       <td class="num">${fmt(a.buy)}</td>
@@ -4524,11 +4787,12 @@ function renderTbl(assets, tbodyId, type) {
       <td>${ppPill}</td>
       ${extraCols2}
       <td class="muted">${d}d</td>
-      <td class="note-cell" title="${escapeHTML(a.note||'')}">${a.note||'—'}</td>
+      <td class="note-cell" title="${escapeHTML(a.note||'')}">${escapeHTML(a.note||'—')}</td>
       <td style="white-space:nowrap">
+        <button class="btn-buy" onclick="openPositionOperation(${inlineArg(type)},${inlineArg(a.positionId)},&quot;COMPRA&quot;)" title="Comprar"><i class="ti ti-plus"></i></button>
+        <button class="btn-sell" onclick="openPositionOperation(${inlineArg(type)},${inlineArg(a.positionId)},&quot;VENTA&quot;)" title="Vender"><i class="ti ti-minus"></i></button>
         <button class="btn-view" onclick="openAssetDetails(${inlineArg(type)},${inlineArg(a.id)})" title="Más información"><i class="ti ti-eye"></i></button>
         <button class="btn-edit" onclick="openEdit(${inlineArg(type)},${inlineArg(a.id)})" title="Editar"><i class="ti ti-pencil"></i></button>
-        <button class="btn-del" onclick="removeAsset(${inlineArg(type)},${inlineArg(a.id)})" title="Eliminar"><i class="ti ti-trash"></i></button>
       </td>`;
     tb.appendChild(tr);
   });
@@ -4538,12 +4802,12 @@ function renderTbl(assets, tbodyId, type) {
 // RENDER DCA
 // ═══════════════════════════════════════════
 function renderDCA() {
-  const all = [...ST.stocks, ...ST.crypto];
+  const all = [...ST.stocks, ...ST.crypto].filter(asset=>asset.status!=='closed'&&Number(asset.qty)>0);
   const tb = $('dcaTb'); tb.innerHTML = '';
   const visual = $('dcaVisual'); visual.innerHTML = '';
   if (!all.length) { tb.innerHTML = '<tr><td colspan="10" class="empty"><i class="ti ti-calculator"></i><p>Sin activos registrados.</p></td></tr>'; return; }
   all.forEach(a => {
-    const dca = calcDCA(a.sym);
+    const dca = calcDCA(a);
     const avgP = dca ? dca.avgPrice : a.buy;
     const curP = a.cur;
     const diff = curP != null ? curP - avgP : null;
@@ -4718,7 +4982,8 @@ function renderHist() {
   ST.hist.forEach(h => {
     const total = h.type === 'COMPRA' ? h.qty*h.price+h.comm : h.qty*h.price-h.comm;
     const tr = document.createElement('tr');
-    tr.innerHTML = `<td class="muted">${h.date}</td><td><span class="pill ${h.type==='COMPRA'?'pill-g':'pill-r'}">${h.type}</span></td><td class="sym">${h.sym}</td><td class="num">${h.qty}</td><td class="num">${fmt(h.price)}</td><td class="num muted">${fmt(h.comm)}</td><td class="num" style="font-weight:700">${fmt(total)}</td><td class="muted">${h.notes||'—'}</td><td><button class="btn-del" onclick="removeHist('${h.id}')"><i class="ti ti-x"></i></button></td>`;
+    const formatHistoryMoney=value=>h.currency?formatDec(value,{digits:2,currency:currencyLabel(h.currency)}):fmt(value);
+    tr.innerHTML = `<td class="muted">${escapeHTML(h.date)}</td><td><span class="pill ${h.type==='COMPRA'?'pill-g':'pill-r'}">${escapeHTML(h.type)}</span></td><td class="sym">${escapeHTML(h.sym)}</td><td class="num">${h.qty}</td><td class="num">${formatHistoryMoney(h.price)}</td><td class="num muted">${formatHistoryMoney(h.comm)}</td><td class="num" style="font-weight:700">${formatHistoryMoney(total)}</td><td class="muted">${escapeHTML(h.custodian||h.notes||'—')}</td><td>${h.legacy?'<span class="pill pill-t" title="Registro anterior conservado sin modificar posiciones">V2</span>':'<i class="ti ti-lock" title="Generado automáticamente"></i>'}</td>`;
     tb.appendChild(tr);
   });
 }
@@ -4775,7 +5040,7 @@ function renderAEvol() {
   }
   const last = sorted[sorted.length-1].value;
   const lineC = last >= a.buy ? '#10b981' : '#f43f5e';
-  const dca = calcDCA(a.sym);
+  const dca = calcDCA(a);
   const avgLine = dca ? Array(sorted.length).fill(dca.avgPrice) : Array(sorted.length).fill(a.buy);
   safeCreateChart('aevol', $('cAEvol'), {
     type:'line',
@@ -6353,6 +6618,20 @@ function calcCEDPreview() {
   prev.style.display='';
 }
 
+function clearOtroForm(type) {
+  const ids = {
+    etf:['etfSym','etfName','etfQty','etfBuy','etfIndex','etfTer','etfBroker','etfNote'],
+    cedeaar:['cedSym','cedName','cedQty','cedRatio','cedUnitPrice','cedGross','cedTotalCost','cedCCL','cedMEP','cedHistARS','cedBroker','cedTicket','cedSource','cedNote'],
+    token:['tokSym','tokName','tokQty','tokBuy','tokExchange','tokNote'],
+    bono:['bonSym','bonName','bonNominal','bonBuy','bonRate','bonBroker','bonNote']
+  };
+  (ids[type] || []).forEach(id => { const element=$(id); if(element) element.value=''; });
+  if(type==='cedeaar'){
+    if($('cedExpenseRows'))$('cedExpenseRows').replaceChildren();
+    if($('cedPreview'))$('cedPreview').style.display='none';
+  }
+}
+
 function addOtro(type) {
   let obj = { id: uid(), type, addedDate: today() };
   if (type === 'etf') {
@@ -6365,7 +6644,6 @@ function addOtro(type) {
       etfType:$('etfType')?.value, index:$('etfIndex')?.value.trim(),
       qty, buy, date, ter:parseFloat($('etfTer')?.value)||0,
       broker:$('etfBroker')?.value.trim(), note:$('etfNote')?.value.trim(), cur:null, ch:null};
-    [$('etfSym'),$('etfName'),$('etfQty'),$('etfBuy'),$('etfIndex'),$('etfTer'),$('etfBroker'),$('etfNote')].forEach(el=>{if(el)el.value='';});
   } else if (type === 'cedeaar') {
     const sym=$('cedSym')?.value.trim().toUpperCase();
     const qty=dec($('cedQty')?.value), ratio=dec($('cedRatio')?.value);
@@ -6394,9 +6672,6 @@ function addOtro(type) {
       broker:$('cedBroker')?.value.trim(), note:$('cedNote')?.value.trim(),cur:null,ch:null};
     if(!ST.cedearExpenses)ST.cedearExpenses=[];
     ST.cedearExpenses.push(...expenses.map(expense=>({...expense,lotId:obj.id})));
-    [$('cedSym'),$('cedName'),$('cedQty'),$('cedRatio'),$('cedUnitPrice'),$('cedGross'),$('cedTotalCost'),$('cedCCL'),$('cedMEP'),$('cedHistARS'),$('cedBroker'),$('cedTicket'),$('cedSource'),$('cedNote')].forEach(el=>{if(el)el.value='';});
-    if($('cedExpenseRows'))$('cedExpenseRows').replaceChildren();
-    if($('cedPreview'))$('cedPreview').style.display='none';
   } else if (type === 'token') {
     const sym=$('tokSym')?.value.trim().toUpperCase();
     const qty=parseFloat($('tokQty')?.value);
@@ -6406,7 +6681,6 @@ function addOtro(type) {
     obj = {...obj, sym, name:$('tokName')?.value.trim()||sym,
       tokType:$('tokType')?.value, qty, buy, date,
       exchange:$('tokExchange')?.value.trim(), note:$('tokNote')?.value.trim(), cur:null, ch:null};
-    [$('tokSym'),$('tokName'),$('tokQty'),$('tokBuy'),$('tokExchange'),$('tokNote')].forEach(el=>{if(el)el.value='';});
   } else if (type === 'bono') {
     const sym=$('bonSym')?.value.trim().toUpperCase();
     const nominal=parseFloat($('bonNominal')?.value);
@@ -6421,19 +6695,31 @@ function addOtro(type) {
       date, expiry:$('bonExpiry')?.value,
       currency:$('bonCurrency')?.value||'USD',
       broker:$('bonBroker')?.value.trim(), note:$('bonNote')?.value.trim()};
-    [$('bonSym'),$('bonName'),$('bonNominal'),$('bonBuy'),$('bonRate'),$('bonBroker'),$('bonNote')].forEach(el=>{if(el)el.value='';});
   }
   if (!ST.otros) ST.otros = [];
+  if (type !== 'cedeaar') {
+    const custodian=positionCustodian(obj,type);
+    const duplicate=ST.otros.find(item=>item.type===type&&item.sym===obj.sym&&normalizedPositionPart(positionCustodian(item,type))===normalizedPositionPart(custodian));
+    if(duplicate&&!positionIsClosed(duplicate,type)){showToast(`${obj.sym} ya existe en ese custodio. Usá Comprar en su fila.`,'warn',5000);return;}
+    if(duplicate){
+      const initialQty=type==='bono'?obj.nominal:obj.qty;
+      const initialPrice=type==='bono'?obj.buyPct:obj.buy;
+      applyPositionOperation(duplicate,type,'COMPRA',{qty:initialQty,price:initialPrice,comm:0,date:obj.date,notes:'Reapertura de posición'});
+      clearOtroForm(type);save();renderOtros();showToast(`${obj.sym} reabierto en ${custodian}`);return;
+    }
+    obj.positionId=`pos_${type}_${obj.id}`;obj.assetType=type;obj.status='active';
+    const initialQty=type==='bono'?obj.nominal:obj.qty;
+    const initialPrice=type==='bono'?obj.buyPct:obj.buy;
+    obj.openCost=type==='bono'?obj.capUSD:initialQty*initialPrice;obj.avgBuy=initialPrice;
+    appendPositionHistory(obj,type,'COMPRA',{qty:initialQty,price:initialPrice,comm:0,date:obj.date,notes:'Carga inicial'},{qty:0,openCost:0,avgBuy:0});
+  } else {
+    obj.positionId=`pos_cedear_${normalizedPositionPart(obj.sym)}_${normalizedPositionPart(obj.broker)}`;obj.assetType='cedeaar';
+    ST.hist.unshift({id:uid(),operationId:uid(),operationStatus:'confirmed',positionId:obj.positionId,assetType:'cedeaar',date:obj.date,type:'COMPRA',sym:obj.sym,qty:Number(obj.quantityDecimal),price:Number(obj.unitPriceDecimal),comm:Math.max(0,Number(obj.totalCostDecimal)-Number(obj.grossAmountDecimal)),currency:obj.purchaseCurrency,custodian:obj.broker||'sin-especificar',notes:'Compra CEDEAR · lote '+(obj.ticketNumber||obj.id)});
+  }
   ST.otros.unshift(obj);
+  clearOtroForm(type);
   save(); renderOtros();
   showToast(`${obj.sym} agregado`);
-}
-
-function removeOtro(id) {
-  if (!confirm('¿Eliminar esta posición?')) return;
-  ST.otros = (ST.otros||[]).filter(o=>o.id!==id);
-  ST.cedearExpenses = (ST.cedearExpenses||[]).filter(expense=>expense.lotId!==id);
-  save(); renderOtros();
 }
 
 function showOtrosTab(tab) {
@@ -6452,7 +6738,7 @@ function showOtrosTab(tab) {
 function renderOtros() {
   const otros = ST.otros||[];
   // ETFs
-  const etfs = otros.filter(o=>o.type==='etf');
+  const etfs = otros.filter(o=>o.type==='etf'&&o.status!=='closed'&&Number(o.qty)>0);
   const etfTb=$('etfTb');
   if(etfTb){
     if(!etfs.length){etfTb.innerHTML='<tr><td colspan="17" class="empty"><i class="ti ti-chart-bar"></i><p>Sin ETFs. Agregá tu primer fondo.</p></td></tr>';}
@@ -6463,19 +6749,20 @@ function renderOtros() {
         const stockMatch = ST.stocks.find(s=>s.sym===e.sym);
         const cur = e.cur || stockMatch?.cur || null;
         const ch = e.ch || stockMatch?.ch || null;
-        const cap=e.qty*e.buy;
+        const cap=Number.isFinite(Number(e.openCost))?Number(e.openCost):e.qty*e.buy;
         const curVal=cur?e.qty*cur:null;
         const pnl=curVal!=null?curVal-cap:null;
         const pp=pnl!=null&&cap>0?pnl/cap:null;
         const d=days(e.date,today());
         const pnlC=pnl!=null?(pnl>=0?'var(--cg2)':'var(--cr2)'):'var(--tx3)';
         return `<tr>
-          <td class="sym">${e.sym}</td>
-          <td class="muted">${e.name}</td>
-          <td><span class="pill pill-t">${typeLabels[e.etfType]||e.etfType}</span></td>
-          <td class="muted">${e.index||'—'}</td>
+          <td class="sym">${escapeHTML(e.sym)}</td>
+          <td class="muted">${escapeHTML(e.name)}</td>
+          <td><span class="pill pill-t">${escapeHTML(typeLabels[e.etfType]||e.etfType||'—')}</span></td>
+          <td class="muted">${escapeHTML(e.index||'—')}</td>
           <td class="num">${e.qty}</td>
           <td class="num">${fmt(e.buy)}</td>
+          <td class="num" style="color:var(--ca2);font-weight:700">${fmt(positionAverage(e))}</td>
           <td class="num">${cur?fmt(cur)+renderPriceSource(e):'<span style="color:var(--tx4)">—</span>'}</td>
           <td style="color:${ch!=null?(ch>=0?'var(--cg2)':'var(--cr2)'):'var(--tx3)'};font-weight:700">${ch!=null?(ch>=0?'+':''+(ch*100).toFixed(2)+'%'):'—'}</td>
           <td class="num muted">${fmt(cap)}</td>
@@ -6483,13 +6770,14 @@ function renderOtros() {
           <td class="num" style="color:${pnlC};font-weight:700">${pnl!=null?fmt(pnl):'—'}</td>
           <td>${pp!=null?`<span class="pill ${pp>=0?'pill-g':'pill-r'}">${(pp*100).toFixed(2)}%</span>`:'—'}</td>
           <td class="muted">${e.ter?e.ter+'%':'—'}</td>
-          <td class="muted">${e.broker||'—'}</td>
+          <td class="muted">${escapeHTML(e.broker||'—')}</td>
           <td class="muted">${d}d</td>
-          <td class="note-cell muted" title="${escapeHTML(e.note||'')}">${e.note||'—'}</td>
+          <td class="note-cell muted" title="${escapeHTML(e.note||'')}">${escapeHTML(e.note||'—')}</td>
           <td style="white-space:nowrap">
+            <button class="btn-buy" onclick="openPositionOperation(&quot;etf&quot;,${inlineArg(e.positionId)},&quot;COMPRA&quot;)" title="Comprar"><i class="ti ti-plus"></i></button>
+            <button class="btn-sell" onclick="openPositionOperation(&quot;etf&quot;,${inlineArg(e.positionId)},&quot;VENTA&quot;)" title="Vender"><i class="ti ti-minus"></i></button>
             <button class="btn-view" onclick="openAssetDetails(&quot;otro&quot;,${inlineArg(e.id)})" title="Más información"><i class="ti ti-eye"></i></button>
             <button class="btn-edit" onclick="openOtroEdit(${inlineArg(e.id)})" title="Editar"><i class="ti ti-pencil"></i></button>
-            <button class="btn-del" onclick="removeOtro(${inlineArg(e.id)})" title="Eliminar"><i class="ti ti-trash"></i></button>
           </td>
         </tr>`;
       }).join('');
@@ -6505,15 +6793,16 @@ function renderOtros() {
     if($('cedCurrentCCLStatus'))$('cedCurrentCCLStatus').textContent=currentCCL
       ? `CCL usado: ${formatDec(currentCCL,{digits:2,currency:'ARS'})} · ${ST.cedearCurrentCclMethod||'modalidad N/D'} · ${ST.cedearCurrentCclSource||'sin fuente'} · ${ST.cedearCurrentCclMode==='manual'?'manual':'automático'} · fuente ${madridDateTime(ST.cedearCurrentCclSourceTimestamp||ST.cedearCurrentCclUpdatedAt)} Madrid · consultado ${madridDateTime(ST.cedearCurrentCclRetrievedAt)} Madrid`
       : 'Sin CCL actual: métricas USD pendientes';
-    if(!ceds.length){cedTb.innerHTML='<tr><td colspan="12" class="empty"><i class="ti ti-building-bank"></i><p>Sin CEDEARs. Agregá tu primera compra.</p></td></tr>';}
+    if(!ceds.length){cedTb.innerHTML='<tr><td colspan="13" class="empty"><i class="ti ti-building-bank"></i><p>Sin CEDEARs. Agregá tu primera compra.</p></td></tr>';}
     else{
-      cedTb.innerHTML=consolidateCedears(ceds).map(group=>{
+      const activeGroups=consolidateCedears(ceds).filter(group=>decPositive(group.quantity));
+      cedTb.innerHTML=activeGroups.map(group=>{
         const pnlARSColor=group.pnlARS==null?'var(--tx3)':(decCmp(group.pnlARS,'0')>=0?'var(--cg2)':'var(--cr2)');
         const pnlUSDColor=group.pnlUSD==null?'var(--tx3)':(decCmp(group.pnlUSD,'0')>=0?'var(--cg2)':'var(--cr2)');
         const roiUSDColor=group.roiUSD==null?'var(--tx3)':(decCmp(group.roiUSD,'0')>=0?'var(--cg2)':'var(--cr2)');
         const representative=group.lots.find(lot=>lot.priceUpdatedAt===group.priceUpdatedAt)||group.lots[0];
         return `<tr>
-          <td class="sym">${escapeHTML(group.sym)}</td><td class="muted">${escapeHTML(group.name)}</td>
+          <td class="sym">${escapeHTML(group.sym)}</td><td class="muted">${escapeHTML(group.name)}</td><td class="muted">${escapeHTML(group.broker||'—')}</td>
           <td class="num">${formatDec(group.quantity,{digits:4})}</td><td><span class="pill pill-t">${group.lots.length}</span></td>
           <td class="num" style="font-weight:700">${group.historicalUSD?formatDec(group.historicalUSD,{digits:2,currency:'USD'}):'<span title="Solo se consolida si todos los lotes fueron comprados en USD MEP">Pendiente</span>'}</td>
           <td class="num" style="font-weight:700">${group.currentValueUSD?formatDec(group.currentValueUSD,{digits:2,currency:'USD'}):'<span title="Falta cotización ARS o CCL actual">Pendiente</span>'}</td>
@@ -6523,14 +6812,16 @@ function renderOtros() {
           <td class="num" style="color:${pnlARSColor};font-weight:700">${group.pnlARS?formatDec(group.pnlARS,{digits:2,currency:'ARS'}):'<span title="Falta equivalente histórico ARS en uno o más lotes">Pendiente</span>'}</td>
           <td class="muted">${group.priceUpdatedAt?`${QUOTE_STATUS_LABELS[group.priceStatus]||QUOTE_STATUS_LABELS.pending} · ${quoteUpdatedLabel(representative)}${group.quoteCclSkewMs!=null&&group.quoteCclSkewMs>CEDEAR_CCL_SKEW_WARNING_MS?` · desfase CCL ${Math.round(group.quoteCclSkewMs/60000)} min`:''}`:'Pendiente'}</td>
           <td style="white-space:nowrap">
-            <button class="btn-view" onclick="openCEDLots(${inlineArg(group.sym)})" title="Ver compras / lotes"><i class="ti ti-layers"></i> Ver lotes</button>
+            <button class="btn-buy" onclick="prepareCedearPurchase(${inlineArg(group.positionId)})" title="Comprar"><i class="ti ti-plus"></i></button>
+            <button class="btn-sell" onclick="openPositionOperation(&quot;cedeaar&quot;,${inlineArg(group.positionId)},&quot;VENTA&quot;)" title="Vender"><i class="ti ti-minus"></i></button>
+            <button class="btn-view" onclick="openCEDLots(${inlineArg(group.positionId)})" title="Ver compras / lotes"><i class="ti ti-layers"></i> Ver lotes</button>
           </td>
         </tr>`;
       }).join('');
     }
   }
   // Tokenizadas
-  const toks = otros.filter(o=>o.type==='token');
+  const toks = otros.filter(o=>o.type==='token'&&o.status!=='closed'&&Number(o.qty)>0);
   const tokTb=$('tokTb');
   if(tokTb){
     if(!toks.length){tokTb.innerHTML='<tr><td colspan="14" class="empty"><i class="ti ti-cpu"></i><p>Sin tokenizadas. Agregá tu primera posición.</p></td></tr>';}
@@ -6538,7 +6829,7 @@ function renderOtros() {
       tokTb.innerHTML=toks.map(tk=>{
         const cripto=ST.crypto.find(c=>c.sym===tk.sym);
         const cur=tk.cur||cripto?.cur||null;
-        const cap=tk.qty*tk.buy;
+        const cap=Number.isFinite(Number(tk.openCost))?Number(tk.openCost):tk.qty*tk.buy;
         const curVal=cur?tk.qty*cur:null;
         const pnl=curVal!=null?curVal-cap:null;
         const pp=pnl!=null&&cap>0?pnl/cap:null;
@@ -6546,30 +6837,32 @@ function renderOtros() {
         const d=days(tk.date,today());
         const typeLabel=tk.tokType==='custodiado'?'Custodiado 1:1':'Sintético';
         return `<tr>
-          <td class="sym">${tk.sym}</td>
-          <td class="muted">${tk.name}</td>
+          <td class="sym">${escapeHTML(tk.sym)}</td>
+          <td class="muted">${escapeHTML(tk.name)}</td>
           <td><span class="pill ${tk.tokType==='custodiado'?'pill-g':'pill-y'}">${typeLabel}</span></td>
           <td class="num">${tk.qty}</td>
           <td class="num">${fmt(tk.buy)}</td>
+          <td class="num" style="color:var(--ca2);font-weight:700">${fmt(positionAverage(tk))}</td>
           <td class="num">${cur?fmt(cur)+renderPriceSource(tk):'<span style="color:var(--tx4)">—</span>'}</td>
           <td class="num muted">${fmt(cap)}</td>
           <td class="num">${curVal!=null?fmt(curVal):'—'}</td>
           <td class="num" style="color:${pnlC};font-weight:700">${pnl!=null?fmt(pnl):'—'}</td>
           <td>${pp!=null?`<span class="pill ${pp>=0?'pill-g':'pill-r'}">${(pp*100).toFixed(2)}%</span>`:'—'}</td>
-          <td class="muted">${tk.exchange||'—'}</td>
+          <td class="muted">${escapeHTML(tk.exchange||'—')}</td>
           <td class="muted">${d}d</td>
-          <td class="note-cell muted">${tk.note||'—'}</td>
+          <td class="note-cell muted">${escapeHTML(tk.note||'—')}</td>
           <td style="white-space:nowrap">
+            <button class="btn-buy" onclick="openPositionOperation(&quot;token&quot;,${inlineArg(tk.positionId)},&quot;COMPRA&quot;)" title="Comprar"><i class="ti ti-plus"></i></button>
+            <button class="btn-sell" onclick="openPositionOperation(&quot;token&quot;,${inlineArg(tk.positionId)},&quot;VENTA&quot;)" title="Vender"><i class="ti ti-minus"></i></button>
             <button class="btn-view" onclick="openAssetDetails(&quot;otro&quot;,${inlineArg(tk.id)})" title="Más información"><i class="ti ti-eye"></i></button>
             <button class="btn-edit" onclick="openOtroEdit(${inlineArg(tk.id)})" title="Editar"><i class="ti ti-pencil"></i></button>
-            <button class="btn-del" onclick="removeOtro(${inlineArg(tk.id)})" title="Eliminar"><i class="ti ti-trash"></i></button>
           </td>
         </tr>`;
       }).join('');
     }
   }
   // Bonos
-  const bons = otros.filter(o=>o.type==='bono');
+  const bons = otros.filter(o=>o.type==='bono'&&o.status!=='closed'&&Number(o.nominal)>0);
   const bonTb=$('bonTb');
   if(bonTb){
     if(!bons.length){bonTb.innerHTML='<tr><td colspan="13" class="empty"><i class="ti ti-file-invoice"></i><p>Sin bonos. Agregá tu primera posición.</p></td></tr>';}
@@ -6577,22 +6870,24 @@ function renderOtros() {
       const bonTypeLabels={soberano_ar:'Soberano AR',soberano_us:'Treasury US',corporativo:'Corporativo',plazo_fijo:'Plazo Fijo',on:'ON'};
       bonTb.innerHTML=bons.map(b=>{
         return `<tr>
-          <td class="sym">${b.sym}</td>
-          <td class="muted">${b.name}</td>
-          <td><span class="pill pill-b">${bonTypeLabels[b.bonType]||b.bonType}</span></td>
+          <td class="sym">${escapeHTML(b.sym)}</td>
+          <td class="muted">${escapeHTML(b.name)}</td>
+          <td><span class="pill pill-b">${escapeHTML(bonTypeLabels[b.bonType]||b.bonType||'—')}</span></td>
           <td class="num">${fmt(b.nominal)}</td>
           <td class="num" style="color:var(--cv3)">${b.buyPct}%</td>
+          <td class="num" style="color:var(--ca2);font-weight:700">${positionAverage(b).toFixed(2)}%</td>
           <td class="num" style="color:var(--cg2)">${b.rate?b.rate+'%':'—'}</td>
           <td class="num">${fmt(b.capUSD)}</td>
           <td class="num" style="color:var(--cg2)">${b.annualInterest?fmt(b.annualInterest)+'/año':'—'}</td>
-          <td class="muted">${b.expiry||'—'}</td>
-          <td><span class="pill ${b.currency==='USD'?'pill-g':'pill-y'}">${b.currency}</span></td>
-          <td class="muted">${b.broker||'—'}</td>
-          <td class="note-cell muted">${b.note||'—'}</td>
+          <td class="muted">${escapeHTML(b.expiry||'—')}</td>
+          <td><span class="pill ${b.currency==='USD'?'pill-g':'pill-y'}">${escapeHTML(b.currency||'—')}</span></td>
+          <td class="muted">${escapeHTML(b.broker||'—')}</td>
+          <td class="note-cell muted">${escapeHTML(b.note||'—')}</td>
           <td style="white-space:nowrap">
+            <button class="btn-buy" onclick="openPositionOperation(&quot;bono&quot;,${inlineArg(b.positionId)},&quot;COMPRA&quot;)" title="Comprar"><i class="ti ti-plus"></i></button>
+            <button class="btn-sell" onclick="openPositionOperation(&quot;bono&quot;,${inlineArg(b.positionId)},&quot;VENTA&quot;)" title="Vender"><i class="ti ti-minus"></i></button>
             <button class="btn-view" onclick="openAssetDetails(&quot;otro&quot;,${inlineArg(b.id)})" title="Más información"><i class="ti ti-eye"></i></button>
             <button class="btn-edit" onclick="openOtroEdit(${inlineArg(b.id)})" title="Editar"><i class="ti ti-pencil"></i></button>
-            <button class="btn-del" onclick="removeOtro(${inlineArg(b.id)})" title="Eliminar"><i class="ti ti-trash"></i></button>
           </td>
         </tr>`;
       }).join('');
@@ -6605,40 +6900,62 @@ function renderCedearTimeline(){
   const tb=$('cedTimelineTb');if(!tb)return;
   const lots=(ST.otros||[]).filter(item=>item.type==='cedeaar');
   const valuations=ST.cedearValuations||[];
-  const events=[...lots.map(lot=>({date:lot.date,type:'Compra',sym:lot.sym,lot})),...valuations.map(valuation=>({date:valuation.date,type:'Valuación histórica',sym:valuation.sym,valuation}))]
+  const groupedSales=new Map();
+  (ST.cedearSales||[]).forEach(sale=>{
+    if(!groupedSales.has(sale.saleGroupId))groupedSales.set(sale.saleGroupId,{date:sale.date,type:'Venta',sym:sale.sym,positionId:sale.positionId,sales:[]});
+    groupedSales.get(sale.saleGroupId).sales.push(sale);
+  });
+  const valuationEvents=valuations.flatMap(valuation=>{
+    const ids=[...new Set(lots.filter(lot=>lot.sym===valuation.sym).map(lot=>lot.positionId||`pos_cedear_${normalizedPositionPart(lot.sym)}_${normalizedPositionPart(lot.broker)}`))];
+    return ids.map(positionId=>({date:valuation.date,type:'Valuación histórica',sym:valuation.sym,positionId,valuation}));
+  });
+  const events=[...lots.map(lot=>({date:lot.date,type:'Compra',sym:lot.sym,positionId:lot.positionId||`pos_cedear_${normalizedPositionPart(lot.sym)}_${normalizedPositionPart(lot.broker)}`,lot})),...groupedSales.values(),...valuationEvents]
     .sort((a,b)=>a.date.localeCompare(b.date)||(a.type==='Compra'?-1:1));
   if(!events.length){tb.innerHTML='<tr><td colspan="10" class="empty"><p>Sin eventos CEDEAR.</p></td></tr>';return;}
   const state=new Map();
   tb.innerHTML=events.map(event=>{
-    if(!state.has(event.sym))state.set(event.sym,{quantity:'0',costs:{ARS:'0',USD_MEP:'0',USD_CABLE:'0'}});
-    const running=state.get(event.sym);
-    if(event.lot){const values=cedearLotValues(event.lot);running.quantity=decAdd(running.quantity,values.quantity);
+    const stateKey=event.positionId||`valuation:${event.sym}`;
+    if(!state.has(stateKey))state.set(stateKey,{quantity:'0',costs:{ARS:'0',USD_MEP:'0',USD_CABLE:'0'}});
+    const running=state.get(stateKey);
+    if(event.lot){const values=cedearLotValues(event.lot,{historical:true});running.quantity=decAdd(running.quantity,values.quantity);
       running.costs[values.currency]=decAdd(running.costs[values.currency],values.total);
       values.crossCurrencyExpenses.forEach(expense=>{running.costs[expense.currency]=decAdd(running.costs[expense.currency],expense.amountDecimal);});
     }
+    if(event.sales){event.sales.forEach(sale=>{running.quantity=decSub(running.quantity,sale.quantityDecimal);running.costs[sale.costCurrency]=decSub(running.costs[sale.costCurrency],sale.costRemovedDecimal);});}
     const valuation=event.valuation||(ST.cedearValuations||[]).find(item=>item.date===event.date&&item.sym===event.sym);
     const price=valuation?.cedearPriceArsDecimal||null,ccl=valuation?.cclDecimal||null;
     const valueARS=price?decMul(running.quantity,price):null;
     const valueUSD=valueARS&&decPositive(ccl)?decDiv(valueARS,ccl,8):null;
     const costs=CEDEAR_CURRENCIES.filter(currency=>decPositive(running.costs[currency])).map(currency=>formatDec(running.costs[currency],{digits:2,currency:currencyLabel(currency)})).join(' · ')||'—';
-    const status=valuation?`Snapshot histórico · ${escapeHTML(valuation.source||'fuente no indicada')}`:'Pendiente: sin precio/CCL histórico';
-    return `<tr><td>${escapeHTML(event.date)}</td><td><span class="pill ${event.type==='Compra'?'pill-g':'pill-t'}">${event.type}</span></td><td class="sym">${escapeHTML(event.sym)}</td><td class="num">${formatDec(running.quantity,{digits:4})}</td><td class="num">${costs}</td><td class="num">${price?formatDec(price,{digits:2,currency:'ARS'}):'Pendiente'}</td><td class="num">${ccl?formatDec(ccl,{digits:2,currency:'ARS'}):'Pendiente'}</td><td class="num">${valueARS?formatDec(valueARS,{digits:2,currency:'ARS'}):'Pendiente'}</td><td class="num">${valueUSD?formatDec(valueUSD,{digits:2,currency:'USD'}):'Pendiente'}</td><td class="muted">${status}</td></tr>`;
+    const status=valuation?`Snapshot histórico · ${escapeHTML(valuation.source||'fuente no indicada')}`:event.type==='Venta'?`Venta registrada · ${escapeHTML(event.sales?.[0]?.custodian||'custodio no indicado')}`:'Pendiente: sin precio/CCL histórico';
+    const eventPill=event.type==='Compra'?'pill-g':event.type==='Venta'?'pill-r':'pill-t';
+    return `<tr><td>${escapeHTML(event.date)}</td><td><span class="pill ${eventPill}">${event.type}</span></td><td class="sym">${escapeHTML(event.sym)}</td><td class="num">${formatDec(running.quantity,{digits:4})}</td><td class="num">${costs}</td><td class="num">${price?formatDec(price,{digits:2,currency:'ARS'}):'Pendiente'}</td><td class="num">${ccl?formatDec(ccl,{digits:2,currency:'ARS'}):'Pendiente'}</td><td class="num">${valueARS?formatDec(valueARS,{digits:2,currency:'ARS'}):'Pendiente'}</td><td class="num">${valueUSD?formatDec(valueUSD,{digits:2,currency:'USD'}):'Pendiente'}</td><td class="muted">${status}</td></tr>`;
   }).join('');
 }
 
-function openCEDLots(symbol) {
-  const lots=(ST.otros||[]).filter(item=>item.type==='cedeaar'&&item.sym===symbol).sort((a,b)=>a.date.localeCompare(b.date));
+function prepareCedearPurchase(positionId) {
+  const group=consolidateCedears().find(item=>item.positionId===positionId);if(!group)return;
+  const representative=group.lots[0];
+  $('cedSym').value=group.sym;$('cedName').value=group.name;$('cedBroker').value=group.broker||'';
+  $('cedRatio').value=representative.ratioDecimal||representative.ratio||'';
+  $('cedCurrency').value=representative.purchaseCurrency||'USD_MEP';
+  updateCEDForm();$('cedQty').focus();$('cedQty').scrollIntoView({behavior:'smooth',block:'center'});
+}
+
+function openCEDLots(positionId) {
+  const group=consolidateCedears().find(item=>item.positionId===positionId);
+  const lots=group?[...group.lots].sort((a,b)=>a.date.localeCompare(b.date)):[];
   if(!lots.length)return;
-  $('cedLotsTitle').textContent=`${symbol} · Compras / lotes`;
+  $('cedLotsTitle').textContent=`${group.sym} · ${group.broker||'Sin especificar'} · Compras / lotes`;
   $('cedLotsSub').textContent=`${lots.length} ${lots.length===1?'compra registrada':'compras registradas'} · las monedas se muestran por separado`;
   $('cedLotsTb').innerHTML=lots.map(lot=>{
-    const values=cedearLotValues(lot);
+    const values=cedearLotValues(lot),historical=cedearLotValues(lot,{historical:true});
     let expenseText=CEDEAR_CURRENCIES.map(currency=>{
       const total=decSum(values.expenses.filter(item=>item.currency===currency).map(item=>item.amountDecimal));
       return decPositive(total)?formatDec(total,{digits:2,currency:currencyLabel(currency)}):null;
     }).filter(Boolean).join(' · ')||'—';
     if(values.unitemizedDifference)expenseText+=` · diferencia no desglosada ${formatDec(values.unitemizedDifference,{digits:2,currency:currencyLabel(values.currency)})}`;
-    return `<tr><td>${escapeHTML(lot.date)}</td><td class="num">${formatDec(values.quantity,{digits:4})}</td><td class="num">${formatDec(values.ratio,{digits:4})}:1</td><td><span class="pill pill-t">${currencyLabel(values.currency)}</span></td><td class="num">${formatDec(values.unit,{digits:6,currency:currencyLabel(values.currency)})}</td><td class="num">${formatDec(values.gross,{digits:2,currency:currencyLabel(values.currency)})}</td><td class="num">${expenseText}</td><td class="num">${formatDec(values.total,{digits:2,currency:currencyLabel(values.currency)})}</td><td class="num">${formatDec(decDiv(values.total,values.quantity,8),{digits:6,currency:currencyLabel(values.currency)})}</td><td>${escapeHTML(lot.ticketNumber||'—')}</td><td style="white-space:nowrap"><button class="btn-view" onclick="openAssetDetails(&quot;otro&quot;,${inlineArg(lot.id)})" title="Más información"><i class="ti ti-eye"></i></button><button class="btn-edit" onclick="openOtroEdit(${inlineArg(lot.id)})" title="Editar lote"><i class="ti ti-pencil"></i></button><button class="btn-del" onclick="removeOtro(${inlineArg(lot.id)});closeCEDLots()" title="Eliminar lote"><i class="ti ti-trash"></i></button></td></tr>`;
+    return `<tr><td>${escapeHTML(lot.date)}</td><td class="num">${formatDec(historical.quantity,{digits:4})}</td><td class="num">${formatDec(values.quantity,{digits:4})}</td><td class="num">${formatDec(values.ratio,{digits:4})}:1</td><td><span class="pill pill-t">${currencyLabel(values.currency)}</span></td><td class="num">${formatDec(values.unit,{digits:6,currency:currencyLabel(values.currency)})}</td><td class="num">${formatDec(historical.gross,{digits:2,currency:currencyLabel(values.currency)})}</td><td class="num">${expenseText}</td><td class="num">${formatDec(historical.total,{digits:2,currency:currencyLabel(values.currency)})}</td><td class="num">${formatDec(decDiv(historical.total,historical.quantity,8),{digits:6,currency:currencyLabel(values.currency)})}</td><td>${escapeHTML(lot.ticketNumber||'—')}</td><td style="white-space:nowrap"><button class="btn-view" onclick="openAssetDetails(&quot;otro&quot;,${inlineArg(lot.id)})" title="Más información"><i class="ti ti-eye"></i></button><button class="btn-edit" onclick="openOtroEdit(${inlineArg(lot.id)})" title="Editar lote"><i class="ti ti-pencil"></i></button></td></tr>`;
   }).join('');
   $('cedLotsModalOverlay').classList.add('open');
 }
@@ -6788,8 +7105,8 @@ function renderBenchmarks() {
 // ═══════════════════════════════════════════
 function renderAll() {
   renderKPIs();
-  renderTbl(ST.stocks, 'sTb', 'stock');
-  renderTbl(ST.crypto, 'cTb', 'crypto');
+  renderTbl(ST.stocks.filter(asset=>asset.status!=='closed'&&Number(asset.qty)>0), 'sTb', 'stock');
+  renderTbl(ST.crypto.filter(asset=>asset.status!=='closed'&&Number(asset.qty)>0), 'cTb', 'crypto');
   renderOtros();
   renderHist();
   renderDash();
@@ -6907,7 +7224,7 @@ function renderTVAssetInfo() {
   if (!tvSelectedAsset) return;
   const a = tvSelectedAsset;
   const { cap, cur, pnl, pp, d } = calc(a);
-  const dca = calcDCA(a.sym);
+  const dca = calcDCA(a);
   const avgP = dca ? dca.avgPrice : a.buy;
   const isCrypto = !!ST.crypto.find(c => c.id === a.id);
   const pnlC = pnl != null ? (pnl >= 0 ? 'var(--cg2)' : 'var(--cr2)') : 'var(--tx3)';
@@ -7408,7 +7725,7 @@ async function checkForConflictsAndSync() {
   syncCheckInFlight = true;
   try {
     const { data, error } = await sb
-      .from('portfolio_data')
+      .from(PORTFOLIO_TABLE)
       .select('data, updated_at')
       .eq('user_id', syncUser.id)
       .maybeSingle();
@@ -7655,7 +7972,7 @@ async function pushToCloud() {
         const payload = JSON.parse(JSON.stringify(snapshot));
         const ts = new Date().toISOString();
         const { error } = await sb
-          .from('portfolio_data')
+          .from(PORTFOLIO_TABLE)
           .upsert({ user_id: syncUser.id, data: payload, updated_at: ts });
         if (error) throw error;
         // Do not overwrite a newer local-change timestamp when another edit arrived

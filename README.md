@@ -32,7 +32,9 @@ La sesión puede conservarse en el navegador. Si ya existe una sesión válida, 
 4. Completa opcionalmente sector, stop loss, objetivo, broker y notas.
 5. Pulsa **Agregar**.
 
-La carga inicial crea también una operación de compra en **Historial**.
+La carga inicial crea la posición y también una compra automática en **Historial**. Para compras posteriores o ventas, utiliza **Comprar** o **Vender** en la fila de esa posición. No vuelvas a crear el activo.
+
+Si el mismo símbolo está en dos brokers, se muestran como posiciones distintas. Por ejemplo, `AAPL · Broker A` y `AAPL · Broker B` no se mezclan.
 
 ### Empresas no cotizadas
 
@@ -49,6 +51,8 @@ No debe utilizarse un símbolo inventado como si fuera una cotización oficial.
 5. Añade opcionalmente wallet, dirección y notas.
 6. Pulsa **Agregar**.
 
+Cada combinación de activo y custodio es una posición independiente. `BTC · Binance` y `BTC · Exodus` conservan cantidades y precios promedio diferentes. Las operaciones posteriores se realizan desde los botones de su fila.
+
 Las cotizaciones se consultan primero mediante el par Spot `USDT` de Binance. Si el par no está disponible o el proveedor falla, la aplicación prueba CoinGecko y después CryptoCompare. La tabla muestra la fuente y la hora utilizada junto al precio.
 
 ## 5. Otros activos
@@ -56,7 +60,7 @@ Las cotizaciones se consultan primero mediante el par Spot `USDT` de Binance. Si
 La sección **Otros** contiene formularios específicos:
 
 - **ETFs**: símbolo, tipo, índice, cantidad, precio, TER, broker y fecha.
-- **CEDEARs**: cada compra se registra como un lote independiente. Elegí `ARS`, `USD MEP` o `USD cable`, indicá cantidad, ratio, precio unitario, importe bruto, costo total, fecha, broker y, si corresponde, ticket, fuente, gastos/comisiones y referencias históricas de CCL, MEP o equivalente en ARS. Las monedas no se mezclan: la tabla consolida por símbolo, pero conserva costos y promedios separados por moneda.
+- **CEDEARs**: cada compra se registra como un lote independiente. Elegí `ARS`, `USD MEP` o `USD cable`, indicá cantidad, ratio, precio unitario, importe bruto, costo total, fecha, broker y, si corresponde, ticket, fuente, gastos/comisiones y referencias históricas de CCL, MEP o equivalente en ARS. La tabla consolida por símbolo y broker; nunca mezcla custodios ni monedas.
 - **Tokenizados**: símbolo, tipo de respaldo, exchange, cantidad y precio.
 - **Bonos**: nominal, precio porcentual, tasa, vencimiento, moneda y broker.
 
@@ -82,8 +86,9 @@ Los precios actuales de CEDEAR se consultan con el ticker de BYMA en ARS (por ej
 - Al actualizar precios, la aplicación consulta primero el CCL venta de DolarApi.com y conserva valor, fuente y fecha/hora. Si no está disponible, intenta Dolarazo. El botón **Actualizar CCL** permite reintentar; también podés introducir una referencia manual como respaldo.
 - Para una posición compuesta íntegramente por compras en USD MEP, la tabla destaca **coste histórico USD**, **valor actual USD**, **G/P USD** y **rentabilidad %**. No se exige CCL histórico para este cálculo.
 - El resultado nominal ARS queda como información secundaria y solo se muestra si cada lote tiene una base histórica ARS válida. Si una moneda, precio o CCL actual falta, se muestra `Pendiente`, nunca cero.
-- La timeline conserva las fechas reales de compra. Las cotizaciones o referencias de CCL que no se hayan guardado para una fecha histórica se muestran como `Pendiente`, nunca como cero.
-- Al editar o eliminar se trabaja sobre un lote concreto, desde **Ver lotes**. Los gastos de otra moneda se mantienen separados; no se convierten de forma automática.
+- La timeline conserva las compras, ventas y snapshots con sus fechas reales. Las cotizaciones o referencias de CCL que no se hayan guardado para una fecha histórica se muestran como `Pendiente`, nunca como cero.
+- Una venta reduce las cantidades disponibles de los lotes sin reescribir su cantidad, coste, moneda, ratio, ticket ni fecha originales.
+- **Comprar** prepara una nueva carga para la misma posición; **Vender** impide superar la cantidad disponible.
 
 ### Migración de CEDEARs anteriores
 
@@ -91,18 +96,33 @@ Al abrir la versión con lotes, los CEDEARs antiguos se migran de forma compatib
 
 La reversión se hace de forma segura importando ese backup en una versión anterior de la aplicación (9.3 o anterior). No importes el backup previo sobre la misma versión con lotes, porque se migrará de nuevo al abrirse. Exportá siempre un backup completo antes de una actualización importante.
 
-## 7. Editar y eliminar
+### Migración V2 → V3 centrada en posiciones
+
+V3 toma las posiciones actuales como fuente de verdad. No reconstruye cantidades ni costes desde el Historial antiguo.
+
+1. Exporta un backup completo desde la versión publicada.
+2. Ejecuta `node tests/migration-v3-dry-run.cjs /ruta/al/backup.json`.
+3. Continúa únicamente si `ok` es `true` y las tres comprobaciones `preserved` son `true`.
+4. Ejecuta una vez `supabase/position-v3.sql` en Supabase SQL Editor.
+5. Conserva la tabla V2 y el backup original hasta comprobar V3 desde dos navegadores.
+
+La migración añade `positionId`, coste abierto y promedio ponderado sin modificar posiciones, cantidades, costes, custodios, lotes, Timeline ni snapshots. El Historial V2 se conserva como legado informativo y no se utiliza para recalcular posiciones. El proceso es idempotente: volver a ejecutarlo sobre V3 no duplica registros.
+
+V3 utiliza `mrp_portfolio_v3` en el navegador y `portfolio_data_v3` en Supabase. Una versión antigua continúa limitada al almacenamiento V2 y no puede sobrescribir V3. La tabla nueva exige además `schemaVersion = position-v3` y aplica RLS por `user_id`.
+
+## 7. Comprar, vender y editar
 
 - Usa el botón de ojo para consultar todos los datos de una posición sin entrar en edición.
-- Usa el botón de lápiz para editar una posición, también en ETFs, CEDEARs, tokenizadas y bonos.
-- Usa el botón de papelera o `X` para eliminar.
-- Las eliminaciones relevantes solicitan confirmación.
-- Eliminar una posición no elimina automáticamente sus movimientos históricos; esto preserva la trazabilidad.
-- Si también quieres eliminar el historial, hazlo desde **Historial**.
+- Usa **Comprar** para aumentar la cantidad. La aplicación recalcula el coste abierto y el promedio ponderado y añade la operación al Historial.
+- Usa **Vender** para una venta parcial o total. No permite vender más unidades de las disponibles.
+- Una venta total cierra la posición y deja de mostrarla entre las posiciones activas, pero conserva su Historial.
+- Usa el lápiz solamente para nombre, notas y datos descriptivos. Cantidad, precio inicial, fecha y custodio no se editan silenciosamente.
+
+`P. COMPRA` conserva siempre el precio de la primera compra de esa posición. `P. PROM. DCA` muestra el precio medio ponderado de las unidades que siguen abiertas e incluye las comisiones de compra. Cada fila del Historial conserva el precio individual de su compra o venta.
 
 ## 8. Historial e importaciones
 
-Cada operación puede registrarse manualmente como compra o venta, indicando símbolo, cantidad, precio, comisión, fecha y broker.
+**Historial es un registro cronológico automático y de solo lectura.** No es una segunda pantalla para modificar la cartera. Las compras y ventas se introducen una sola vez desde la posición correspondiente.
 
 La aplicación admite:
 
@@ -118,12 +138,12 @@ date,type,symbol,qty,price,comm,notes
 
 Usa `symbol` o `ticker`; el encabezado abreviado `sym` no está reconocido por el importador genérico.
 
-Revisa siempre la vista previa antes de confirmar una importación.
+Revisa siempre la vista previa antes de confirmar una importación. En V3 solo se importa una operación cuando existe una única posición compatible. Si el mismo símbolo aparece en varios custodios o todavía no existe una posición, la fila se omite para evitar asignaciones o duplicados incorrectos.
 
 ## 9. Ingresos, DCA, riesgo y evolución
 
 - **Ingresos**: registra dividendos, cupones, staking e intereses.
-- **Promedio DCA**: calcula el precio medio ponderado usando el historial.
+- **Promedio DCA**: muestra el precio medio ponderado guardado en cada posición; no reconstruye ni mezcla posiciones usando solo el símbolo del Historial.
 - **Riesgo**: muestra exposición por activo y sector, Sharpe y Beta.
 - **Evolución**: utiliza snapshots creados al actualizar precios.
 - **Alertas**: evalúa condiciones cuando se actualizan las cotizaciones.
@@ -148,7 +168,7 @@ Trading Desk mantiene herramientas separadas del seguimiento de inversión:
 
 Los cambios se guardan primero en el navegador y, si existe una sesión activa, se envían automáticamente a Supabase después de una breve espera.
 
-Las diferencias que solo afectan a cotizaciones derivadas —precio actual, variación, fuente u hora— no se consideran un conflicto entre dispositivos. La ventana de elección se reserva para diferencias reales en cantidades, precios de compra, fechas, notas u otros datos introducidos por el usuario.
+Las diferencias que solo afectan a cotizaciones derivadas —precio actual, variación, fuente u hora— no se consideran un conflicto entre dispositivos. La ventana de elección se reserva para diferencias reales en posiciones, operaciones, notas u otros datos introducidos por el usuario.
 
 Las subidas se procesan en orden. Si realizas otro cambio mientras una subida continúa, la versión nueva queda pendiente y se envía a continuación. Si se pierde la conexión, los datos locales y su marca de cambio se conservan; al recuperar la red, la aplicación vuelve a intentar la subida pendiente.
 
@@ -238,7 +258,7 @@ Supabase no garantiza una cifra exacta de solicitudes que impida toda pausa. Si 
 
 - El repositorio y el HTML son públicos.
 - La clave `anon` de Supabase es una clave pública de navegador; no debe confundirse con una clave `service_role`.
-- La tabla `portfolio_data` tiene Row Level Security activado.
+- La tabla `portfolio_data_v3` tiene Row Level Security activado y rechaza datos que no declaren el esquema V3.
 - El rol anónimo no posee permisos sobre la tabla.
 - Cada usuario autenticado solo puede leer o modificar la fila cuyo `user_id` coincide con `auth.uid()`.
 - El propietario administrativo del proyecto Supabase puede acceder a la base de datos desde el panel; RLS protege frente a visitantes y otros usuarios de la aplicación, no frente al administrador del proyecto.
@@ -315,6 +335,7 @@ Para disponer de funcionamiento offline completo sería necesario incorporar un 
 - GitHub Pages para publicación HTTPS.
 - Supabase Auth con GitHub OAuth.
 - PostgreSQL/Supabase con RLS para sincronización.
+- Estado V3 centrado en posiciones y tabla `portfolio_data_v3` separada de V2.
 - Chart.js para gráficos.
 - Binance Spot, CoinGecko, CryptoCompare, Yahoo Finance, DolarApi.com y Dolarazo para precios y CCL actual.
 - TradingView para gráficos técnicos.

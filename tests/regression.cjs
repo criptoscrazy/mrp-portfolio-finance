@@ -130,7 +130,7 @@ const tests = String.raw`
   assert.deepStrictEqual(JSON.parse(JSON.stringify(upgradeCedearState(migrated))),JSON.parse(JSON.stringify(migrated)),'La migración debe ser idempotente');
   assert(portfolioStatesEqual({ ...base, otros:[legacyCedear] },migrated),'La migración compatible no debe provocar un conflicto de sincronización');
 
-  const makeLot=(id,sym,date,qty,unit,total,ticket,ratio='10')=>({id,type:'cedeaar',sym,name:sym,dated:date,date,
+  const makeLot=(id,sym,date,qty,unit,total,ticket,ratio='10')=>({id,positionId:'pos_cedear_'+sym.toLowerCase()+'_test',assetType:'cedeaar',type:'cedeaar',sym,name:sym,dated:date,date,
     purchaseCurrency:'USD_MEP',quantityDecimal:qty,ratioDecimal:ratio,unitPriceDecimal:unit,
     grossAmountDecimal:decMul(qty,unit),totalCostDecimal:total,cclAtPurchaseDecimal:null,mepAtPurchaseDecimal:null,
     historicalArsEquivalentDecimal:null,ticketNumber:ticket,informationSource:'Caso de aceptación',schemaVersion:'cedear-lots-v1',
@@ -253,7 +253,7 @@ const tests = String.raw`
   assert.strictEqual(editedCedear.cur, 24000, 'Editar no debe borrar la última cotización');
   const historicalValuationsBeforeRender=JSON.stringify(ST.cedearValuations);
   renderCedearTimeline();
-  assert($('cedTimelineTb').innerHTML.includes('2025-07-30'), 'El Timeline debe recalcularse inmediatamente desde los lotes editados');
+  assert($('cedTimelineTb').innerHTML.includes('2025-07-29'), 'Editar metadatos no debe reescribir la fecha histórica del lote');
   assert($('cedTimelineTb').innerHTML.includes('Valuación histórica'), 'El Timeline debe identificar sus valuaciones como históricas');
   assert.strictEqual(JSON.stringify(ST.cedearValuations), historicalValuationsBeforeRender, 'Renderizar el Timeline no debe modificar los snapshots históricos');
 
@@ -280,8 +280,106 @@ const tests = String.raw`
   assert($('sTb').children[0].innerHTML.includes('btn-view'), 'Acciones también debe ofrecer Más información');
   openAssetDetails('stock', 's1');
   assert($('detailSub').textContent.includes('Acción'), 'El detalle común debe funcionar para acciones');
+  renderTbl([{id:'hostile-row',positionId:'pos_stock_hostile',assetType:'stock',status:'active',sym:'BAD',name:'<img src=x onerror=alert(1)>',sector:'<script>alert(2)</script>',qty:1,buy:1,avgBuy:1,openCost:1,date:'2026-01-01',broker:'<svg onload=alert(3)>',note:'<b>nota</b>'}], 'sTb', 'stock');
+  assert(!$('sTb').children[0].innerHTML.includes('<img src=x'),'Las posiciones importadas no deben inyectar HTML en la tabla');
+  assert(!$('sTb').children[0].innerHTML.includes('<script>'),'Las posiciones importadas no deben materializar etiquetas script');
 
-  console.log('OK: sincronización, CEDEAR, edición y detalles');
+  const v2ForMigration={
+    ...base,
+    stocks:[
+      {id:'btc-stock-no',sym:'AAPL',name:'Apple',qty:2,buy:100,date:'2025-01-01',broker:'Broker A'},
+      {id:'btc-stock-other',sym:'AAPL',name:'Apple',qty:3,buy:120,date:'2025-01-02',broker:'Broker B'}
+    ],
+    crypto:[
+      {id:'btc-binance',sym:'BTC',name:'Bitcoin',qty:1,buy:30000,date:'2025-01-01',custody:'exchange',wallet:'Binance'},
+      {id:'btc-exodus',sym:'BTC',name:'Bitcoin',qty:2,buy:35000,date:'2025-01-02',custody:'hot',wallet:'Exodus'}
+    ],
+    hist:[{id:'legacy-buy',date:'2025-01-01',type:'COMPRA',sym:'BTC',qty:1,price:30000,comm:0,notes:'Carga anterior'}],
+    otros:lots,
+    cedearExpenses:[],cedearValuations:[{id:'snap-ced',date:'2025-08-01',sym:'AAPL',cedearPriceArsDecimal:'20000',cclDecimal:'1200',source:'Prueba'}],
+    snaps:[{date:'2025-08-01',value:12345}],aSnaps:{BTC:[{date:'2025-01-01',value:30000}]}
+  };
+  const dryRun=migratePortfolioV2ToV3(v2ForMigration,{dryRun:true});
+  assert.strictEqual(dryRun.report.errors.length,0,'El dry run V2→V3 debe conservar cantidades, costes y colecciones históricas');
+  assert.deepStrictEqual(dryRun.report.before,dryRun.report.after,'El informe antes/después debe ser idéntico');
+  assert.strictEqual(dryRun.state.hist[0].legacy,true,'El Historial V2 debe conservarse como legado sin reconstruir posiciones');
+  assert.strictEqual(dryRun.state.snaps[0].value,12345,'Los snapshots deben conservarse exactamente');
+  assert.strictEqual(dryRun.state.aSnaps.BTC[0].value,30000,'Los snapshots por activo deben conservarse exactamente');
+  assert.strictEqual(dryRun.state.otros[0].quantityDecimal,lots[0].quantityDecimal,'Los lotes CEDEAR deben conservar su cantidad original');
+  assert.deepStrictEqual(JSON.parse(JSON.stringify(migratePortfolioV2ToV3(dryRun.state).state)),JSON.parse(JSON.stringify(dryRun.state)),'La migración V3 debe ser idempotente');
+
+  localStorage.removeItem(SKEY);
+  localStorage.removeItem(LEGACY_SKEY);
+  localStorage.removeItem(V3_MIGRATION_DONE_KEY);
+  localStorage.setItem(LEGACY_SKEY,JSON.stringify(v2ForMigration));
+  localStorage.setItem(V3_MIGRATION_DONE_KEY,'true');
+  ST=sanitizePortfolioState({stocks:[],crypto:[],otros:[],hist:[],income:[],apyPositions:[],alerts:[],snaps:[],aSnaps:{},selAsset:null});
+  loadState();
+  assert.strictEqual(ST.stocks.length,0,'Un V2 antiguo no debe reaparecer después de vaciar V3 intencionadamente');
+
+  ST=dryRun.state;
+  const btcBinance=ST.crypto.find(item=>item.wallet==='Binance');
+  const btcExodus=ST.crypto.find(item=>item.wallet==='Exodus');
+  assert.notStrictEqual(btcBinance.positionId,btcExodus.positionId,'El mismo símbolo en custodios distintos debe tener positionId diferente');
+  assert(positionIsClosed({qty:0},'crypto'),'Una posición heredada con cantidad cero debe considerarse cerrada aunque no tenga status');
+  assert.strictEqual(resolveImportedPosition({sym:'BTC',notes:'CSV import'}),null,'Un CSV no debe elegir silenciosamente entre dos custodios del mismo símbolo');
+  assert.strictEqual(resolveImportedPosition({sym:'BTC',notes:'Binance export'}).asset,btcBinance,'Un archivo Binance debe identificar la posición Binance cuando es única');
+  const sol={id:'sol-unique',positionId:'pos_crypto_sol_unique',assetType:'crypto',sym:'SOL',name:'Solana',qty:2,buy:100,avgBuy:100,openCost:200,status:'active',date:'2025-01-01',custody:'exchange',wallet:'Kraken'};
+  ST.crypto.push(sol);
+  assert.strictEqual(resolveImportedPosition({sym:'SOL',notes:'CSV import'}).asset,sol,'Un CSV puede dirigirse a una única posición inequívoca');
+  applyPositionOperation(btcBinance,'crypto','COMPRA',{qty:1,price:50000,comm:100,date:'2026-08-10',notes:'Segunda compra'});
+  assert.strictEqual(btcBinance.buy,30000,'P. COMPRA debe conservar el precio original');
+  assert.strictEqual(btcBinance.qty,2,'La compra debe aumentar la cantidad de la posición exacta');
+  assert.strictEqual(btcBinance.openCost,80100,'El coste abierto debe incluir la compra y su comisión');
+  assert.strictEqual(btcBinance.avgBuy,40050,'P. PROM. DCA debe ser el promedio ponderado actual');
+  assert.strictEqual(calcDCA(btcBinance).avgPrice,40050,'DCA debe leer la posición y no mezclar custodios');
+  assert.strictEqual(calcDCA(btcExodus).avgPrice,35000,'El BTC de Exodus debe conservar su propio promedio');
+  const historyAfterBuy=ST.hist[0];
+  assert.strictEqual(historyAfterBuy.positionId,btcBinance.positionId,'La compra automática debe quedar vinculada a positionId');
+  assert.strictEqual(historyAfterBuy.price,50000,'Historial debe conservar el precio individual de la compra');
+
+  applyPositionOperation(btcBinance,'crypto','VENTA',{qty:.5,price:60000,comm:50,date:'2026-08-11',notes:'Venta parcial'});
+  assert.strictEqual(btcBinance.qty,1.5,'La venta parcial debe reducir la cantidad');
+  assert.strictEqual(btcBinance.avgBuy,40050,'Una venta parcial no debe alterar el promedio de las unidades abiertas');
+  assert.strictEqual(ST.hist[0].price,60000,'Historial debe conservar el precio individual de venta');
+  assert(Math.abs(ST.hist[0].realizedPnl-9925)<1e-8,'La venta debe calcular P/L realizado sobre el coste medio abierto');
+  const beforeOversell=JSON.stringify(btcBinance);
+  assert.throws(()=>applyPositionOperation(btcBinance,'crypto','VENTA',{qty:99,price:1,comm:0,date:'2026-08-12'}),/No podés vender más/,'Debe impedir la sobreventa');
+  assert.strictEqual(JSON.stringify(btcBinance),beforeOversell,'Una sobreventa rechazada no debe modificar la posición');
+  applyPositionOperation(btcBinance,'crypto','VENTA',{qty:1.5,price:45000,comm:0,date:'2026-08-12',notes:'Cierre'});
+  assert.strictEqual(btcBinance.qty,0,'La venta total debe dejar cantidad cero');
+  assert.strictEqual(btcBinance.status,'closed','La venta total debe cerrar la posición sin borrar su Historial');
+  const closedPositionId=btcBinance.positionId;
+  applyPositionOperation(btcBinance,'crypto','COMPRA',{qty:.25,price:42000,comm:5,date:'2026-08-13',notes:'Reapertura'});
+  assert.strictEqual(btcBinance.positionId,closedPositionId,'Reabrir no debe crear una identidad nueva');
+  assert.strictEqual(btcBinance.status,'active','Una compra posterior al cierre debe reactivar la posición');
+  assert.strictEqual(btcBinance.buy,30000,'Reabrir debe conservar el precio de la primera compra histórica');
+  assert.strictEqual(btcBinance.qty,.25,'La posición reabierta debe contener solo las nuevas unidades abiertas');
+
+  const bond={id:'bond-test',positionId:'pos_bono_test',assetType:'bono',type:'bono',sym:'AL30',name:'AL30',nominal:1000,buyPct:90,avgBuy:90,openCost:900,capUSD:900,status:'active',date:'2025-01-01',broker:'Broker A'};
+  applyPositionOperation(bond,'bono','COMPRA',{qty:1000,price:110,comm:0,date:'2026-08-13',notes:'Compra bono'});
+  assert.strictEqual(bond.nominal,2000,'La compra de bonos debe aumentar el nominal');
+  assert.strictEqual(bond.openCost,2000,'La compra de bonos debe usar precio porcentual');
+  assert.strictEqual(bond.avgBuy,100,'El promedio de bonos debe conservarse en puntos porcentuales');
+  applyPositionOperation(bond,'bono','VENTA',{qty:500,price:120,comm:0,date:'2026-08-14',notes:'Venta bono'});
+  assert.strictEqual(bond.openCost,1500,'La venta parcial de bonos debe retirar el coste porcentual correcto');
+  assert.strictEqual(bond.avgBuy,100,'La venta parcial no debe cambiar el promedio porcentual de las unidades abiertas');
+
+  ST=dryRun.state;
+  if(!ST.cedearSales)ST.cedearSales=[];
+  const cedearPosition=consolidateCedears().find(group=>group.sym==='AAPL');
+  const originalLots=JSON.stringify(ST.otros.filter(item=>item.type==='cedeaar'));
+  const snapshotsBeforeSale=JSON.stringify(ST.cedearValuations);
+  applyCedearSale(cedearPosition.positionId,{qty:300,price:15,comm:10,currency:'USD_MEP',date:'2026-08-12',notes:'Venta CEDEAR'});
+  assert.strictEqual(consolidateCedears().find(group=>group.positionId===cedearPosition.positionId).quantity,'522','La venta CEDEAR debe reducir la cantidad disponible por lotes');
+  assert.strictEqual(JSON.stringify(ST.otros.filter(item=>item.type==='cedeaar')),originalLots,'La venta CEDEAR no debe reescribir los lotes originales');
+  assert.strictEqual(JSON.stringify(ST.cedearValuations),snapshotsBeforeSale,'La venta CEDEAR no debe alterar snapshots existentes');
+  renderCedearTimeline();
+  assert($('cedTimelineTb').innerHTML.includes('Venta'),'El Timeline CEDEAR debe incorporar la venta');
+  assert($('cedTimelineTb').innerHTML.includes('Venta registrada'),'Una venta CEDEAR no debe figurar como valuación pendiente');
+  assert.strictEqual(ST.hist[0].positionId,cedearPosition.positionId,'La venta CEDEAR debe vincularse a su posición');
+
+  console.log('OK: V3 posiciones, operaciones, migración, sincronización y CEDEAR');
 })()
 `;
 
