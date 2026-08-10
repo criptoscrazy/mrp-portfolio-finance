@@ -1180,6 +1180,24 @@ input::placeholder,textarea::placeholder,select::placeholder{color:var(--tx4);op
     </div>
   </div>
 
+  <div class="card card-mb">
+    <div class="card-head"><i class="ti ti-arrows-diff" style="color:var(--cr2)"></i> <span id="dClassPnlTitle">G/P por clase de activo</span></div>
+    <div class="card-sub" id="dClassPnlSub">Pérdida o ganancia no realizada por clase, con datos valorados</div>
+    <div class="tbl-wrap">
+      <table class="class-pnl-table">
+        <thead><tr>
+          <th id="dClassPnlClassHead">Clase</th>
+          <th id="dClassPnlCostHead">Coste histórico</th>
+          <th id="dClassPnlValueHead">Valor actual</th>
+          <th id="dClassPnlPnlHead">G/P no realizada</th>
+          <th id="dClassPnlRoiHead">ROI</th>
+          <th id="dClassPnlStatusHead">Estado</th>
+        </tr></thead>
+        <tbody id="dClassPnlTb"></tbody>
+      </table>
+    </div>
+  </div>
+
   <!-- ROW 3: Charts -->
   <div class="g2" style="margin-bottom:12px">
     <div class="card">
@@ -4650,6 +4668,60 @@ function renderKPIs() {
   const posSub=$('kpiPosSub');if(posSub)posSub.textContent=summary.pending.length?`${summary.pending.length} pendientes de valorar`:'activas en cartera';
 }
 
+function renderClassPnlTable(summary) {
+  const tb = $('dClassPnlTb');
+  if (!tb) return;
+  const groups = new Map();
+  const classOrder = ['Acciones','Cripto','CEDEARs','ETFs','Tokenizadas','Bonos'];
+  const orderedClasses = [...classOrder, ...summary.items.map(item=>item.assetClass)]
+    .filter((assetClass,index,array)=>assetClass && array.indexOf(assetClass)===index);
+
+  summary.items.forEach(item => {
+    const group = groups.get(item.assetClass) || {
+      itemCount:0, valuedCount:0, costCount:0, pnlCount:0,
+      currentUSD:0, costUSD:0, pnlUSD:0
+    };
+    group.itemCount++;
+    if (isValuationAvailable(item)) {
+      group.valuedCount++;
+      group.currentUSD += item.currentUSD;
+    }
+    if (Number.isFinite(item.costUSD) && item.costUSD > 0) {
+      group.costCount++;
+      group.costUSD += item.costUSD;
+    }
+    if (Number.isFinite(item.costUSD) && item.costUSD > 0 && Number.isFinite(item.pnlUSD)) {
+      group.pnlCount++;
+      group.pnlUSD += item.pnlUSD;
+    }
+    groups.set(item.assetClass, group);
+  });
+
+  if (!groups.size) {
+    tb.innerHTML = `<tr><td colspan="6" class="empty">${escapeHTML(t('dClassPnlEmpty'))}</td></tr>`;
+    return;
+  }
+
+  tb.innerHTML = orderedClasses.filter(assetClass=>groups.has(assetClass)).map((assetClass,index) => {
+    const group = groups.get(assetClass);
+    const unresolved = group.itemCount - group.pnlCount;
+    const roi = group.costUSD > 0 && group.pnlCount > 0 ? group.pnlUSD / group.costUSD : null;
+    const pnlColor = group.pnlCount > 0 ? (group.pnlUSD >= 0 ? 'var(--cg2)' : 'var(--cr2)') : 'var(--tx3)';
+    const status = unresolved
+      ? t('dClassPnlPartial').replace('{n}', unresolved)
+      : t('dClassPnlComplete');
+    const statusClass = unresolved ? 'pill-y' : 'pill-g';
+    return `<tr>
+      <td class="sym"><span class="leg-dot" style="display:inline-block;background:${PALETTE[index%PALETTE.length]};margin-right:6px"></span>${escapeHTML(assetClass)}</td>
+      <td class="num">${group.costCount ? fmt(group.costUSD) : 'N/D'}</td>
+      <td class="num">${group.valuedCount ? fmt(group.currentUSD) : 'N/D'}</td>
+      <td class="num" style="color:${pnlColor};font-weight:700">${group.pnlCount ? fmt(group.pnlUSD) : 'N/D'}</td>
+      <td class="num" style="color:${pnlColor};font-weight:700">${roi != null ? fmtPct(roi*100) : 'N/D'}</td>
+      <td><span class="pill ${statusClass}">${escapeHTML(status)}</span></td>
+    </tr>`;
+  }).join('');
+}
+
 // ═══════════════════════════════════════════
 // RENDER DASHBOARD
 // ═══════════════════════════════════════════
@@ -4675,6 +4747,7 @@ function renderDash() {
   const summary=m.summary||portfolioSummary();
   const tot=summary.totalUSD;
   const pendingLabel=summary.pending.length?` · ${summary.pending.length} N/D`:'';
+  renderClassPnlTable(summary);
 
   // Hero KPIs
   const heroTotal = $('dHeroTotal');
@@ -5249,6 +5322,13 @@ const I18N = {
     dBetaSub: 'vs S&P 500',
     dAllocTitle: 'Distribución del portafolio',
     dAllocSub: 'Por valor actual — acciones vs cripto',
+    dClassPnlTitle: 'G/P por clase de activo',
+    dClassPnlSub: 'Pérdida o ganancia no realizada por clase, con datos valorados',
+    dClassPnlClass: 'Clase', dClassPnlCost: 'Coste histórico',
+    dClassPnlValue: 'Valor actual', dClassPnlPnl: 'G/P no realizada',
+    dClassPnlRoi: 'ROI', dClassPnlStatus: 'Estado',
+    dClassPnlComplete: 'Completo', dClassPnlPartial: 'Parcial · N/D: {n}',
+    dClassPnlEmpty: 'Sin posiciones valoradas',
     dRetTitle: 'Rentabilidad por activo (%)',
     dRetSub: 'Porcentaje desde precio de compra',
     dPnlTitle: 'Ganancia / Pérdida por activo (USD)',
@@ -5443,6 +5523,13 @@ const I18N = {
     dBetaSub: 'vs S&P 500',
     dAllocTitle: 'Portfolio allocation',
     dAllocSub: 'By current value — stocks vs crypto',
+    dClassPnlTitle: 'P&L by asset class',
+    dClassPnlSub: 'Unrealized gain or loss by class, using valued data',
+    dClassPnlClass: 'Class', dClassPnlCost: 'Historical cost',
+    dClassPnlValue: 'Current value', dClassPnlPnl: 'Unrealized P&L',
+    dClassPnlRoi: 'ROI', dClassPnlStatus: 'Status',
+    dClassPnlComplete: 'Complete', dClassPnlPartial: 'Partial · N/D: {n}',
+    dClassPnlEmpty: 'No valued positions',
     dRetTitle: 'Return by asset (%)',
     dRetSub: 'Percentage from purchase price',
     dPnlTitle: 'Gain / Loss by asset (USD)',
@@ -5631,6 +5718,13 @@ function applyLang() {
   $('kVs').textContent = t('kpiTotalSub');
   $('kROIS').textContent = t('kpiROISub');
   $('kpiPosSub') && ($('kpiPosSub').textContent = t('kpiPosSub'));
+
+  $('dClassPnlTitle') && ($('dClassPnlTitle').textContent = t('dClassPnlTitle'));
+  $('dClassPnlSub') && ($('dClassPnlSub').textContent = t('dClassPnlSub'));
+  [['dClassPnlClassHead','dClassPnlClass'],['dClassPnlCostHead','dClassPnlCost'],
+   ['dClassPnlValueHead','dClassPnlValue'],['dClassPnlPnlHead','dClassPnlPnl'],
+   ['dClassPnlRoiHead','dClassPnlRoi'],['dClassPnlStatusHead','dClassPnlStatus']]
+    .forEach(([id,key]) => { const el=$(id); if (el) el.textContent=t(key); });
 
   // Modal buttons
   const cancelBtns = document.querySelectorAll('.btn-cancel');

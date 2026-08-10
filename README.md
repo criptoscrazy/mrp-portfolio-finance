@@ -24,6 +24,8 @@ GitHub Pages publica la aplicación, pero no almacena las inversiones. Supabase 
 
 La sesión puede conservarse en el navegador. Si ya existe una sesión válida, la sincronización se iniciará automáticamente y no aparecerá de nuevo el botón de conexión.
 
+En el Dashboard, la tarjeta **G/P por clase de activo** separa el resultado no realizado de Acciones, Cripto, CEDEARs y Otros. El G/P y el ROI de cada clase utilizan las mismas posiciones valoradas que el total general; cuando falta un precio o coste válido, la fila queda marcada como parcial.
+
 ## 3. Registrar acciones
 
 1. Entra en **Acciones**.
