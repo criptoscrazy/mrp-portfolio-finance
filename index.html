@@ -4014,8 +4014,8 @@ function appendPositionHistory(asset, scope, type, operation, before) {
     id:uid(), operationId:uid(), operationStatus:'confirmed', positionId:asset.positionId,
     assetType:scope, date:operation.date, type, sym:asset.sym, qty:operation.qty,
     price:operation.price, executionPrice:operation.price, grossAmount, comm:commission, commission,
-    feeStatus, totalCost:type === 'COMPRA' ? grossAmount + commission : null,
-    netProceeds:type === 'VENTA' ? grossAmount - commission : null,
+    feeStatus, totalCost:type === 'COMPRA' && feeStatus !== 'not_recorded' ? grossAmount + commission : null,
+    netProceeds:type === 'VENTA' && feeStatus !== 'not_recorded' ? grossAmount - commission : null,
     operationSource:operation.operationSource || 'manual', reconciliationStatus:operation.reconciliationStatus || 'manual',
     brokerTradeId:operation.brokerTradeId || '', brokerOrderId:operation.brokerOrderId || '',
     executionTimestamp:operation.executionTimestamp || null, externalSource:operation.externalSource || '',
@@ -5169,13 +5169,15 @@ function renderHist() {
   ST.hist.forEach(h => {
     const commission=Number(h.commission ?? h.comm ?? 0);
     const grossAmount=Number.isFinite(Number(h.grossAmount)) ? Number(h.grossAmount) : Number(h.qty)*Number(h.executionPrice ?? h.price);
-    const total=Number.isFinite(Number(h.totalCost)) ? Number(h.totalCost) : Number.isFinite(Number(h.netProceeds)) ? Number(h.netProceeds) : (h.type === 'COMPRA' ? grossAmount+commission : grossAmount-commission);
+    const hasStoredCost=h.totalCost != null && h.totalCost !== '' && Number.isFinite(Number(h.totalCost));
+    const hasStoredProceeds=h.netProceeds != null && h.netProceeds !== '' && Number.isFinite(Number(h.netProceeds));
+    const feeUnknown=h.feeStatus === 'not_recorded' || (!h.feeStatus && commission === 0);
+    const total=hasStoredCost ? Number(h.totalCost) : hasStoredProceeds ? Number(h.netProceeds) : feeUnknown ? null : (h.type === 'COMPRA' ? grossAmount+commission : grossAmount-commission);
     const tr = document.createElement('tr');
     const formatHistoryMoney=value=>h.currency?formatDec(value,{digits:2,currency:currencyLabel(h.currency)}):fmt(value);
-    const feeText=h.feeStatus === 'not_recorded' || (!h.feeStatus && commission === 0)
-      ? '<span title="Comisión no registrada">N/D</span>'
-      : formatHistoryMoney(commission);
-    tr.innerHTML = `<td class="muted">${escapeHTML(h.date)}</td><td><span class="pill ${h.type==='COMPRA'?'pill-g':'pill-r'}">${escapeHTML(h.type)}</span></td><td class="sym">${escapeHTML(h.sym)}</td><td class="num">${h.qty}</td><td class="num">${formatHistoryMoney(h.executionPrice ?? h.price)}</td><td class="num muted">${feeText}</td><td class="num" style="font-weight:700">${formatHistoryMoney(total)}</td><td class="muted">${escapeHTML(h.custodian||h.notes||'—')}</td><td>${h.legacy?'<span class="pill pill-t" title="Registro anterior conservado sin modificar posiciones">V2</span>':'<i class="ti ti-lock" title="Generado automáticamente"></i>'}</td>`;
+    const feeText=feeUnknown ? '<span title="Comisión no registrada">N/D</span>' : formatHistoryMoney(commission);
+    const totalText=total == null ? '<span title="Total pendiente: falta comisión registrada">N/D</span>' : formatHistoryMoney(total);
+    tr.innerHTML = `<td class="muted">${escapeHTML(h.date)}</td><td><span class="pill ${h.type==='COMPRA'?'pill-g':'pill-r'}">${escapeHTML(h.type)}</span></td><td class="sym">${escapeHTML(h.sym)}</td><td class="num">${h.qty}</td><td class="num">${formatHistoryMoney(h.executionPrice ?? h.price)}</td><td class="num muted">${feeText}</td><td class="num" style="font-weight:700">${totalText}</td><td class="muted">${escapeHTML(h.custodian||h.notes||'—')}</td><td>${h.legacy?'<span class="pill pill-t" title="Registro anterior conservado sin modificar posiciones">V2</span>':'<i class="ti ti-lock" title="Generado automáticamente"></i>'}</td>`;
     tb.appendChild(tr);
   });
 }

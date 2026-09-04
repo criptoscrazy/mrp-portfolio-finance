@@ -430,9 +430,11 @@ const tests = String.raw`
   assert.strictEqual(ST.hist[0].grossAmount,210,'El Historial ETF debe conservar el importe bruto');
   assert.strictEqual(ST.hist[0].totalCost,212,'El Historial ETF debe conservar el coste total con comisión');
   assert.strictEqual(ST.hist[0].feeStatus,'recorded','El Historial ETF debe distinguir comisión registrada');
+  applyPositionOperation(vwra,'etf','COMPRA',{qty:1,price:205,comm:0,feeStatus:'not_recorded',date:'2026-09-06',notes:'Comisión pendiente',operationSource:'manual'});
+  assert.strictEqual(ST.hist[0].totalCost,null,'Una compra sin comisión conocida no debe inventar un total confirmado');
   ST.hist.unshift({id:'legacy-unknown-fee',date:'2025-01-01',type:'COMPRA',sym:'LEGACY',qty:1,price:100,comm:0,broker:'Carga histórica'});
   renderHist();
-  assert($('hTb').children[0]?.innerHTML.includes('N/D'),'Una comisión histórica no registrada debe mostrarse como N/D, no como cero confirmado');
+  assert.strictEqual(($('hTb').children[0]?.innerHTML.match(/N\/D/g)||[]).length,2,'Una comisión histórica no registrada debe dejar comisión y total como N/D');
   ST.hist.shift();
   renderDCA();
   assert($('dcaTb').children.some(row=>row.innerHTML.includes('VWRA')),'DCA debe incluir ETFs activos');

@@ -75,7 +75,7 @@ Cada ETF se identifica internamente por **ticker + mercado de cotización** y, c
 1. En **Otros > ETFs**, escribe el ticker y pulsa **Buscar ETF** para completar nombre, mercado, moneda y símbolo de cotización cuando Yahoo Finance disponga de esos datos.
 2. Revisa el mercado antes de guardar. Para Londres, selecciona **LSE**: la aplicación resolverá el símbolo de Yahoo como `TICKER.L`.
 3. Añade el ISIN si lo conoces. Es una verificación adicional, no sustituye al mercado de cotización.
-4. Escribe la comisión sólo si la conoces; si se deja vacía, el historial muestra `N/D` en vez de presentar un cero que no fue confirmado.
+4. Escribe la comisión sólo si la conoces; si se deja vacía, el historial muestra `N/D` para la comisión y el total de operación, en vez de presentar un cero que no fue confirmado.
 5. El TER no se completa automáticamente: es un dato del producto que debes verificar en la ficha oficial antes de introducirlo o modificarlo.
 
 Para una posición ETF antigua sin mercado o ISIN, abre el lápiz de esa fila y completa esos datos antes de esperar una cotización automática. La aplicación no adivina el mercado a partir del ticker, porque el mismo ticker puede corresponder a listados distintos.
