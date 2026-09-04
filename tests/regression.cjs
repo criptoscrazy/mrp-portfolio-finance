@@ -379,7 +379,74 @@ const tests = String.raw`
   assert($('cedTimelineTb').innerHTML.includes('Venta registrada'),'Una venta CEDEAR no debe figurar como valuación pendiente');
   assert.strictEqual(ST.hist[0].positionId,cedearPosition.positionId,'La venta CEDEAR debe vincularse a su posición');
 
-  console.log('OK: V3 posiciones, operaciones, migración, sincronización y CEDEAR');
+  const vwraGross = 2.788 * 195.48;
+  const vwra = {
+    id:'etf-vwra', positionId:'pos_etf_vwra_ibkr', assetType:'etf', type:'etf', status:'active',
+    sym:'VWRA', name:'Vanguard FTSE All-World UCITS ETF USD Accumulating', market:'LSE',
+    isin:'IE00BK5BQT80', listingCurrency:'USD', priceSymbol:'', instrumentId:'ticker:VWRA@LSE|isin:IE00BK5BQT80',
+    instrumentSource:'manual', etfType:'indice', index:'FTSE All-World Index', ter:0.14,
+    qty:2.788, buy:195.48, avgBuy:(vwraGross + 4) / 2.788, openCost:vwraGross + 4,
+    costFeeStatus:'fees_recorded', date:'2026-09-04', broker:'Interactive Brokers', note:''
+  };
+  ST=sanitizePortfolioState({ ...base, otros:[vwra], hist:[], snaps:[], aSnaps:{} });
+  ST.otros[0]=vwra;
+  appendPositionHistory(vwra,'etf','COMPRA',{qty:2.788,price:195.48,comm:4,feeStatus:'recorded',date:'2026-09-04',notes:'Compra inicial VWRA',operationSource:'manual'},{qty:0,openCost:0,avgBuy:0});
+  assert.strictEqual(resolveEtfYahooSymbol(vwra),'VWRA.L','Un ETF LSE debe resolver el sufijo Yahoo desde el mercado');
+  assert.strictEqual(etfInstrumentIdentity(vwra),'ticker:VWRA@LSE|isin:IE00BK5BQT80','La identidad debe conservar listado e ISIN');
+  assert(samePositionInstrument(vwra,{...vwra,priceSymbol:'VWRA.L'},'etf'),'El mismo ETF y mercado debe consolidarse en el mismo custodio');
+  assert(!samePositionInstrument(vwra,{...vwra,market:'XETRA'},'etf'),'El mismo ISIN listado en otro mercado no debe mezclarse');
+  assert.strictEqual(marketFromYahooSearch({exchange:'LSE',exchDisp:'London'}),'LSE','La búsqueda de Yahoo debe normalizar LSE');
+  assert.strictEqual(tickerFromYahooSymbol('VWRA.L','LSE'),'VWRA','La búsqueda debe separar ticker visible y símbolo de cotización');
+  $('etfComm').value='4';
+  assert.deepStrictEqual(JSON.parse(JSON.stringify(readOptionalCommission('etfComm'))),{comm:4,feeStatus:'recorded'},'Una comisión positiva debe quedar registrada como tal');
+  $('etfComm').value='';
+  assert.deepStrictEqual(JSON.parse(JSON.stringify(readOptionalCommission('etfComm'))),{comm:0,feeStatus:'not_recorded'},'Una comisión vacía no debe presentarse como cero confirmado');
+  fetchWithFallback = async url => {
+    if (url.includes('/v1/finance/search') && url.includes('VWRA')) return { ok:true, json:async () => ({ quotes:[{quoteType:'ETF',symbol:'VWRA.L',longname:'Vanguard FTSE All-World UCITS ETF USD Accumulating',exchange:'LSE',exchDisp:'London',currency:'USD'}] }) };
+    if (url.includes('VWRA.L')) return { ok:true, json:async () => ({ chart:{ result:[{ meta:{ regularMarketPrice:200.12,chartPreviousClose:199.50,currency:'USD',regularMarketTime:Math.floor(Date.now()/1000),marketState:'REGULAR' } }] } }) };
+    return null;
+  };
+  $('etfSym').value='VWRA';
+  await lookupETF();
+  assert($('acETF').innerHTML.includes('VWRA'),'La búsqueda ETF debe devolver la cotización internacional encontrada');
+  selectEtfLookup('VWRA','Vanguard FTSE All-World UCITS ETF USD Accumulating','LSE','USD','VWRA.L');
+  assert.strictEqual($('etfMarket').value,'LSE','La selección debe guardar el mercado del ETF');
+  assert.strictEqual($('etfPriceSymbol').value,'VWRA.L','La selección debe guardar el símbolo Yahoo exacto');
+  await updatePrices({ automatic:true });
+  assert.strictEqual(vwra.cur,200.12,'El precio de VWRA debe proceder de la respuesta del proveedor');
+  assert.strictEqual(vwra.quoteSymbol,'VWRA.L','La cotización guardada debe conservar el símbolo de mercado resuelto');
+  assert.strictEqual(vwra.quoteCurrency,'USD','La cotización de VWRA debe conservar la moneda USD');
+  const vwraSummary=portfolioSummary();
+  const vwraValuation=vwraSummary.valued.find(item=>item.positionId==='pos_etf_vwra_ibkr'||item.id==='etf-vwra');
+  assert(vwraValuation,'El Dashboard debe valorar VWRA después de obtener el precio');
+  assert(Math.abs(vwraValuation.currentUSD-(2.788*200.12))<1e-8,'El valor actual debe ser cantidad por precio de mercado');
+  assert(Math.abs(vwraValuation.costUSD-(vwraGross+4))<1e-8,'El coste histórico debe incluir la comisión de la compra');
+  applyPositionOperation(vwra,'etf','COMPRA',{qty:1,price:210,comm:2,feeStatus:'recorded',date:'2026-09-05',notes:'Compra adicional',operationSource:'manual'});
+  assert.strictEqual(vwra.buy,195.48,'P. COMPRA ETF debe mantener el precio de la primera compra');
+  assert.strictEqual(vwra.qty,3.788,'Una compra adicional ETF debe actualizar la posición exacta');
+  assert(Math.abs(vwra.openCost-(vwraGross+4+212))<1e-8,'El coste ETF abierto debe incluir cada comisión registrada');
+  assert(Math.abs(vwra.avgBuy-vwra.openCost/vwra.qty)<1e-8,'P. PROM. DCA ETF debe ser el coste medio ponderado');
+  assert.strictEqual(ST.hist[0].positionId,vwra.positionId,'La compra ETF debe quedar vinculada al positionId');
+  assert.strictEqual(ST.hist[0].grossAmount,210,'El Historial ETF debe conservar el importe bruto');
+  assert.strictEqual(ST.hist[0].totalCost,212,'El Historial ETF debe conservar el coste total con comisión');
+  assert.strictEqual(ST.hist[0].feeStatus,'recorded','El Historial ETF debe distinguir comisión registrada');
+  ST.hist.unshift({id:'legacy-unknown-fee',date:'2025-01-01',type:'COMPRA',sym:'LEGACY',qty:1,price:100,comm:0,broker:'Carga histórica'});
+  renderHist();
+  assert($('hTb').children[0]?.innerHTML.includes('N/D'),'Una comisión histórica no registrada debe mostrarse como N/D, no como cero confirmado');
+  ST.hist.shift();
+  renderDCA();
+  assert($('dcaTb').children.some(row=>row.innerHTML.includes('VWRA')),'DCA debe incluir ETFs activos');
+  ST.selAsset=vwra;
+  $('aSnapD').value='2026-09-05'; $('aSnapV').value='200.12';
+  addASnap();
+  assert.strictEqual(assetSnapshotKey(vwra),vwra.positionId,'Los nuevos snapshots por activo deben usar positionId');
+  assert.strictEqual(ST.aSnaps[vwra.positionId][0].value,200.12,'El snapshot ETF debe persistir bajo positionId');
+  const persistedVwra=sanitizePortfolioState(JSON.parse(JSON.stringify(vwra)));
+  assert.strictEqual(persistedVwra.isin,'IE00BK5BQT80','La persistencia V3 debe conservar el ISIN');
+  assert.strictEqual(persistedVwra.market,'LSE','La persistencia V3 debe conservar el mercado');
+  assert.strictEqual(persistedVwra.priceSymbol,'VWRA.L','La persistencia V3 debe conservar el ticker del proveedor');
+
+  console.log('OK: V3 posiciones, operaciones, migración, sincronización, CEDEAR y ETF');
 })()
 `;
 

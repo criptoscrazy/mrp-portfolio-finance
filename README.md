@@ -61,19 +61,31 @@ Las cotizaciones se consultan primero mediante el par Spot `USDT` de Binance. Si
 
 La sección **Otros** contiene formularios específicos:
 
-- **ETFs**: símbolo, tipo, índice, cantidad, precio, TER, broker y fecha.
+- **ETFs**: símbolo, mercado de cotización, ISIN cuando se conoce, cantidad, precio de ejecución, comisión opcional, TER informado por el usuario, broker y fecha.
 - **CEDEARs**: cada compra se registra como un lote independiente. Elegí `ARS`, `USD MEP` o `USD cable`, indicá cantidad, ratio, precio unitario, importe bruto, costo total, fecha, broker y, si corresponde, ticket, fuente, gastos/comisiones y referencias históricas de CCL, MEP o equivalente en ARS. La tabla consolida por símbolo y broker; nunca mezcla custodios ni monedas.
 - **Tokenizados**: símbolo, tipo de respaldo, exchange, cantidad y precio.
 - **Bonos**: nominal, precio porcentual, tasa, vencimiento, moneda y broker.
 
 Utiliza la categoría que represente realmente el instrumento. No registres una empresa privada como ETF, bono o tokenizado salvo que poseas efectivamente ese producto.
 
+### ETFs: identificación, precio y costes
+
+Cada ETF se identifica internamente por **ticker + mercado de cotización** y, cuando está disponible, también por su **ISIN**. Así se evita mezclar dos listados del mismo fondo en mercados o monedas diferentes. El broker/custodio sigue formando parte de la posición: el mismo ETF en dos brokers son dos posiciones.
+
+1. En **Otros > ETFs**, escribe el ticker y pulsa **Buscar ETF** para completar nombre, mercado, moneda y símbolo de cotización cuando Yahoo Finance disponga de esos datos.
+2. Revisa el mercado antes de guardar. Para Londres, selecciona **LSE**: la aplicación resolverá el símbolo de Yahoo como `TICKER.L`.
+3. Añade el ISIN si lo conoces. Es una verificación adicional, no sustituye al mercado de cotización.
+4. Escribe la comisión sólo si la conoces; si se deja vacía, el historial muestra `N/D` en vez de presentar un cero que no fue confirmado.
+5. El TER no se completa automáticamente: es un dato del producto que debes verificar en la ficha oficial antes de introducirlo o modificarlo.
+
+Para una posición ETF antigua sin mercado o ISIN, abre el lápiz de esa fila y completa esos datos antes de esperar una cotización automática. La aplicación no adivina el mercado a partir del ticker, porque el mismo ticker puede corresponder a listados distintos.
+
 ## 6. Actualizar precios
 
 Pulsa **Actualizar precios** en la cabecera.
 
 - Las criptomonedas se consultan mediante Binance Spot (`USDT`), con CoinGecko y CryptoCompare como respaldos.
-- Las acciones, ETFs, CEDEARs y acciones tokenizadas se consultan mediante Yahoo Finance y servicios de respaldo para resolver restricciones CORS. Los CEDEARs usan el sufijo `.BA` para obtener su cotización local en ARS.
+- Las acciones, ETFs, CEDEARs y acciones tokenizadas se consultan mediante Yahoo Finance y servicios de respaldo para resolver restricciones CORS. En ETFs, el símbolo consultado se deriva del ticker y mercado registrado o de un símbolo de precio validado. Los CEDEARs usan el sufijo `.BA` para obtener su cotización local en ARS.
 - La fuente y la hora de cada cotización se conservan con el activo y pueden consultarse en **Más información**.
 - La aplicación informa cuántos precios se actualizaron y cuántos quedaron sin datos.
 - Se crea o actualiza el snapshot diario de evolución.
@@ -120,7 +132,7 @@ V3 utiliza `mrp_portfolio_v3` en el navegador y `portfolio_data_v3` en Supabase.
 - Una venta total cierra la posición y deja de mostrarla entre las posiciones activas, pero conserva su Historial.
 - Usa el lápiz solamente para nombre, notas y datos descriptivos. Cantidad, precio inicial, fecha y custodio no se editan silenciosamente.
 
-`P. COMPRA` conserva siempre el precio de la primera compra de esa posición. `P. PROM. DCA` muestra el precio medio ponderado de las unidades que siguen abiertas e incluye las comisiones de compra. Cada fila del Historial conserva el precio individual de su compra o venta.
+`P. COMPRA` conserva siempre el precio de la primera compra de esa posición. `P. PROM. DCA` muestra el precio medio ponderado de las unidades que siguen abiertas e incluye las comisiones de compra. Cada fila del Historial conserva el precio individual de su compra o venta. Una comisión informada se integra en el coste abierto de una compra y se resta del neto de una venta; una comisión no informada queda como `N/D`, sin reinterpretar registros históricos como coste cero.
 
 ## 8. Historial e importaciones
 
@@ -322,6 +334,7 @@ Para disponer de funcionamiento offline completo sería necesario incorporar un 
 
 - Reintenta más tarde.
 - Comprueba que el ticker sea correcto.
+- Para ETFs internacionales, revisa el mercado de cotización y, si es necesario, el símbolo de precio guardado. No uses otro mercado sólo porque comparta ticker o ISIN.
 - Recuerda que empresas privadas como SpaceX no tienen cotización pública.
 - Verifica el precio con una fuente financiera independiente.
 
@@ -337,10 +350,14 @@ Para disponer de funcionamiento offline completo sería necesario incorporar un 
 - GitHub Pages para publicación HTTPS.
 - Supabase Auth con GitHub OAuth.
 - PostgreSQL/Supabase con RLS para sincronización.
-- Estado V3 centrado en posiciones y tabla `portfolio_data_v3` separada de V2.
+- Estado V3 centrado en posiciones y tabla `portfolio_data_v3` separada de V2. Los ETF conservan `ticker + mercado`, ISIN, moneda de listado y símbolo de cotización como metadatos compatibles.
 - Chart.js para gráficos.
 - Binance Spot, CoinGecko, CryptoCompare, Yahoo Finance, DolarApi.com y Dolarazo para precios y CCL actual.
 - TradingView para gráficos técnicos.
+
+### Preparación para futuras conciliaciones de broker
+
+Las operaciones nuevas conservan de forma interna el origen manual y campos reservados para una futura conciliación con un broker. Esto **no** activa una conexión con Interactive Brokers, no guarda credenciales ni importa movimientos automáticamente. Cualquier integración futura deberá ser de solo lectura, comparar diferencias y requerir aceptación explícita antes de cambiar la cartera.
 
 ## 20. Alcance
 

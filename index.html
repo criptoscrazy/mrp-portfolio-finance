@@ -1231,6 +1231,7 @@ input::placeholder,textarea::placeholder,select::placeholder{color:var(--tx4);op
 </div>
     <div class="f"><label>Cantidad</label><input id="sQ" class="inp-h" type="number" placeholder="0.00" min="0" step="any"></div>
     <div class="f"><label>Precio compra (USD)</label><input id="sP" class="inp-h" type="number" placeholder="0.00" min="0" step="0.01"></div>
+    <div class="f"><label>Comisión (USD)</label><input id="sComm" class="inp-h" type="number" placeholder="Sin dato" min="0" step="0.01"></div>
     <div class="f"><label>Fecha compra</label><input id="sD" class="inp-h" type="date"></div>
     <div class="f"><label>Stop Loss</label><input id="sSL" class="inp-h" type="number" placeholder="0.00" step="0.01"></div>
     <div class="f"><label>Target</label><input id="sTG" class="inp-h" type="number" placeholder="0.00" step="0.01"></div>
@@ -1268,6 +1269,7 @@ input::placeholder,textarea::placeholder,select::placeholder{color:var(--tx4);op
 </div>
     <div class="f"><label>Cantidad</label><input id="cQ" class="inp-h" type="number" placeholder="0.00" min="0" step="any"></div>
     <div class="f"><label>Precio compra (USD)</label><input id="cP" class="inp-h" type="number" placeholder="0.00" min="0" step="0.01"></div>
+    <div class="f"><label>Comisión (USD)</label><input id="cComm" class="inp-h" type="number" placeholder="Sin dato" min="0" step="0.01"></div>
     <div class="f"><label>Fecha compra</label><input id="cD" class="inp-h" type="date"></div>
     <div class="f"><label>Tipo custodia</label>
       <select id="cCust" style="height:34px;background:var(--input-bg);border:1px solid var(--br2);border-radius:8px;color:var(--tx1);padding:0 10px;width:100%">
@@ -1316,7 +1318,12 @@ input::placeholder,textarea::placeholder,select::placeholder{color:var(--tx4);op
         <input id="etfSym" class="inp-h" placeholder="SPY, QQQ..." oninput="this.value=this.value.toUpperCase();acSearchOtros(this,'etf')" autocomplete="off">
         <div class="ac-drop" id="acETF"></div>
       </div>
+      <div><span class="lph">.</span><button class="btn-snap" type="button" onclick="lookupETF()" title="Buscar ETF en Yahoo Finance"><i class="ti ti-search"></i> Buscar ETF</button></div>
       <div class="f"><label>Nombre</label><input id="etfName" class="inp-h" placeholder="SPDR S&amp;P 500 ETF"></div>
+      <div class="f"><label>Mercado / listado</label><select id="etfMarket" style="height:34px;background:var(--input-bg);border:1px solid var(--br2);border-radius:8px;color:var(--tx1);padding:0 10px;width:100%"><option value="">Seleccioná mercado</option><option value="US">EE. UU. (NYSE / NASDAQ)</option><option value="LSE">London Stock Exchange</option><option value="XETRA">XETRA</option><option value="FRA">Frankfurt</option><option value="EURONEXT_AMS">Euronext Amsterdam</option><option value="EURONEXT_PAR">Euronext Paris</option><option value="MIL">Borsa Italiana</option><option value="SIX">SIX Swiss Exchange</option><option value="TSX">Toronto Stock Exchange</option><option value="ASX">Australian Securities Exchange</option><option value="OTHER">Otro (ticker Yahoo)</option></select></div>
+      <div class="f"><label>ISIN (opcional)</label><input id="etfIsin" class="inp-h" placeholder="IE00BK5BQT80" maxlength="12"></div>
+      <div class="f"><label>Símbolo Yahoo (opcional)</label><input id="etfPriceSymbol" class="inp-h" placeholder="VWRA.L" oninput="this.value=this.value.toUpperCase()"></div>
+      <div class="f"><label>Moneda de listado</label><select id="etfCurrency" style="height:34px;background:var(--input-bg);border:1px solid var(--br2);border-radius:8px;color:var(--tx1);padding:0 10px;width:100%"><option value="USD">USD</option><option value="EUR">EUR</option><option value="GBP">GBP</option><option value="ARS">ARS</option><option value="OTHER">Otra</option></select></div>
       <div class="f"><label>Tipo ETF</label>
         <select id="etfType" style="height:34px;background:var(--input-bg);border:1px solid var(--br2);border-radius:8px;color:var(--tx1);padding:0 10px;width:100%">
           <option value="indice">Índice</option>
@@ -1331,6 +1338,7 @@ input::placeholder,textarea::placeholder,select::placeholder{color:var(--tx4);op
       <div class="f"><label>Índice que replica</label><input id="etfIndex" class="inp-h" placeholder="S&amp;P 500, NASDAQ 100..."></div>
       <div class="f"><label>Cantidad</label><input id="etfQty" class="inp-h" type="number" step="any" placeholder="0.00"></div>
       <div class="f"><label>Precio compra (USD)</label><input id="etfBuy" class="inp-h" type="number" step="0.01" placeholder="0.00"></div>
+      <div class="f"><label>Comisión (USD)</label><input id="etfComm" class="inp-h" type="number" min="0" step="0.01" placeholder="Sin dato"></div>
       <div class="f"><label>Fecha compra</label><input id="etfDate" class="inp-h" type="date"></div>
       <div class="f"><label>TER / Expense ratio (%)</label><input id="etfTer" class="inp-h" type="number" step="0.01" placeholder="0.00"></div>
       <div class="f"><label>Broker / Custodio</label><input id="etfBroker" class="inp-h" list="platformsList" placeholder="Interactive Brokers..."></div>
@@ -1339,7 +1347,7 @@ input::placeholder,textarea::placeholder,select::placeholder{color:var(--tx4);op
     </div>
     <div class="card" style="padding:0;overflow:hidden">
       <div class="tbl-wrap"><table>
-        <thead><tr><th>Símbolo</th><th>Nombre</th><th>Tipo</th><th>Índice</th><th>Cant.</th><th>P. Compra</th><th>P. Prom. DCA</th><th>P. Actual</th><th>24h</th><th>Capital</th><th>Valor act.</th><th>G/P $</th><th>G/P %</th><th>TER</th><th>Broker</th><th>Días</th><th>Notas</th><th>Acc.</th></tr></thead>
+        <thead><tr><th>Símbolo</th><th>Mercado</th><th>Nombre</th><th>Tipo</th><th>Índice</th><th>Cant.</th><th>P. Compra</th><th>P. Prom. DCA</th><th>P. Actual</th><th>24h</th><th>Capital</th><th>Valor act.</th><th>G/P $</th><th>G/P %</th><th>TER</th><th>Broker</th><th>Días</th><th>Notas</th><th>Acc.</th></tr></thead>
         <tbody id="etfTb"></tbody>
       </table></div>
     </div>
@@ -1429,6 +1437,7 @@ input::placeholder,textarea::placeholder,select::placeholder{color:var(--tx4);op
       </div>
       <div class="f"><label>Cantidad</label><input id="tokQty" class="inp-h" type="number" step="any" placeholder="0.00"></div>
       <div class="f"><label>Precio compra (USD)</label><input id="tokBuy" class="inp-h" type="number" step="0.01" placeholder="0.00"></div>
+      <div class="f"><label>Comisión (USD)</label><input id="tokComm" class="inp-h" type="number" min="0" step="0.01" placeholder="Sin dato"></div>
       <div class="f"><label>Fecha compra</label><input id="tokDate" class="inp-h" type="date"></div>
       <div class="f"><label>Exchange</label><input id="tokExchange" class="inp-h" list="platformsList" placeholder="Binance, Bitfinex..."></div>
       <div class="f"><label>Notas</label><input id="tokNote" class="inp-h" placeholder=""></div>
@@ -1458,6 +1467,7 @@ input::placeholder,textarea::placeholder,select::placeholder{color:var(--tx4);op
       </div>
       <div class="f"><label>Valor nominal</label><input id="bonNominal" class="inp-h" type="number" step="0.01" placeholder="0.00"></div>
       <div class="f"><label>Precio compra (%)</label><input id="bonBuy" class="inp-h" type="number" step="0.01" placeholder="0.00"></div>
+      <div class="f"><label>Comisión (USD)</label><input id="bonComm" class="inp-h" type="number" min="0" step="0.01" placeholder="Sin dato"></div>
       <div class="f"><label>Tasa cupón (%)</label><input id="bonRate" class="inp-h" type="number" step="0.01" placeholder="0.00"></div>
       <div class="f"><label>Fecha compra</label><input id="bonDate" class="inp-h" type="date"></div>
       <div class="f"><label>Vencimiento</label><input id="bonExpiry" class="inp-h" type="date"></div>
@@ -2256,7 +2266,7 @@ input::placeholder,textarea::placeholder,select::placeholder{color:var(--tx4);op
       <div class="modal-field"><label>Posición</label><input id="positionOperationAsset" readonly></div>
       <div class="modal-field"><label>Cantidad</label><input id="positionOperationQty" type="number" min="0" step="any" placeholder="0.00"></div>
       <div class="modal-field"><label id="positionOperationPriceLabel">Precio unitario (USD)</label><input id="positionOperationPrice" type="number" min="0" step="any" placeholder="0.00"></div>
-      <div class="modal-field"><label>Comisión</label><input id="positionOperationCommission" type="number" min="0" step="any" value="0"></div>
+      <div class="modal-field"><label>Comisión registrada</label><input id="positionOperationCommission" type="number" min="0" step="any" placeholder="Sin dato"></div>
       <div class="modal-field" id="positionOperationCurrencyWrap" style="display:none"><label>Moneda</label><select id="positionOperationCurrency"><option value="USD_MEP">USD MEP</option><option value="USD_CABLE">USD cable</option><option value="ARS">ARS</option></select></div>
       <div class="modal-field"><label>Fecha</label><input id="positionOperationDate" type="date"></div>
       <div class="modal-field full"><label>Notas (opcional)</label><textarea id="positionOperationNotes" placeholder="Detalle breve de la operación"></textarea></div>
@@ -2798,7 +2808,7 @@ const NUMERIC_STATE_KEYS = new Set([
   'rate', 'capital', 'ter', 'ratio', 'buyARS', 'ccl', 'buyUSD', 'priceUSD',
   'capitalUSD', 'nominal', 'buyPct', 'capUSD', 'annualInterest',
   'avgBuy', 'openCost', 'realizedPnl', 'qtyBefore', 'qtyAfter', 'avgBefore', 'avgAfter',
-  'openCostBefore', 'openCostAfter'
+  'openCostBefore', 'openCostAfter', 'executionPrice', 'grossAmount', 'commission', 'totalCost', 'netProceeds'
 ]);
 const BOOLEAN_STATE_KEYS = new Set(['checked', 'triggered']);
 const STRING_STATE_KEYS = new Set([
@@ -2813,7 +2823,9 @@ const STRING_STATE_KEYS = new Set([
   'ticketNumber','informationSource','amountDecimal','lotId','concept','schemaVersion',
   'cedearCurrentCclDecimal','cedearCurrentCclSource','cedearCurrentCclUpdatedAt','cedearCurrentCclSourceTimestamp','cedearCurrentCclRetrievedAt','cedearCurrentCclMethod','cedearCurrentCclMode','cedearPriceArsDecimal','cclDecimal',
   'positionId','assetType','custodian','operationId','operationStatus','migrationStatus','legacyReason',
-  'saleGroupId','currency','costCurrency','quantityBeforeDecimal','quantityAfterDecimal','costRemovedDecimal'
+  'saleGroupId','currency','costCurrency','quantityBeforeDecimal','quantityAfterDecimal','costRemovedDecimal',
+  'market','listingCurrency','isin','priceSymbol','instrumentId','instrumentSource','feeStatus','costFeeStatus',
+  'operationSource','reconciliationStatus','brokerTradeId','brokerOrderId','executionTimestamp','externalSource'
 ]);
 
 function isPlainRecord(value) {
@@ -2913,6 +2925,78 @@ function normalizedPositionPart(value) {
   return String(value || 'sin-especificar').trim().toLowerCase().replace(/[^a-z0-9._-]+/g, '-').replace(/^-+|-+$/g, '') || 'sin-especificar';
 }
 
+const ETF_MARKETS = Object.freeze({
+  US:{ label:'EE. UU. (NYSE / NASDAQ)', yahooSuffix:'' },
+  LSE:{ label:'London Stock Exchange', yahooSuffix:'.L' },
+  XETRA:{ label:'XETRA', yahooSuffix:'.DE' },
+  FRA:{ label:'Frankfurt', yahooSuffix:'.F' },
+  EURONEXT_AMS:{ label:'Euronext Amsterdam', yahooSuffix:'.AS' },
+  EURONEXT_PAR:{ label:'Euronext Paris', yahooSuffix:'.PA' },
+  MIL:{ label:'Borsa Italiana', yahooSuffix:'.MI' },
+  SIX:{ label:'SIX Swiss Exchange', yahooSuffix:'.SW' },
+  TSX:{ label:'Toronto Stock Exchange', yahooSuffix:'.TO' },
+  ASX:{ label:'Australian Securities Exchange', yahooSuffix:'.AX' },
+  OTHER:{ label:'Otro mercado', yahooSuffix:null }
+});
+const ETF_MARKET_ALIASES = Object.freeze({
+  LSEETF:'LSE', LONDON:'LSE', 'LONDON STOCK EXCHANGE':'LSE',
+  NASDAQ:'US', NYSE:'US', AMEX:'US', BATS:'US',
+  'EURONEXT AMSTERDAM':'EURONEXT_AMS', 'EURONEXT PARIS':'EURONEXT_PAR',
+  MILAN:'MIL', 'BORSA ITALIANA':'MIL', SWX:'SIX', 'SIX SWISS EXCHANGE':'SIX',
+  TORONTO:'TSX', 'TORONTO STOCK EXCHANGE':'TSX', AUSTRALIA:'ASX'
+});
+function normalizeEtfMarket(value) {
+  const raw=String(value||'').trim().toUpperCase();
+  return ETF_MARKET_ALIASES[raw] || (ETF_MARKETS[raw] ? raw : '');
+}
+function normalizedEtfIsin(value) {
+  return String(value||'').toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,12);
+}
+function normalizedQuoteSymbol(value) {
+  return String(value||'').trim().toUpperCase().replace(/[^A-Z0-9.^=-]/g,'').slice(0,40);
+}
+function etfInstrumentIdentity(asset) {
+  const ticker=normalizedQuoteSymbol(asset?.sym);
+  const market=normalizeEtfMarket(asset?.market)||'UNSPECIFIED';
+  const listedInstrument=`ticker:${ticker}@${market}`;
+  const isin=normalizedEtfIsin(asset?.isin);
+  return isin ? `${listedInstrument}|isin:${isin}` : listedInstrument;
+}
+function samePositionInstrument(first, second, assetType) {
+  if (assetType !== 'etf') return String(first?.sym||'') === String(second?.sym||'');
+  if (normalizedQuoteSymbol(first?.sym) !== normalizedQuoteSymbol(second?.sym)) return false;
+  const firstMarket=normalizeEtfMarket(first?.market), secondMarket=normalizeEtfMarket(second?.market);
+  if (firstMarket && secondMarket && firstMarket !== secondMarket) return false;
+  const firstIsin=normalizedEtfIsin(first?.isin), secondIsin=normalizedEtfIsin(second?.isin);
+  return !firstIsin || !secondIsin || firstIsin === secondIsin;
+}
+function resolveEtfYahooSymbol(asset) {
+  const configured=normalizedQuoteSymbol(asset?.priceSymbol);
+  if (configured) return configured;
+  const ticker=normalizedQuoteSymbol(asset?.sym);
+  const market=normalizeEtfMarket(asset?.market);
+  const suffix=ETF_MARKETS[market]?.yahooSuffix;
+  return ticker && suffix != null ? `${ticker}${suffix}` : ticker;
+}
+function yahooQuoteSymbolForAsset(asset) {
+  if (asset?.type === 'etf') return resolveEtfYahooSymbol(asset);
+  if (asset?.type === 'cedeaar' && !String(asset.sym||'').endsWith('.BA')) return `${asset.sym}.BA`;
+  return normalizedQuoteSymbol(asset?.sym);
+}
+function normalizedFeeStatus(status, commission) {
+  if (['recorded','confirmed_zero','not_recorded'].includes(status)) return status;
+  return Number(commission) > 0 ? 'recorded' : 'not_recorded';
+}
+function readOptionalCommission(inputId) {
+  const raw=String($(inputId)?.value ?? '').trim();
+  if (!raw) return { comm:0, feeStatus:'not_recorded' };
+  const comm=Number(raw);
+  if (!Number.isFinite(comm) || comm < 0) throw new Error('La comisión debe ser un importe positivo o cero');
+  return { comm, feeStatus:comm === 0 ? 'confirmed_zero' : 'recorded' };
+}
+function positionHasUnrecordedFee(asset) {
+  return (ST.hist||[]).some(entry => entry.positionId === asset?.positionId && entry.type === 'COMPRA' && !entry.feeStatus && Number(entry.comm||0) === 0);
+}
 function positionCustodian(asset, assetType) {
   if (assetType === 'crypto') return asset.wallet || asset.custody || 'sin-especificar';
   if (assetType === 'token') return asset.exchange || 'sin-especificar';
@@ -3733,12 +3817,7 @@ async function updatePrices({ automatic = false } = {}) {
     ...ST.stocks.map(asset => ({ asset, symbol: asset.sym })),
     ...(ST.otros || [])
       .filter(asset => ['etf', 'token', 'cedeaar'].includes(asset.type))
-      .map(asset => ({
-        asset,
-        symbol: asset.type === 'cedeaar' && !asset.sym.endsWith('.BA')
-          ? `${asset.sym}.BA`
-          : asset.sym
-      }))
+      .map(asset => ({ asset, symbol: yahooQuoteSymbolForAsset(asset) }))
   ];
   const quoteGroups = new Map();
   stockQuoteTargets.forEach(target => {
@@ -3754,6 +3833,7 @@ async function updatePrices({ automatic = false } = {}) {
       assets.forEach(asset => {
         ['cur', 'ch', 'lastClose', 'priceSource', 'priceUpdatedAt', 'priceSourceTimestamp', 'priceRetrievedAt', 'priceStatus', 'priceMarketState', 'quoteCurrency', 'quoteSymbol']
           .forEach(key => { asset[key] = quote[key]; });
+        if (asset.type === 'etf' && !asset.priceSymbol) asset.priceSymbol = quote.quoteSymbol;
       });
     }
     return { ok, count: assets.length };
@@ -3823,25 +3903,28 @@ function addAsset(type) {
   const buy = parseFloat($(p+'P').value);
   const date = $(p+'D').value;
   if (!sym || !name || !qty || !buy || !date) { showToast(t('toastFillFields'), 'warn'); return; }
+  let commission;
+  try { commission=readOptionalCommission(type === 'stock' ? 'sComm' : 'cComm'); }
+  catch (error) { showToast(error.message, 'warn'); return; }
   const custodian = type === 'stock' ? ($('sBroker')?.value || '') : ($('cW')?.value.trim() || $('cCust')?.value || '');
   const existing = (type === 'stock' ? ST.stocks : ST.crypto).find(asset =>
     asset.sym === sym && normalizedPositionPart(positionCustodian(asset, type)) === normalizedPositionPart(custodian)
   );
   if (existing && !positionIsClosed(existing,type)) { showToast(`${sym} ya existe en ese custodio. Usá Comprar en su fila.`, 'warn', 5000); return; }
   if (existing) {
-    applyPositionOperation(existing, type, 'COMPRA', { qty, price:buy, comm:0, date, notes:'Reapertura de posición' });
+    applyPositionOperation(existing, type, 'COMPRA', { qty, price:buy, ...commission, date, notes:'Reapertura de posición', operationSource:'manual' });
     if(type==='stock'){
-      [$('sS'),$('sN'),$('sQ'),$('sP'),$('sSec'),$('sSL'),$('sTG')].forEach(el=>el.value='');
+      [$('sS'),$('sN'),$('sQ'),$('sP'),$('sComm'),$('sSec'),$('sSL'),$('sTG')].forEach(el=>el.value='');
       $('sNote').value='';if($('sBroker'))$('sBroker').value='';
     }else{
-      [$('cS'),$('cN'),$('cQ'),$('cP'),$('cW'),$('cAddr')].forEach(el=>el.value='');$('cNote').value='';
+      [$('cS'),$('cN'),$('cQ'),$('cP'),$('cComm'),$('cW'),$('cAddr')].forEach(el=>el.value='');$('cNote').value='';
     }
     save(); renderAll();
     showToast(`${sym} reabierto en ${custodian || 'ese custodio'}`);
     return;
   }
   const id = uid();
-  const obj = { id, positionId:`pos_${type}_${id}`, assetType:type, sym, name, qty, buy, avgBuy:buy, openCost:qty*buy, status:'active', date, cur:null, ch:null };
+  const obj = { id, positionId:`pos_${type}_${id}`, assetType:type, sym, name, qty, buy, avgBuy:(qty*buy+commission.comm)/qty, openCost:qty*buy+commission.comm, costFeeStatus:commission.feeStatus==='not_recorded'?'fees_incomplete':'fees_recorded', status:'active', date, cur:null, ch:null, instrumentSource:'manual' };
   if (type === 'stock') {
     obj.sector = $('sSec').value.trim();
     obj.sl = parseFloat($('sSL').value) || null;
@@ -3849,7 +3932,7 @@ function addAsset(type) {
     obj.broker = $('sBroker')?.value || '';
     obj.note = $('sNote').value.trim();
     ST.stocks.push(obj);
-    [$('sS'),$('sN'),$('sQ'),$('sP'),$('sSec'),$('sSL'),$('sTG')].forEach(el=>el.value='');
+    [$('sS'),$('sN'),$('sQ'),$('sP'),$('sComm'),$('sSec'),$('sSL'),$('sTG')].forEach(el=>el.value='');
     $('sNote').value = '';
     if($('sBroker')) $('sBroker').value = '';
   } else {
@@ -3858,10 +3941,10 @@ function addAsset(type) {
     obj.addr = $('cAddr').value.trim();
     obj.note = $('cNote').value.trim();
     ST.crypto.push(obj);
-    [$('cS'),$('cN'),$('cQ'),$('cP'),$('cW'),$('cAddr')].forEach(el=>el.value='');
+    [$('cS'),$('cN'),$('cQ'),$('cP'),$('cComm'),$('cW'),$('cAddr')].forEach(el=>el.value='');
     $('cNote').value = '';
   }
-  appendPositionHistory(obj, type, 'COMPRA', { qty, price:buy, comm:0, date, notes:'Carga inicial' }, { qty:0, openCost:0, avgBuy:0 });
+  appendPositionHistory(obj, type, 'COMPRA', { qty, price:buy, ...commission, date, notes:'Carga inicial', operationSource:'manual' }, { qty:0, openCost:0, avgBuy:0 });
   save(); renderAll();
   showToast(`${sym} ${t('toastAdded')}`);
 }
@@ -3924,11 +4007,19 @@ function findPosition(positionId, scope) {
 function appendPositionHistory(asset, scope, type, operation, before) {
   const qtyAfter = Number(asset.qty ?? asset.nominal) || 0;
   const avgAfter = positionAverage(asset);
+  const commission=Number(operation.comm)||0;
+  const grossAmount=Number.isFinite(Number(operation.grossAmount)) ? Number(operation.grossAmount) : (scope === 'bono' ? Number(operation.qty)*Number(operation.price)/100 : Number(operation.qty)*Number(operation.price));
+  const feeStatus=normalizedFeeStatus(operation.feeStatus,commission);
   const entry = {
     id:uid(), operationId:uid(), operationStatus:'confirmed', positionId:asset.positionId,
     assetType:scope, date:operation.date, type, sym:asset.sym, qty:operation.qty,
-    price:operation.price, comm:operation.comm || 0, notes:operation.notes || '',
-    custodian:positionCustodian(asset, scope), qtyBefore:Number(before.qty)||0, qtyAfter,
+    price:operation.price, executionPrice:operation.price, grossAmount, comm:commission, commission,
+    feeStatus, totalCost:type === 'COMPRA' ? grossAmount + commission : null,
+    netProceeds:type === 'VENTA' ? grossAmount - commission : null,
+    operationSource:operation.operationSource || 'manual', reconciliationStatus:operation.reconciliationStatus || 'manual',
+    brokerTradeId:operation.brokerTradeId || '', brokerOrderId:operation.brokerOrderId || '',
+    executionTimestamp:operation.executionTimestamp || null, externalSource:operation.externalSource || '',
+    notes:operation.notes || '', custodian:positionCustodian(asset, scope), qtyBefore:Number(before.qty)||0, qtyAfter,
     avgBefore:Number(before.avgBuy)||0, avgAfter, openCostBefore:Number(before.openCost)||0,
     openCostAfter:Number(asset.openCost)||0, realizedPnl:Number(operation.realizedPnl)||0
   };
@@ -3940,17 +4031,20 @@ function applyPositionOperation(asset, scope, type, operation) {
   const qty = Number(operation.qty), price = Number(operation.price), comm = Number(operation.comm) || 0;
   if (!asset || !['COMPRA','VENTA'].includes(type)) throw new Error('Operación no válida');
   if (!Number.isFinite(qty) || qty <= 0 || !Number.isFinite(price) || price <= 0 || comm < 0) throw new Error('Cantidad, precio y comisión no son válidos');
+  const feeStatus=normalizedFeeStatus(operation.feeStatus,comm);
   const quantityField = scope === 'bono' ? 'nominal' : 'qty';
   const currentQty = Number(asset[quantityField]) || 0;
   const currentOpenCost = Number.isFinite(Number(asset.openCost)) ? Number(asset.openCost) : (scope === 'bono' ? Number(asset.capUSD)||0 : currentQty * (Number(asset.avgBuy ?? asset.buy)||0));
   const before = { qty:currentQty, openCost:currentOpenCost, avgBuy:positionAverage(asset) };
   const grossCost = scope === 'bono' ? qty * price / 100 : qty * price;
+  operation.comm=comm; operation.feeStatus=feeStatus; operation.grossAmount=grossCost;
   if (type === 'COMPRA') {
     const nextQty = currentQty + qty;
     const nextCost = currentOpenCost + grossCost + comm;
     asset[quantityField] = nextQty;
     asset.openCost = nextCost;
     asset.avgBuy = scope === 'bono' ? nextCost / nextQty * 100 : nextCost / nextQty;
+    asset.costFeeStatus = asset.costFeeStatus === 'fees_incomplete' || feeStatus === 'not_recorded' || positionHasUnrecordedFee(asset) ? 'fees_incomplete' : 'fees_recorded';
     if (scope === 'bono') asset.capUSD = nextCost;
     asset.status = 'active';
   } else {
@@ -3980,7 +4074,7 @@ function openPositionOperation(scope, positionId, type) {
   $('positionOperationAsset').value = `${asset.sym} · ${positionCustodian(asset, scope)}`;
   $('positionOperationQty').value = '';
   $('positionOperationPrice').value = '';
-  $('positionOperationCommission').value = '0';
+  $('positionOperationCommission').value = '';
   $('positionOperationDate').value = today();
   $('positionOperationNotes').value = '';
   $('positionOperationPriceLabel').textContent = scope === 'bono' ? 'Precio (%)' : 'Precio unitario (USD)';
@@ -4004,7 +4098,7 @@ function savePositionOperation() {
   try {
     const date=$('positionOperationDate').value;
     if (!date) throw new Error('Indicá la fecha de la operación');
-    const operation={qty:Number($('positionOperationQty').value),price:Number($('positionOperationPrice').value),comm:Number($('positionOperationCommission').value)||0,date,notes:$('positionOperationNotes').value.trim(),currency:$('positionOperationCurrency').value};
+    const operation={qty:Number($('positionOperationQty').value),price:Number($('positionOperationPrice').value),...readOptionalCommission('positionOperationCommission'),date,notes:$('positionOperationNotes').value.trim(),currency:$('positionOperationCurrency').value,operationSource:'manual'};
     if(scope==='cedeaar') applyCedearSale(positionId,operation); else applyPositionOperation(asset,scope,type,operation);
     save(); closePositionOperation(); renderAll(); showToast(`${type==='COMPRA'?'Compra':'Venta'} de ${asset.sym} registrada`);
   } catch (error) { showToast(error.message || 'No se pudo registrar la operación','err',5000); }
@@ -4268,6 +4362,12 @@ function openAssetDetails(scope, id) {
         fields.push(
           { label:'Categoría ETF', value:asset.etfType || '—' },
           { label:'Índice que replica', value:asset.index || '—' },
+          { label:'Mercado / listado', value:ETF_MARKETS[normalizeEtfMarket(asset.market)]?.label || asset.market || 'Sin especificar' },
+          { label:'ISIN', value:asset.isin || '—' },
+          { label:'Moneda de listado', value:asset.listingCurrency || asset.quoteCurrency || '—' },
+          { label:'Símbolo consultado', value:asset.quoteSymbol || resolveEtfYahooSymbol(asset) || '—' },
+          { label:'Comisiones de compra', value:asset.costFeeStatus === 'fees_incomplete' ? 'No registradas por completo' : asset.costFeeStatus === 'fees_recorded' ? 'Registradas' : 'Sin desglose histórico' },
+          { label:'Origen del registro', value:asset.instrumentSource || 'manual' },
           { label:'TER / expense ratio', value:asset.ter ? `${asset.ter}%` : '—' },
           { label:'Broker / custodio', value:asset.broker || '—' }
         );
@@ -4339,6 +4439,8 @@ function closeDetailModal() { $('detailModalOverlay').classList.remove('open'); 
 const OTRO_EDIT_CONFIG = {
   etf: [
     { key:'sym', label:'Símbolo', readonly:true }, { key:'name', label:'Nombre' },
+    { key:'market', label:'Mercado / listado', type:'select', options:Object.entries(ETF_MARKETS).map(([value,meta])=>[value,meta.label]) },
+    { key:'isin', label:'ISIN' }, { key:'priceSymbol', label:'Símbolo Yahoo' }, { key:'listingCurrency', label:'Moneda de listado' },
     { key:'etfType', label:'Tipo ETF', type:'select', options:[['indice','Índice'],['sector','Sector'],['commodity','Commodity'],['apalancado','Apalancado'],['inverso','Inverso'],['tematico','Temático'],['bono_etf','Bonos']] },
     { key:'index', label:'Índice que replica' }, { key:'qty', label:'Cantidad (usar Comprar/Vender)', type:'number', readonly:true },
     { key:'buy', label:'P. compra original', type:'number', readonly:true }, { key:'date', label:'Fecha inicial', type:'date', readonly:true },
@@ -4437,7 +4539,13 @@ function saveOtroEdit() {
 
   asset.name = name;
   if (asset.type === 'etf') {
-    Object.assign(asset, { etfType:value('etfType'), index:value('index'), ter:number('ter') || 0, note:value('note') });
+    const market=normalizeEtfMarket(value('market'));
+    const isin=normalizedEtfIsin(value('isin'));
+    if (!market) { showToast('Seleccioná el mercado del ETF', 'warn'); return; }
+    if (value('isin') && isin.length !== 12) { showToast('El ISIN debe tener 12 caracteres alfanuméricos', 'warn'); return; }
+    Object.assign(asset, { etfType:value('etfType'), index:value('index'), ter:number('ter') || 0, market, isin,
+      priceSymbol:normalizedQuoteSymbol(value('priceSymbol')), listingCurrency:value('listingCurrency').toUpperCase() || 'USD', note:value('note') });
+    asset.instrumentId=etfInstrumentIdentity(asset);
   } else if (asset.type === 'cedeaar') {
     Object.assign(asset,{informationSource:value('informationSource'),note:value('note')});
   } else if (asset.type === 'token') {
@@ -4499,14 +4607,20 @@ function addSnap() {
   $('snapV').value = '';
   save(); renderEvol();
 }
+function assetSnapshotKey(asset) { return asset?.positionId || asset?.id || asset?.sym; }
+function assetSnapshotsFor(asset) {
+  const currentKey=assetSnapshotKey(asset);
+  return ST.aSnaps[currentKey] || ST.aSnaps[asset?.sym] || [];
+}
 function addASnap() {
   const asset = ST.selAsset; if (!asset) { showToast('Seleccioná un activo', 'warn'); return; }
   const date = $('aSnapD').value, value = parseFloat($('aSnapV').value);
   if (!date || !value) { showToast('Completá fecha y precio', 'warn'); return; }
-  if (!ST.aSnaps[asset.sym]) ST.aSnaps[asset.sym] = [];
-  ST.aSnaps[asset.sym] = ST.aSnaps[asset.sym].filter(s => s.date !== date);
-  ST.aSnaps[asset.sym].push({ date, value });
-  ST.aSnaps[asset.sym].sort((a,b) => a.date.localeCompare(b.date));
+  const snapshotKey=assetSnapshotKey(asset);
+  if (!ST.aSnaps[snapshotKey]) ST.aSnaps[snapshotKey] = [];
+  ST.aSnaps[snapshotKey] = ST.aSnaps[snapshotKey].filter(s => s.date !== date);
+  ST.aSnaps[snapshotKey].push({ date, value });
+  ST.aSnaps[snapshotKey].sort((a,b) => a.date.localeCompare(b.date));
   $('aSnapV').value = ''; save(); renderAEvol();
 }
 function selectAsset(a) {
@@ -4875,7 +4989,7 @@ function renderTbl(assets, tbodyId, type) {
 // RENDER DCA
 // ═══════════════════════════════════════════
 function renderDCA() {
-  const all = [...ST.stocks, ...ST.crypto].filter(asset=>asset.status!=='closed'&&Number(asset.qty)>0);
+  const all = [...ST.stocks, ...ST.crypto, ...(ST.otros||[]).filter(asset=>asset.type==='etf')].filter(asset=>asset.status!=='closed'&&Number(asset.qty)>0);
   const tb = $('dcaTb'); tb.innerHTML = '';
   const visual = $('dcaVisual'); visual.innerHTML = '';
   if (!all.length) { tb.innerHTML = '<tr><td colspan="10" class="empty"><i class="ti ti-calculator"></i><p>Sin activos registrados.</p></td></tr>'; return; }
@@ -4885,13 +4999,13 @@ function renderDCA() {
     const curP = a.cur;
     const diff = curP != null ? curP - avgP : null;
     const diffPct = (diff != null && avgP > 0) ? diff / avgP : null;
-    const type = ST.stocks.find(s=>s.id===a.id) ? 'Acción' : 'Cripto';
+    const type = a.type === 'etf' ? 'ETF' : ST.stocks.find(s=>s.id===a.id) ? 'Acción' : 'Cripto';
     const pill = diffPct!=null ? `<span class="pill ${diffPct>=0?'pill-g':'pill-r'}">${fmtPct(diffPct*100)}</span>` : '<span class="pill pill-t">—</span>';
     const estado = curP==null ? `<span class="pill pill-b">${t('statusNoPrice')}</span>` : diffPct>=0 ? `<span class="pill pill-g">${t('statusWinning')}</span>` : `<span class="pill pill-r">${t('statusLosing')}</span>`;
     const tr = document.createElement('tr');
     tr.innerHTML = `
       <td class="sym">${a.sym}</td><td class="muted">${a.name}</td>
-      <td><span class="pill ${type==='Cripto'?'pill-y':'pill-b'}">${type}</span></td>
+      <td><span class="pill ${type==='Cripto'?'pill-y':type==='ETF'?'pill-t':'pill-b'}">${type}</span></td>
       <td class="num">${dca?dca.totalQty.toLocaleString('es-AR',{maximumFractionDigits:8}):a.qty}</td>
       <td class="num">${dca?fmt(dca.totalInv):fmt(a.qty*a.buy)}</td>
       <td class="num" style="color:var(--ca2);font-weight:700">${fmt(avgP)}</td>
@@ -5053,10 +5167,15 @@ function renderHist() {
   const tb = $('hTb'); tb.innerHTML = '';
   if (!ST.hist.length) { tb.innerHTML = `<tr><td colspan="9" class="empty"><i class="ti ti-history"></i><p>${t('emptyHist')}</p></td></tr>`; return; }
   ST.hist.forEach(h => {
-    const total = h.type === 'COMPRA' ? h.qty*h.price+h.comm : h.qty*h.price-h.comm;
+    const commission=Number(h.commission ?? h.comm ?? 0);
+    const grossAmount=Number.isFinite(Number(h.grossAmount)) ? Number(h.grossAmount) : Number(h.qty)*Number(h.executionPrice ?? h.price);
+    const total=Number.isFinite(Number(h.totalCost)) ? Number(h.totalCost) : Number.isFinite(Number(h.netProceeds)) ? Number(h.netProceeds) : (h.type === 'COMPRA' ? grossAmount+commission : grossAmount-commission);
     const tr = document.createElement('tr');
     const formatHistoryMoney=value=>h.currency?formatDec(value,{digits:2,currency:currencyLabel(h.currency)}):fmt(value);
-    tr.innerHTML = `<td class="muted">${escapeHTML(h.date)}</td><td><span class="pill ${h.type==='COMPRA'?'pill-g':'pill-r'}">${escapeHTML(h.type)}</span></td><td class="sym">${escapeHTML(h.sym)}</td><td class="num">${h.qty}</td><td class="num">${formatHistoryMoney(h.price)}</td><td class="num muted">${formatHistoryMoney(h.comm)}</td><td class="num" style="font-weight:700">${formatHistoryMoney(total)}</td><td class="muted">${escapeHTML(h.custodian||h.notes||'—')}</td><td>${h.legacy?'<span class="pill pill-t" title="Registro anterior conservado sin modificar posiciones">V2</span>':'<i class="ti ti-lock" title="Generado automáticamente"></i>'}</td>`;
+    const feeText=h.feeStatus === 'not_recorded' || (!h.feeStatus && commission === 0)
+      ? '<span title="Comisión no registrada">N/D</span>'
+      : formatHistoryMoney(commission);
+    tr.innerHTML = `<td class="muted">${escapeHTML(h.date)}</td><td><span class="pill ${h.type==='COMPRA'?'pill-g':'pill-r'}">${escapeHTML(h.type)}</span></td><td class="sym">${escapeHTML(h.sym)}</td><td class="num">${h.qty}</td><td class="num">${formatHistoryMoney(h.executionPrice ?? h.price)}</td><td class="num muted">${feeText}</td><td class="num" style="font-weight:700">${formatHistoryMoney(total)}</td><td class="muted">${escapeHTML(h.custodian||h.notes||'—')}</td><td>${h.legacy?'<span class="pill pill-t" title="Registro anterior conservado sin modificar posiciones">V2</span>':'<i class="ti ti-lock" title="Generado automáticamente"></i>'}</td>`;
     tb.appendChild(tr);
   });
 }
@@ -5088,7 +5207,7 @@ function renderEvol() {
 
 function renderAPills() {
   const el = $('aPills'); el.innerHTML = '';
-  [...ST.stocks,...ST.crypto].forEach(a => {
+  [...ST.stocks,...ST.crypto,...(ST.otros||[]).filter(a=>a.type==='etf')].forEach(a => {
     const p = document.createElement('span');
     p.className = 'a-pill' + (ST.selAsset?.id===a.id?' active':'');
     p.id = 'ap-'+a.id; p.textContent = a.sym;
@@ -5100,7 +5219,7 @@ function renderAPills() {
 function renderAEvol() {
   destroyChart('aevol');
   const a = ST.selAsset; if (!a) return;
-  const snaps = ST.aSnaps[a.sym] || [];
+  const snaps = assetSnapshotsFor(a);
   const pts = [{ date:a.date, value:a.buy }, ...snaps];
   if (a.cur != null) pts.push({ date:today(), value:a.cur });
   const sorted = [...new Map(pts.map(p=>[p.date,p])).values()].sort((x,y)=>x.date.localeCompare(y.date));
@@ -5137,7 +5256,11 @@ function showTab(n) {
   if (n==='dca') renderDCA();
   if (n==='risk') renderRisk();
   if (n==='income') renderIncome();
-  if (n==='evol') { renderEvol(); renderAPills(); if (!ST.selAsset&&ST.stocks.length) selectAsset(ST.stocks[0]); }
+  if (n==='evol') {
+    renderEvol(); renderAPills();
+    const selectableAssets=[...ST.stocks,...ST.crypto,...(ST.otros||[]).filter(asset=>asset.type==='etf')];
+    if (!ST.selAsset&&selectableAssets.length) selectAsset(selectableAssets[0]);
+  }
   if (n==='tv') renderTV();
   if (n==='news') fetchNews();
   if (n==='otros') renderOtros();
@@ -6659,12 +6782,78 @@ function acSelectOtros(type, sym, name, extra) {
     $('etfSym').value = sym; $('etfName').value = name;
     $('etfIndex').value = extra;
     const etfData = ETF_DB.find(e=>e.sym===sym);
-    if (etfData) { $('etfTer').value = etfData.ter; $('etfType').value = etfData.type||'indice'; }
+    if (etfData) {
+      $('etfTer').value = etfData.ter;
+      $('etfType').value = etfData.type||'indice';
+      $('etfMarket').value = normalizeEtfMarket(etfData.market) || 'US';
+      $('etfCurrency').value = etfData.currency || 'USD';
+      $('etfPriceSymbol').value = etfData.priceSymbol || '';
+    }
     $('acETF').classList.remove('open');
   } else {
     $('cedSym').value = sym; $('cedName').value = name;
     $('cedRatio').value = extra;
     $('acCED').classList.remove('open');
+  }
+}
+
+function marketFromYahooSearch(quote) {
+  const text=[quote?.exchange,quote?.exchDisp,quote?.fullExchangeName]
+    .filter(Boolean).join(' ').toUpperCase();
+  if (/LSE|LONDON/.test(text)) return 'LSE';
+  if (/XETRA/.test(text)) return 'XETRA';
+  if (/FRANKFURT|GERMAN/.test(text)) return 'FRA';
+  if (/AMSTERDAM/.test(text)) return 'EURONEXT_AMS';
+  if (/PARIS/.test(text)) return 'EURONEXT_PAR';
+  if (/MILAN|ITALIANA/.test(text)) return 'MIL';
+  if (/SWISS|SIX|SWX/.test(text)) return 'SIX';
+  if (/TORONTO|TSX/.test(text)) return 'TSX';
+  if (/AUSTRALIA|ASX/.test(text)) return 'ASX';
+  if (/NASDAQ|NYSE|AMEX|BATS/.test(text)) return 'US';
+  return 'OTHER';
+}
+function tickerFromYahooSymbol(symbol, market) {
+  const quoteSymbol=normalizedQuoteSymbol(symbol);
+  const suffix=ETF_MARKETS[market]?.yahooSuffix;
+  return suffix && quoteSymbol.endsWith(suffix) ? quoteSymbol.slice(0,-suffix.length) : quoteSymbol;
+}
+function selectEtfLookup(ticker, name, market, currency, priceSymbol) {
+  $('etfSym').value = normalizedQuoteSymbol(ticker);
+  $('etfName').value = name || $('etfName').value;
+  $('etfMarket').value = normalizeEtfMarket(market) || 'OTHER';
+  $('etfPriceSymbol').value = normalizedQuoteSymbol(priceSymbol);
+  const normalizedCurrency=String(currency||'').toUpperCase();
+  $('etfCurrency').value = ['USD','EUR','GBP','ARS'].includes(normalizedCurrency) ? normalizedCurrency : 'OTHER';
+  $('acETF').classList.remove('open');
+}
+async function lookupETF() {
+  const query=normalizedQuoteSymbol($('etfSym')?.value);
+  if (!query) { showToast('Ingresá un ticker para buscar el ETF', 'warn'); return; }
+  const drop=$('acETF');
+  try {
+    const response=await fetchWithFallback(
+      `https://query1.finance.yahoo.com/v1/finance/search?q=${encodeURIComponent(query)}&quotesCount=12&newsCount=0`
+    );
+    const payload=response && response.ok ? await response.json() : null;
+    const quotes=(payload?.quotes||[]).filter(quote => {
+      const type=String(quote?.quoteType||quote?.typeDisp||'').toUpperCase();
+      return type.includes('ETF');
+    }).slice(0,8);
+    if (!quotes.length) { drop.classList.remove('open'); showToast('No se encontró un ETF en la fuente de precios', 'warn'); return; }
+    drop.innerHTML=quotes.map(quote => {
+      const market=marketFromYahooSearch(quote);
+      const priceSymbol=normalizedQuoteSymbol(quote.symbol);
+      const ticker=tickerFromYahooSymbol(priceSymbol,market);
+      const name=quote.longname||quote.shortname||ticker;
+      const currency=String(quote.currency||'').toUpperCase();
+      const listing=ETF_MARKETS[market]?.label||'Otro mercado';
+      return `<div class="ac-item" onclick="selectEtfLookup(${inlineArg(ticker)},${inlineArg(name)},${inlineArg(market)},${inlineArg(currency)},${inlineArg(priceSymbol)})"><span class="ac-sym">${escapeHTML(ticker)}</span><span class="ac-name">${escapeHTML(name)}</span><span style="font-size:9px;color:var(--tx3);margin-left:auto">${escapeHTML(listing)} · ${escapeHTML(currency||'N/D')}</span></div>`;
+    }).join('');
+    drop.classList.add('open');
+  } catch (error) {
+    console.error('ETF lookup error:', error);
+    drop.classList.remove('open');
+    showToast('No se pudo consultar la fuente de ETFs', 'err');
   }
 }
 
@@ -6714,10 +6903,10 @@ function calcCEDPreview() {
 
 function clearOtroForm(type) {
   const ids = {
-    etf:['etfSym','etfName','etfQty','etfBuy','etfIndex','etfTer','etfBroker','etfNote'],
+    etf:['etfSym','etfName','etfMarket','etfIsin','etfPriceSymbol','etfQty','etfBuy','etfComm','etfIndex','etfTer','etfBroker','etfNote'],
     cedeaar:['cedSym','cedName','cedQty','cedRatio','cedUnitPrice','cedGross','cedTotalCost','cedCCL','cedMEP','cedHistARS','cedBroker','cedTicket','cedSource','cedNote'],
-    token:['tokSym','tokName','tokQty','tokBuy','tokExchange','tokNote'],
-    bono:['bonSym','bonName','bonNominal','bonBuy','bonRate','bonBroker','bonNote']
+    token:['tokSym','tokName','tokQty','tokBuy','tokComm','tokExchange','tokNote'],
+    bono:['bonSym','bonName','bonNominal','bonBuy','bonComm','bonRate','bonBroker','bonNote']
   };
   (ids[type] || []).forEach(id => { const element=$(id); if(element) element.value=''; });
   if(type==='cedeaar'){
@@ -6728,16 +6917,24 @@ function clearOtroForm(type) {
 
 function addOtro(type) {
   let obj = { id: uid(), type, addedDate: today() };
+  let initialCommission = { comm:0, feeStatus:'not_recorded' };
   if (type === 'etf') {
     const sym=$('etfSym')?.value.trim().toUpperCase();
     const qty=parseFloat($('etfQty')?.value);
     const buy=parseFloat($('etfBuy')?.value);
     const date=$('etfDate')?.value;
-    if (!sym||!qty||!buy||!date){showToast('Completá símbolo, cantidad, precio y fecha','warn');return;}
+    const market=normalizeEtfMarket($('etfMarket')?.value);
+    const isin=normalizedEtfIsin($('etfIsin')?.value);
+    const suppliedIsin=String($('etfIsin')?.value||'').trim();
+    if (!sym||!qty||!buy||!date||!market){showToast('Completá símbolo, mercado, cantidad, precio y fecha','warn');return;}
+    if (suppliedIsin && isin.length !== 12){showToast('El ISIN debe tener 12 caracteres alfanuméricos','warn');return;}
+    try { initialCommission=readOptionalCommission('etfComm'); } catch (error) { showToast(error.message,'warn'); return; }
     obj = {...obj, sym, name:$('etfName')?.value.trim()||sym,
-      etfType:$('etfType')?.value, index:$('etfIndex')?.value.trim(),
+      etfType:$('etfType')?.value, index:$('etfIndex')?.value.trim(), market, isin,
+      priceSymbol:normalizedQuoteSymbol($('etfPriceSymbol')?.value), listingCurrency:$('etfCurrency')?.value||'USD',
       qty, buy, date, ter:parseFloat($('etfTer')?.value)||0,
-      broker:$('etfBroker')?.value.trim(), note:$('etfNote')?.value.trim(), cur:null, ch:null};
+      broker:$('etfBroker')?.value.trim(), note:$('etfNote')?.value.trim(), cur:null, ch:null, instrumentSource:'manual'};
+    obj.instrumentId=etfInstrumentIdentity(obj);
   } else if (type === 'cedeaar') {
     const sym=$('cedSym')?.value.trim().toUpperCase();
     const qty=dec($('cedQty')?.value), ratio=dec($('cedRatio')?.value);
@@ -6772,6 +6969,7 @@ function addOtro(type) {
     const buy=parseFloat($('tokBuy')?.value);
     const date=$('tokDate')?.value;
     if (!sym||!qty||!buy||!date){showToast('Completá los campos obligatorios','warn');return;}
+    try { initialCommission=readOptionalCommission('tokComm'); } catch (error) { showToast(error.message,'warn'); return; }
     obj = {...obj, sym, name:$('tokName')?.value.trim()||sym,
       tokType:$('tokType')?.value, qty, buy, date,
       exchange:$('tokExchange')?.value.trim(), note:$('tokNote')?.value.trim(), cur:null, ch:null};
@@ -6781,6 +6979,7 @@ function addOtro(type) {
     const buyPct=parseFloat($('bonBuy')?.value);
     const date=$('bonDate')?.value;
     if (!sym||!nominal||!buyPct||!date){showToast('Completá los campos obligatorios','warn');return;}
+    try { initialCommission=readOptionalCommission('bonComm'); } catch (error) { showToast(error.message,'warn'); return; }
     const capUSD = nominal * (buyPct/100);
     const annualInterest = nominal * (parseFloat($('bonRate')?.value)||0) / 100;
     obj = {...obj, sym, name:$('bonName')?.value.trim()||sym,
@@ -6793,19 +6992,22 @@ function addOtro(type) {
   if (!ST.otros) ST.otros = [];
   if (type !== 'cedeaar') {
     const custodian=positionCustodian(obj,type);
-    const duplicate=ST.otros.find(item=>item.type===type&&item.sym===obj.sym&&normalizedPositionPart(positionCustodian(item,type))===normalizedPositionPart(custodian));
+    const duplicate=ST.otros.find(item=>item.type===type&&samePositionInstrument(item,obj,type)&&normalizedPositionPart(positionCustodian(item,type))===normalizedPositionPart(custodian));
     if(duplicate&&!positionIsClosed(duplicate,type)){showToast(`${obj.sym} ya existe en ese custodio. Usá Comprar en su fila.`,'warn',5000);return;}
     if(duplicate){
       const initialQty=type==='bono'?obj.nominal:obj.qty;
       const initialPrice=type==='bono'?obj.buyPct:obj.buy;
-      applyPositionOperation(duplicate,type,'COMPRA',{qty:initialQty,price:initialPrice,comm:0,date:obj.date,notes:'Reapertura de posición'});
+      applyPositionOperation(duplicate,type,'COMPRA',{qty:initialQty,price:initialPrice,...initialCommission,date:obj.date,notes:'Reapertura de posición',operationSource:'manual'});
       clearOtroForm(type);save();renderOtros();showToast(`${obj.sym} reabierto en ${custodian}`);return;
     }
     obj.positionId=`pos_${type}_${obj.id}`;obj.assetType=type;obj.status='active';
     const initialQty=type==='bono'?obj.nominal:obj.qty;
     const initialPrice=type==='bono'?obj.buyPct:obj.buy;
-    obj.openCost=type==='bono'?obj.capUSD:initialQty*initialPrice;obj.avgBuy=initialPrice;
-    appendPositionHistory(obj,type,'COMPRA',{qty:initialQty,price:initialPrice,comm:0,date:obj.date,notes:'Carga inicial'},{qty:0,openCost:0,avgBuy:0});
+    const initialGross=type==='bono'?obj.capUSD:initialQty*initialPrice;
+    obj.openCost=initialGross+initialCommission.comm;obj.avgBuy=type==='bono'?obj.openCost/initialQty*100:obj.openCost/initialQty;
+    obj.costFeeStatus=initialCommission.feeStatus==='not_recorded'?'fees_incomplete':'fees_recorded';
+    if(type==='bono')obj.capUSD=obj.openCost;
+    appendPositionHistory(obj,type,'COMPRA',{qty:initialQty,price:initialPrice,...initialCommission,date:obj.date,notes:'Carga inicial',operationSource:'manual'},{qty:0,openCost:0,avgBuy:0});
   } else {
     obj.positionId=`pos_cedear_${normalizedPositionPart(obj.sym)}_${normalizedPositionPart(obj.broker)}`;obj.assetType='cedeaar';
     ST.hist.unshift({id:uid(),operationId:uid(),operationStatus:'confirmed',positionId:obj.positionId,assetType:'cedeaar',date:obj.date,type:'COMPRA',sym:obj.sym,qty:Number(obj.quantityDecimal),price:Number(obj.unitPriceDecimal),comm:Math.max(0,Number(obj.totalCostDecimal)-Number(obj.grossAmountDecimal)),currency:obj.purchaseCurrency,custodian:obj.broker||'sin-especificar',notes:'Compra CEDEAR · lote '+(obj.ticketNumber||obj.id)});
@@ -6851,6 +7053,7 @@ function renderOtros() {
         const pnlC=pnl!=null?(pnl>=0?'var(--cg2)':'var(--cr2)'):'var(--tx3)';
         return `<tr>
           <td class="sym">${escapeHTML(e.sym)}</td>
+          <td class="muted">${escapeHTML(ETF_MARKETS[normalizeEtfMarket(e.market)]?.label||e.market||'Sin especificar')}</td>
           <td class="muted">${escapeHTML(e.name)}</td>
           <td><span class="pill pill-t">${escapeHTML(typeLabels[e.etfType]||e.etfType||'—')}</span></td>
           <td class="muted">${escapeHTML(e.index||'—')}</td>

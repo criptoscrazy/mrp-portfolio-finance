@@ -80,7 +80,7 @@ const lot = (id, sym, date, quantity, unit, total, ticket, ratio = '10') => ({
   if (!dynamicForm.unitLabel.includes('USD cable') || !dynamicForm.totalLabel.includes('USD cable')) {
     throw new Error(`El formulario no actualiza etiquetas por moneda: ${JSON.stringify(dynamicForm)}`);
   }
-  await page.locator('#cedTb button').click();
+  await page.getByRole('button', { name: 'Ver lotes' }).click();
   const lotModal = await page.evaluate(() => ({
     open: document.querySelector('#cedLotsModalOverlay')?.classList.contains('open'),
     rows: document.querySelectorAll('#cedLotsTb tr').length,
