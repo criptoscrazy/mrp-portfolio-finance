@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="mrp-release" content="2026-09-04.1">
+<meta name="mrp-release" content="2026-09-04.2">
 <title>MRP Portfolio</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -2759,7 +2759,7 @@ const PALETTE = ['#7c3aed','#0891b2','#10b981','#f59e0b','#f43f5e','#ec4899','#8
 // STATE
 // ═══════════════════════════════════════════
 const SCHEMA_VERSION = 'position-v3';
-const APP_RELEASE = '2026-09-04.1';
+const APP_RELEASE = '2026-09-04.2';
 const PUBLIC_APP_URL = 'https://criptoscrazy.github.io/mrp-portfolio-finance/';
 const SKEY = 'mrp_portfolio_v3';
 const LEGACY_SKEY = 'mrp_portfolio_v2';
@@ -3694,6 +3694,7 @@ const BINANCE_MARKET_API = 'https://data-api.binance.vision';
 
 // Multi-source price fetcher with CORS proxy fallback (Safari compatible)
 const CORS_PROXY = 'https://api.allorigins.win/get?url=';
+const YAHOO_READER_PROXY = 'https://r.jina.ai/';
 
 function yahooDiagnosticSymbol(url) {
   try {
@@ -3746,6 +3747,45 @@ async function fetchWithFallback(url, timeout = 7000) {
     logYahooPriceRequest(url,'proxy','ERROR',e?.name || e?.message || e);
   }
   return null;
+}
+
+function yahooReaderUrl(url) {
+  if (!/^https:\/\/query[12]\.finance\.yahoo\.com\//i.test(String(url||''))) return '';
+  return YAHOO_READER_PROXY + String(url).replace(/&/g,'%26');
+}
+function parseYahooReaderPayload(text) {
+  const raw=String(text||'');
+  const marker='Markdown Content:';
+  const markerIndex=raw.indexOf(marker);
+  const payload=markerIndex>=0?raw.slice(markerIndex+marker.length):raw;
+  const start=payload.indexOf('{');
+  const end=payload.lastIndexOf('}');
+  if(start<0||end<start)throw new Error('Respuesta Yahoo sin JSON utilizable');
+  return JSON.parse(payload.slice(start,end+1));
+}
+async function fetchYahooReaderFallback(url, timeout = 7000) {
+  const readerUrl=yahooReaderUrl(url);
+  if(!readerUrl)return null;
+  const controller=new AbortController();
+  const timer=setTimeout(()=>controller.abort(),timeout);
+  try{
+    const response=await fetch(readerUrl,{signal:controller.signal});
+    logYahooPriceRequest(url,'etf-reader',response.status);
+    if(!response.ok)return null;
+    const payload=parseYahooReaderPayload(await response.text());
+    return {ok:true,status:response.status,json:async()=>payload};
+  }catch(error){
+    logYahooPriceRequest(url,'etf-reader','ERROR',error?.name||error?.message||error);
+    return null;
+  }finally{
+    clearTimeout(timer);
+  }
+}
+function logVwraEtf(stage, detail={}) {
+  const ticker=String(detail.ticker||'').toUpperCase();
+  const priceSymbol=String(detail.priceSymbol||detail.symbol||'').toUpperCase();
+  if(ticker!=='VWRA'&&priceSymbol!=='VWRA.L')return;
+  console.info('[MRP ETF VWRA]',{stage,...detail});
 }
 
 function setCryptoMarketPrice(asset, price, changePercent, source, updatedAt = Date.now()) {
@@ -3884,13 +3924,13 @@ async function updatePrices({ automatic = false } = {}) {
     return true;
   }
 
-  async function fetchOneStockPrice(a) {
+  async function fetchOneStockPrice(a, { etfReaderFallback=false } = {}) {
     // Source 1 & 2: Yahoo query1/query2 chart endpoint
     for (const host of ['query1', 'query2']) {
       try {
-        const r = await fetchWithFallback(
-          `https://${host}.finance.yahoo.com/v8/finance/chart/${a.sym}?interval=1d&range=5d`
-        );
+        const url=`https://${host}.finance.yahoo.com/v8/finance/chart/${a.sym}?interval=1d&range=5d`;
+        const r = await fetchWithFallback(url)
+          || (etfReaderFallback ? await fetchYahooReaderFallback(url) : null);
         if (r && r.ok) {
           const d = await r.json();
           const m = d?.chart?.result?.[0]?.meta;
@@ -3901,15 +3941,18 @@ async function updatePrices({ automatic = false } = {}) {
             m.currency,
             m.regularMarketTime,
             m.marketState
-          )) return true;
+          )) {
+            logVwraEtf('precio recibido',{priceSymbol:a.sym,httpStatus:r.status||200,price:a.cur});
+            return true;
+          }
         }
       } catch(e) {}
     }
     // Source 3: Yahoo Finance v7 quote (different endpoint)
     try {
-      const r = await fetchWithFallback(
-        `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${a.sym}`
-      );
+      const url=`https://query1.finance.yahoo.com/v7/finance/quote?symbols=${a.sym}`;
+      const r = await fetchWithFallback(url)
+        || (etfReaderFallback ? await fetchYahooReaderFallback(url) : null);
       if (r && r.ok) {
         const d = await r.json();
         const q = d?.quoteResponse?.result?.[0];
@@ -3920,7 +3963,10 @@ async function updatePrices({ automatic = false } = {}) {
           q.currency,
             q.regularMarketTime,
             q.marketState
-        )) return true;
+        )) {
+          logVwraEtf('precio recibido',{priceSymbol:a.sym,httpStatus:r.status||200,price:a.cur});
+          return true;
+        }
       }
     } catch(e) {}
     return false;
@@ -3943,12 +3989,30 @@ async function updatePrices({ automatic = false } = {}) {
   });
   const stockResults = await Promise.all([...quoteGroups.entries()].map(async ([symbol, assets]) => {
     const quote = { sym: symbol };
-    const ok = await fetchOneStockPrice(quote);
+    const etfAsset=assets.find(asset=>asset.type==='etf');
+    const hasEtf=Boolean(etfAsset);
+    if(etfAsset)logVwraEtf('símbolo resuelto',{ticker:etfAsset.sym,priceSymbol:symbol});
+    const ok = await fetchOneStockPrice(quote,{etfReaderFallback:hasEtf});
     if (ok) {
       assets.forEach(asset => {
         ['cur', 'ch', 'lastClose', 'priceSource', 'priceUpdatedAt', 'priceSourceTimestamp', 'priceRetrievedAt', 'priceStatus', 'priceMarketState', 'quoteCurrency', 'quoteSymbol']
           .forEach(key => { asset[key] = quote[key]; });
         if (asset.type === 'etf' && !asset.priceSymbol) asset.priceSymbol = quote.quoteSymbol;
+        if(asset.type==='etf'){
+          const quantity=Number(asset.qty);
+          const price=Number(asset.cur);
+          const value=quantity*price;
+          const cost=Number.isFinite(Number(asset.openCost))?Number(asset.openCost):quantity*Number(asset.buy);
+          logVwraEtf('precio asignado y valor calculado',{
+            ticker:asset.sym,
+            priceSymbol:symbol,
+            price,
+            quantity,
+            value,
+            cost,
+            unrealizedPnL:value-cost
+          });
+        }
       });
     }
     return { ok, count: assets.length };

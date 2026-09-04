@@ -98,7 +98,7 @@ const context = vm.createContext({
 const tests = String.raw`
 (async () => {
   assert.strictEqual(
-    releaseFromHtml('<meta name="mrp-release" content="2026-09-04.1">'),
+    releaseFromHtml('<meta name="mrp-release" content="2026-09-04.2">'),
     APP_RELEASE,
     'La versión publicada debe poder detectarse desde el HTML'
   );
@@ -453,11 +453,17 @@ const tests = String.raw`
   $('etfComm').value='';
   assert.deepStrictEqual(JSON.parse(JSON.stringify(readOptionalCommission('etfComm'))),{comm:0,feeStatus:'not_recorded'},'Una comisión vacía no debe presentarse como cero confirmado');
   assert.strictEqual(yahooDiagnosticSymbol('https://query1.finance.yahoo.com/v8/finance/chart/VWRA.L?interval=1d'),'VWRA.L','El diagnóstico debe identificar el símbolo consultado');
+  assert.strictEqual(
+    yahooReaderUrl('https://query1.finance.yahoo.com/v8/finance/chart/VWRA.L?interval=1d&range=5d'),
+    'https://r.jina.ai/https://query1.finance.yahoo.com/v8/finance/chart/VWRA.L?interval=1d%26range=5d',
+    'El fallback ETF debe conservar VWRA.L y codificar la consulta para el transporte'
+  );
+  const parsedReaderPayload=parseYahooReaderPayload('Title:\\n\\nURL Source: https://query1.finance.yahoo.com/\\n\\nMarkdown Content:\\n{"chart":{"result":[{"meta":{"regularMarketPrice":195.06}}]}}');
+  assert.strictEqual(parsedReaderPayload.chart.result[0].meta.regularMarketPrice,195.06,'El fallback ETF debe extraer el JSON real de Yahoo');
   const requestedYahooUrls=[];
   fetchWithFallback = async url => {
     requestedYahooUrls.push(url);
     if (url.includes('/v1/finance/search') && url.includes('VWRA')) return { ok:true, json:async () => ({ quotes:[{quoteType:'ETF',symbol:'VWRA.L',longname:'Vanguard FTSE All-World UCITS ETF USD Accumulating',exchange:'LSE',exchDisp:'London',currency:'USD'}] }) };
-    if (url.includes('VWRA.L')) return { ok:true, json:async () => ({ chart:{ result:[{ meta:{ regularMarketPrice:200.12,chartPreviousClose:199.50,currency:'USD',regularMarketTime:Math.floor(Date.now()/1000),marketState:'REGULAR' } }] } }) };
     return null;
   };
   $('etfSym').value='VWRA';
@@ -466,15 +472,27 @@ const tests = String.raw`
   selectEtfLookup('VWRA','Vanguard FTSE All-World UCITS ETF USD Accumulating','LSE','USD','VWRA.L');
   assert.strictEqual($('etfMarket').value,'LSE','La selección debe guardar el mercado del ETF');
   assert.strictEqual($('etfPriceSymbol').value,'VWRA.L','La selección debe guardar el símbolo Yahoo exacto');
+  const requestedReaderUrls=[];
+  fetchYahooReaderFallback=async url=>{
+    requestedReaderUrls.push(url);
+    if(url.includes('VWRA.L'))return {ok:true,status:200,json:async()=>({chart:{result:[{meta:{regularMarketPrice:195.06,chartPreviousClose:194.76,currency:'USD',regularMarketTime:Math.floor(Date.now()/1000),marketState:'REGULAR'}}]}})};
+    return null;
+  };
   await updatePrices({ automatic:true });
+  vwra=ST.otros.find(item=>item.id==='etf-vwra');
+  renderOtros();
   assert(requestedYahooUrls.some(url=>url.includes('/finance/chart/VWRA.L?')),'Actualizar precios debe consultar explícitamente VWRA.L');
-  assert.strictEqual(vwra.cur,200.12,'El precio de VWRA debe proceder de la respuesta del proveedor');
+  assert(requestedReaderUrls.some(url=>url.includes('/finance/chart/VWRA.L?')),'El flujo ETF debe usar el segundo transporte cuando fallan las rutas CORS anteriores');
+  assert.strictEqual(vwra.cur,195.06,'El precio de VWRA debe proceder de la respuesta del proveedor');
   assert.strictEqual(vwra.quoteSymbol,'VWRA.L','La cotización guardada debe conservar el símbolo de mercado resuelto');
   assert.strictEqual(vwra.quoteCurrency,'USD','La cotización de VWRA debe conservar la moneda USD');
+  assert($('etfTb').innerHTML.includes(fmt(195.06)),'La tabla ETF debe mostrar el precio recibido');
+  assert($('etfTb').innerHTML.includes(fmt(2.788*195.06)),'La tabla ETF debe mostrar cantidad por precio actual');
+  assert($('etfTb').innerHTML.includes(fmt((2.788*195.06)-(vwraGross+4))),'La tabla ETF debe mostrar la G/P no realizada sobre el coste abierto');
   const vwraSummary=portfolioSummary();
   const vwraValuation=vwraSummary.valued.find(item=>item.positionId==='pos_etf_vwra_ibkr'||item.id==='etf-vwra');
   assert(vwraValuation,'El Dashboard debe valorar VWRA después de obtener el precio');
-  assert(Math.abs(vwraValuation.currentUSD-(2.788*200.12))<1e-8,'El valor actual debe ser cantidad por precio de mercado');
+  assert(Math.abs(vwraValuation.currentUSD-(2.788*195.06))<1e-8,'El valor actual debe ser cantidad por precio de mercado');
   assert(Math.abs(vwraValuation.costUSD-(vwraGross+4))<1e-8,'El coste histórico debe incluir la comisión de la compra');
   applyPositionOperation(vwra,'etf','COMPRA',{qty:1,price:210,comm:2,feeStatus:'recorded',date:'2026-09-05',notes:'Compra adicional',operationSource:'manual'});
   assert.strictEqual(vwra.buy,195.48,'P. COMPRA ETF debe mantener el precio de la primera compra');
