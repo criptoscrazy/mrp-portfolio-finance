@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="mrp-release" content="2026-09-04.2">
+<meta name="mrp-release" content="2026-09-05.1">
 <title>MRP Portfolio</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -143,6 +143,7 @@ button{cursor:pointer}
 }
 .logo-name{font-size:15px;font-weight:700;letter-spacing:-.03em;color:var(--tx1)}
 .logo-sub{font-size:9px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--tx3);margin-top:1px}
+.logo-version{font-size:8px;font-weight:600;letter-spacing:.04em;color:var(--tx4);margin-top:2px;font-variant-numeric:tabular-nums}
 .topbar-center{display:flex;align-items:center;gap:6px}
 .topbar-right{display:flex;align-items:center;gap:10px}
 .upd-time{font-size:10px;color:var(--tx3);text-align:right}
@@ -925,6 +926,7 @@ input::placeholder,textarea::placeholder,select::placeholder{color:var(--tx4);op
     <div>
       <div class="logo-name">MRP Portfolio</div>
       <div class="logo-sub" id="logoSub">Investment Tracker</div>
+      <div class="logo-version" title="Versión de la aplicación">v2026-09-05.1</div>
     </div>
   </div>
   <div class="topbar-right">
@@ -2759,7 +2761,7 @@ const PALETTE = ['#7c3aed','#0891b2','#10b981','#f59e0b','#f43f5e','#ec4899','#8
 // STATE
 // ═══════════════════════════════════════════
 const SCHEMA_VERSION = 'position-v3';
-const APP_RELEASE = '2026-09-04.2';
+const APP_RELEASE = '2026-09-05.1';
 const PUBLIC_APP_URL = 'https://criptoscrazy.github.io/mrp-portfolio-finance/';
 const SKEY = 'mrp_portfolio_v3';
 const LEGACY_SKEY = 'mrp_portfolio_v2';
