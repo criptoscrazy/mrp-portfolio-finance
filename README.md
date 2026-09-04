@@ -78,7 +78,7 @@ Cada ETF se identifica internamente por **ticker + mercado de cotización** y, c
 4. Escribe la comisión sólo si la conoces; si se deja vacía, el historial muestra `N/D` para la comisión y el total de operación, en vez de presentar un cero que no fue confirmado.
 5. El TER no se completa automáticamente: es un dato del producto que debes verificar en la ficha oficial antes de introducirlo o modificarlo.
 
-Para una posición ETF antigua sin mercado o ISIN, abre el lápiz de esa fila y completa esos datos antes de esperar una cotización automática. La aplicación no adivina el mercado a partir del ticker, porque el mismo ticker puede corresponder a listados distintos.
+Para una posición ETF antigua sin mercado o ISIN, abre el lápiz de esa fila y completa mercado, ISIN, símbolo Yahoo y moneda de listado antes de esperar una cotización automática. También puedes registrar allí la comisión de la compra inicial mientras la posición no tenga otras compras o ventas; se actualizan el mismo evento histórico y el coste medio sin duplicar la posición. La aplicación no adivina el mercado a partir del ticker, porque el mismo ticker puede corresponder a listados distintos.
 
 ## 6. Actualizar precios
 
@@ -321,6 +321,8 @@ La copia local de `index.html` es un respaldo del código, no la forma recomenda
 
 Para disponer de funcionamiento offline completo sería necesario incorporar un `service worker`, un manifiesto PWA, caché controlada de dependencias y una cola explícita de sincronización.
 
+Con conexión, la copia local abre automáticamente la URL pública. La versión pública comprueba su número de publicación al iniciarse y al volver a primer plano; si detecta una edición más reciente, la recarga evitando una copia antigua del navegador. Sin conexión, el archivo local sigue abriendo con las limitaciones indicadas.
+
 ## 18. Resolución de problemas
 
 ### La cartera aparece vacía
@@ -335,6 +337,7 @@ Para disponer de funcionamiento offline completo sería necesario incorporar un 
 - Reintenta más tarde.
 - Comprueba que el ticker sea correcto.
 - Para ETFs internacionales, revisa el mercado de cotización y, si es necesario, el símbolo de precio guardado. No uses otro mercado sólo porque comparta ticker o ISIN.
+- Si necesitas distinguir un ticker incorrecto de un límite temporal del proveedor, abre la consola del navegador: cada petición a Yahoo registra solamente el símbolo, la ruta y el estado HTTP; 429 significa límite temporal de solicitudes.
 - Recuerda que empresas privadas como SpaceX no tienen cotización pública.
 - Verifica el precio con una fuente financiera independiente.
 

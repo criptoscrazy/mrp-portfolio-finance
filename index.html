@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="mrp-release" content="2026-09-04.1">
 <title>MRP Portfolio</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -2758,11 +2759,47 @@ const PALETTE = ['#7c3aed','#0891b2','#10b981','#f59e0b','#f43f5e','#ec4899','#8
 // STATE
 // ═══════════════════════════════════════════
 const SCHEMA_VERSION = 'position-v3';
+const APP_RELEASE = '2026-09-04.1';
+const PUBLIC_APP_URL = 'https://criptoscrazy.github.io/mrp-portfolio-finance/';
 const SKEY = 'mrp_portfolio_v3';
 const LEGACY_SKEY = 'mrp_portfolio_v2';
 const V3_MIGRATION_BACKUP_KEY = 'mrp_portfolio_v2_pre_position_v3';
 const V3_MIGRATION_DONE_KEY = 'mrp_position_v3_migrated';
 const PORTFOLIO_TABLE = 'portfolio_data_v3';
+let releaseCheckInFlight = false;
+
+function releaseFromHtml(html) {
+  return String(html||'').match(/<meta\s+name=["']mrp-release["']\s+content=["']([^"']+)["']/i)?.[1] || '';
+}
+async function checkAppRelease() {
+  if (releaseCheckInFlight || navigator.onLine === false) return false;
+  if (location.protocol === 'file:') {
+    location.replace(PUBLIC_APP_URL);
+    return true;
+  }
+  if (location.origin !== 'https://criptoscrazy.github.io' ||
+      !String(location.pathname||'').startsWith('/mrp-portfolio-finance')) return false;
+  releaseCheckInFlight=true;
+  try {
+    const releaseUrl=new URL(PUBLIC_APP_URL);
+    releaseUrl.searchParams.set('_mrp_release_check',Date.now());
+    const response=await fetch(releaseUrl.href,{cache:'no-store'});
+    if (!response.ok) return false;
+    const publishedRelease=releaseFromHtml(await response.text());
+    if (publishedRelease && publishedRelease !== APP_RELEASE) {
+      const nextUrl=new URL(PUBLIC_APP_URL);
+      nextUrl.searchParams.set('release',publishedRelease);
+      location.replace(nextUrl.href);
+      return true;
+    }
+  } catch (error) {
+    console.debug('[MRP versión] No se pudo comprobar la publicación', error?.message || error);
+  } finally {
+    releaseCheckInFlight=false;
+  }
+  return false;
+}
+
 let ST = {
   schemaVersion: SCHEMA_VERSION,
   stocks: [],
@@ -2995,7 +3032,55 @@ function readOptionalCommission(inputId) {
   return { comm, feeStatus:comm === 0 ? 'confirmed_zero' : 'recorded' };
 }
 function positionHasUnrecordedFee(asset) {
-  return (ST.hist||[]).some(entry => entry.positionId === asset?.positionId && entry.type === 'COMPRA' && !entry.feeStatus && Number(entry.comm||0) === 0);
+  return (ST.hist||[]).some(entry => entry.positionId === asset?.positionId && entry.type === 'COMPRA' &&
+    normalizedFeeStatus(entry.feeStatus, entry.commission ?? entry.comm) === 'not_recorded');
+}
+function positionHistoryEntries(asset) {
+  return (ST.hist||[]).filter(entry => entry.positionId === asset?.positionId &&
+    ['COMPRA','VENTA'].includes(entry.type) && entry.operationStatus !== 'reversed');
+}
+function initialPositionPurchase(asset) {
+  const purchases=positionHistoryEntries(asset).filter(entry => entry.type === 'COMPRA');
+  return purchases.find(entry => Number(entry.qtyBefore) === 0) ||
+    purchases.sort((first,second) => String(first.date||'').localeCompare(String(second.date||'')))[0] || null;
+}
+function knownOperationCommission(operation) {
+  if (!operation) return null;
+  const commission=Number(operation.commission ?? operation.comm);
+  return normalizedFeeStatus(operation.feeStatus, commission) === 'not_recorded' || !Number.isFinite(commission)
+    ? null
+    : commission;
+}
+function planEtfInitialCommissionUpdate(asset, rawValue) {
+  const raw=String(rawValue ?? '').trim();
+  if (!raw) return null;
+  const commission=Number(raw);
+  if (!Number.isFinite(commission) || commission < 0) throw new Error('La comisión debe ser un importe positivo o cero');
+  const entries=positionHistoryEntries(asset);
+  const operation=initialPositionPurchase(asset);
+  if (!operation || entries.length !== 1 || entries[0] !== operation) {
+    throw new Error('La comisión inicial sólo puede corregirse antes de registrar otras compras o ventas');
+  }
+  const oldCommission=knownOperationCommission(operation) ?? 0;
+  const grossAmount=Number.isFinite(Number(operation.grossAmount))
+    ? Number(operation.grossAmount)
+    : Number(operation.qty) * Number(operation.executionPrice ?? operation.price);
+  const currentOpenCost=Number.isFinite(Number(asset.openCost))
+    ? Number(asset.openCost)
+    : Number(asset.qty) * Number(asset.avgBuy ?? asset.buy);
+  return { operation, commission, grossAmount, openCost:currentOpenCost + commission - oldCommission };
+}
+function applyEtfInitialCommissionUpdate(asset, plan) {
+  if (!plan) return;
+  const feeStatus=plan.commission === 0 ? 'confirmed_zero' : 'recorded';
+  asset.openCost=plan.openCost;
+  asset.avgBuy=Number(asset.qty) > 0 ? plan.openCost / Number(asset.qty) : Number(asset.avgBuy ?? asset.buy) || 0;
+  asset.costFeeStatus='fees_recorded';
+  Object.assign(plan.operation, {
+    comm:plan.commission, commission:plan.commission, feeStatus,
+    grossAmount:plan.grossAmount, totalCost:plan.grossAmount + plan.commission,
+    openCostAfter:plan.openCost, avgAfter:asset.avgBuy
+  });
 }
 function positionCustodian(asset, assetType) {
   if (assetType === 'crypto') return asset.wallet || asset.custody || 'sin-especificar';
@@ -3610,6 +3695,24 @@ const BINANCE_MARKET_API = 'https://data-api.binance.vision';
 // Multi-source price fetcher with CORS proxy fallback (Safari compatible)
 const CORS_PROXY = 'https://api.allorigins.win/get?url=';
 
+function yahooDiagnosticSymbol(url) {
+  try {
+    const parsed=new URL(String(url||''));
+    const chartMatch=parsed.pathname.match(/\/chart\/([^/]+)/);
+    return decodeURIComponent(chartMatch?.[1] || parsed.searchParams.get('symbols') || parsed.searchParams.get('q') || '');
+  } catch (error) {
+    return '';
+  }
+}
+function logYahooPriceRequest(url, route, status, error='') {
+  if (!/^https:\/\/query[12]\.finance\.yahoo\.com\//i.test(String(url||''))) return;
+  const detail={ symbol:yahooDiagnosticSymbol(url), route, status, error:error ? String(error) : '' };
+  if (Number(status) === 429 || Number(status) >= 400 || error) {
+    console.warn('[MRP precios] Respuesta Yahoo',detail);
+  } else {
+    console.info('[MRP precios] Respuesta Yahoo',detail);
+  }
+}
 async function fetchWithFallback(url, timeout = 7000) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeout);
@@ -3617,19 +3720,31 @@ async function fetchWithFallback(url, timeout = 7000) {
     // Try direct first
     const r = await fetch(url, { signal: controller.signal });
     clearTimeout(timer);
+    logYahooPriceRequest(url,'direct',r.status);
     if (r.ok) return r;
-  } catch(e) { clearTimeout(timer); }
+  } catch(e) {
+    clearTimeout(timer);
+    logYahooPriceRequest(url,'direct','ERROR',e?.name || e?.message || e);
+  }
   // Fallback via CORS proxy
+  let timer2;
   try {
     const controller2 = new AbortController();
-    const timer2 = setTimeout(() => controller2.abort(), timeout);
+    timer2 = setTimeout(() => controller2.abort(), timeout);
     const r2 = await fetch(CORS_PROXY + encodeURIComponent(url), { signal: controller2.signal });
     clearTimeout(timer2);
     if (r2.ok) {
       const wrapper = await r2.json();
+      const upstreamStatus=Number(wrapper?.status?.http_code) || r2.status;
+      logYahooPriceRequest(url,'proxy',upstreamStatus);
+      if (upstreamStatus >= 400) return null;
       return { ok: true, json: async () => JSON.parse(wrapper.contents) };
     }
-  } catch(e) {}
+    logYahooPriceRequest(url,'proxy',r2.status);
+  } catch(e) {
+    clearTimeout(timer2);
+    logYahooPriceRequest(url,'proxy','ERROR',e?.name || e?.message || e);
+  }
   return null;
 }
 
@@ -4444,6 +4559,7 @@ const OTRO_EDIT_CONFIG = {
     { key:'etfType', label:'Tipo ETF', type:'select', options:[['indice','Índice'],['sector','Sector'],['commodity','Commodity'],['apalancado','Apalancado'],['inverso','Inverso'],['tematico','Temático'],['bono_etf','Bonos']] },
     { key:'index', label:'Índice que replica' }, { key:'qty', label:'Cantidad (usar Comprar/Vender)', type:'number', readonly:true },
     { key:'buy', label:'P. compra original', type:'number', readonly:true }, { key:'date', label:'Fecha inicial', type:'date', readonly:true },
+    { key:'initialCommission', label:'Comisión compra inicial', type:'number' },
     { key:'ter', label:'TER / Expense ratio (%)', type:'number' }, { key:'broker', label:'Broker / Custodio', readonly:true },
     { key:'note', label:'Notas', type:'textarea', full:true }
   ],
@@ -4513,13 +4629,25 @@ function openOtroEdit(id) {
       if (field.type === 'number') input.step = 'any';
     }
     input.id = `oe_${field.key}`;
-    input.value = asset[field.key] ?? '';
-    if (field.readonly) {
+    let commissionLocked=false;
+    if (asset.type === 'etf' && field.key === 'initialCommission') {
+      const initialPurchase=initialPositionPurchase(asset);
+      const initialCommission=knownOperationCommission(initialPurchase);
+      commissionLocked=!initialPurchase || positionHistoryEntries(asset).length !== 1;
+      input.value=initialCommission ?? '';
+      input.placeholder=commissionLocked ? 'No editable tras otras operaciones' : 'Sin registrar';
+    } else {
+      input.value = asset[field.key] ?? '';
+    }
+    if (field.readonly || commissionLocked) {
       input.readOnly = true;
       if(input.tagName==='SELECT')input.disabled=true;
+      if(commissionLocked)input.disabled=true;
       input.style.opacity = '.6';
       input.style.cursor = 'not-allowed';
-      input.title = 'Para cambiar el símbolo, eliminá el activo y creá uno nuevo';
+      input.title = commissionLocked
+        ? 'La comisión inicial no se modifica después de registrar otras compras o ventas'
+        : 'Este dato identifica la posición y se conserva';
     }
     wrapper.append(label, input);
     container.appendChild(wrapper);
@@ -4537,20 +4665,33 @@ function saveOtroEdit() {
   const name = value('name');
   if (!name) { showToast('El nombre no puede quedar vacío', 'warn'); return; }
 
-  asset.name = name;
   if (asset.type === 'etf') {
     const market=normalizeEtfMarket(value('market'));
     const isin=normalizedEtfIsin(value('isin'));
     if (!market) { showToast('Seleccioná el mercado del ETF', 'warn'); return; }
     if (value('isin') && isin.length !== 12) { showToast('El ISIN debe tener 12 caracteres alfanuméricos', 'warn'); return; }
+    let commissionPlan=null;
+    try {
+      commissionPlan=$('oe_initialCommission')?.disabled
+        ? null
+        : planEtfInitialCommissionUpdate(asset,value('initialCommission'));
+    } catch (error) {
+      showToast(error.message,'warn');
+      return;
+    }
+    asset.name = name;
     Object.assign(asset, { etfType:value('etfType'), index:value('index'), ter:number('ter') || 0, market, isin,
       priceSymbol:normalizedQuoteSymbol(value('priceSymbol')), listingCurrency:value('listingCurrency').toUpperCase() || 'USD', note:value('note') });
     asset.instrumentId=etfInstrumentIdentity(asset);
+    applyEtfInitialCommissionUpdate(asset,commissionPlan);
   } else if (asset.type === 'cedeaar') {
+    asset.name = name;
     Object.assign(asset,{informationSource:value('informationSource'),note:value('note')});
   } else if (asset.type === 'token') {
+    asset.name = name;
     Object.assign(asset, { tokType:value('tokType'), note:value('note') });
   } else if (asset.type === 'bono') {
+    asset.name = name;
     const rate = number('rate') || 0;
     Object.assign(asset, { bonType:value('bonType'), rate, annualInterest:Number(asset.nominal)*rate/100, expiry:value('expiry'), note:value('note') });
   }
@@ -8347,6 +8488,11 @@ function startAutoRefresh() {
   }, 180000); // 3 minutos
 }
 startAutoRefresh();
+checkAppRelease();
+window.addEventListener('pageshow',checkAppRelease);
+document.addEventListener('visibilitychange',() => {
+  if (document.visibilityState === 'visible') checkAppRelease();
+});
 </script>
 <!-- SYNC BLOCKING OVERLAY — prevents editing stale data before cloud check completes -->
 <div id="syncBlockOverlay" style="display:none;position:fixed;inset:0;z-index:9998;background:rgba(5,8,16,.85);backdrop-filter:blur(4px);align-items:center;justify-content:center;flex-direction:column;gap:14px">

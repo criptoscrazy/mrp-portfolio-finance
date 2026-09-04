@@ -30,10 +30,12 @@ class ElementStub {
     this.classList = new ClassList();
     this.style = {};
     this.children = [];
-    this.value = '';
+    this._value = '';
     this.textContent = '';
     this.innerHTML = '';
   }
+  set value(value) { this._value = value == null ? '' : String(value); }
+  get value() { return this._value; }
   set id(value) { this._id = value; if (value) elements.set(value, this); }
   get id() { return this._id || ''; }
   append(...children) { this.children.push(...children); }
@@ -75,7 +77,13 @@ const context = vm.createContext({
   document: documentStub,
   window: { addEventListener() {}, innerWidth: 1440 },
   localStorage: localStorageStub,
-  location: { href: 'http://127.0.0.1:8765/', origin: 'http://127.0.0.1:8765', pathname: '/' },
+  location: {
+    href: 'http://127.0.0.1:8765/',
+    origin: 'http://127.0.0.1:8765',
+    pathname: '/',
+    protocol: 'http:',
+    replace(url) { this.href = String(url); }
+  },
   navigator: { onLine: true },
   URL,
   AbortController,
@@ -89,6 +97,21 @@ const context = vm.createContext({
 
 const tests = String.raw`
 (async () => {
+  assert.strictEqual(
+    releaseFromHtml('<meta name="mrp-release" content="2026-09-04.1">'),
+    APP_RELEASE,
+    'La versión publicada debe poder detectarse desde el HTML'
+  );
+  location.protocol='file:';
+  location.href='file:///Users/marcos/Desktop/Finanzas/MRP%20Portfolio/index.html';
+  assert.strictEqual(await checkAppRelease(),true,'La copia local online debe abrir la aplicación pública');
+  assert.strictEqual(location.href,PUBLIC_APP_URL,'La copia local debe converger en la URL pública canónica');
+  navigator.onLine=false;
+  location.href='file:///Users/marcos/Desktop/Finanzas/MRP%20Portfolio/index.html';
+  assert.strictEqual(await checkAppRelease(),false,'La copia local debe seguir disponible sin conexión');
+  navigator.onLine=true;
+  Object.assign(location,{href:'http://127.0.0.1:8765/',origin:'http://127.0.0.1:8765',pathname:'/',protocol:'http:'});
+
   const base = {
     stocks:[{id:'s1',sym:'MSFT',name:'Microsoft',qty:2,buy:100,date:'2026-07-01',cur:200,ch:.01,priceSource:'Yahoo Finance',priceUpdatedAt:'2026-07-31T10:00:00Z'}],
     crypto:[],hist:[],income:[],apyPositions:[],alerts:[],otros:[],snaps:[],aSnaps:{},selAsset:null
@@ -380,17 +403,45 @@ const tests = String.raw`
   assert.strictEqual(ST.hist[0].positionId,cedearPosition.positionId,'La venta CEDEAR debe vincularse a su posición');
 
   const vwraGross = 2.788 * 195.48;
-  const vwra = {
+  let vwra = {
     id:'etf-vwra', positionId:'pos_etf_vwra_ibkr', assetType:'etf', type:'etf', status:'active',
-    sym:'VWRA', name:'Vanguard FTSE All-World UCITS ETF USD Accumulating', market:'LSE',
-    isin:'IE00BK5BQT80', listingCurrency:'USD', priceSymbol:'', instrumentId:'ticker:VWRA@LSE|isin:IE00BK5BQT80',
+    sym:'VWRA', name:'Vanguard FTSE All-World UCITS ETF USD Accumulating',
     instrumentSource:'manual', etfType:'indice', index:'FTSE All-World Index', ter:0.14,
-    qty:2.788, buy:195.48, avgBuy:(vwraGross + 4) / 2.788, openCost:vwraGross + 4,
-    costFeeStatus:'fees_recorded', date:'2026-09-04', broker:'Interactive Brokers', note:''
+    qty:2.788, buy:195.48, avgBuy:195.48, openCost:vwraGross,
+    costFeeStatus:'fees_incomplete', date:'2026-09-04', broker:'Interactive Brokers', note:''
   };
   ST=sanitizePortfolioState({ ...base, otros:[vwra], hist:[], snaps:[], aSnaps:{} });
   ST.otros[0]=vwra;
-  appendPositionHistory(vwra,'etf','COMPRA',{qty:2.788,price:195.48,comm:4,feeStatus:'recorded',date:'2026-09-04',notes:'Compra inicial VWRA',operationSource:'manual'},{qty:0,openCost:0,avgBuy:0});
+  appendPositionHistory(vwra,'etf','COMPRA',{qty:2.788,price:195.48,comm:0,feeStatus:'not_recorded',date:'2026-09-04',notes:'Compra inicial VWRA',operationSource:'manual'},{qty:0,openCost:0,avgBuy:0});
+  const vwraIdentityBefore={
+    positionId:vwra.positionId, date:vwra.date, qty:vwra.qty, buy:vwra.buy,
+    broker:vwra.broker, note:vwra.note, historyLength:ST.hist.length
+  };
+  openOtroEdit(vwra.id);
+  $('oe_market').value='LSE';
+  $('oe_isin').value='IE00BK5BQT80';
+  $('oe_priceSymbol').value='VWRA.L';
+  $('oe_listingCurrency').value='USD';
+  $('oe_initialCommission').value='4';
+  saveOtroEdit();
+  vwra=ST.otros.find(item=>item.id==='etf-vwra');
+  assert.strictEqual(ST.otros.length,1,'Enriquecer VWRA no debe crear otra posición');
+  assert.deepStrictEqual(
+    JSON.parse(JSON.stringify({
+      positionId:vwra.positionId, date:vwra.date, qty:vwra.qty, buy:vwra.buy,
+      broker:vwra.broker, note:vwra.note, historyLength:ST.hist.length
+    })),
+    vwraIdentityBefore,
+    'El enriquecimiento debe preservar identidad, compra original e historial'
+  );
+  assert.strictEqual(vwra.market,'LSE','La posición antigua debe guardar el mercado LSE');
+  assert.strictEqual(vwra.isin,'IE00BK5BQT80','La posición antigua debe guardar el ISIN');
+  assert.strictEqual(vwra.priceSymbol,'VWRA.L','La posición antigua debe guardar el símbolo de cotización');
+  assert.strictEqual(vwra.listingCurrency,'USD','La posición antigua debe guardar la moneda de listado');
+  assert(Math.abs(vwra.openCost-(vwraGross+4))<1e-8,'El coste abierto debe incorporar la comisión inicial');
+  assert(Math.abs(vwra.avgBuy-(vwraGross+4)/2.788)<1e-8,'El promedio ponderado debe incorporar la comisión inicial');
+  assert.strictEqual(ST.hist[0].commission,4,'La comisión inicial debe actualizar el evento histórico vinculado');
+  assert.strictEqual(ST.hist[0].totalCost,vwraGross+4,'El historial debe conservar el coste total confirmado');
   assert.strictEqual(resolveEtfYahooSymbol(vwra),'VWRA.L','Un ETF LSE debe resolver el sufijo Yahoo desde el mercado');
   assert.strictEqual(etfInstrumentIdentity(vwra),'ticker:VWRA@LSE|isin:IE00BK5BQT80','La identidad debe conservar listado e ISIN');
   assert(samePositionInstrument(vwra,{...vwra,priceSymbol:'VWRA.L'},'etf'),'El mismo ETF y mercado debe consolidarse en el mismo custodio');
@@ -401,7 +452,10 @@ const tests = String.raw`
   assert.deepStrictEqual(JSON.parse(JSON.stringify(readOptionalCommission('etfComm'))),{comm:4,feeStatus:'recorded'},'Una comisión positiva debe quedar registrada como tal');
   $('etfComm').value='';
   assert.deepStrictEqual(JSON.parse(JSON.stringify(readOptionalCommission('etfComm'))),{comm:0,feeStatus:'not_recorded'},'Una comisión vacía no debe presentarse como cero confirmado');
+  assert.strictEqual(yahooDiagnosticSymbol('https://query1.finance.yahoo.com/v8/finance/chart/VWRA.L?interval=1d'),'VWRA.L','El diagnóstico debe identificar el símbolo consultado');
+  const requestedYahooUrls=[];
   fetchWithFallback = async url => {
+    requestedYahooUrls.push(url);
     if (url.includes('/v1/finance/search') && url.includes('VWRA')) return { ok:true, json:async () => ({ quotes:[{quoteType:'ETF',symbol:'VWRA.L',longname:'Vanguard FTSE All-World UCITS ETF USD Accumulating',exchange:'LSE',exchDisp:'London',currency:'USD'}] }) };
     if (url.includes('VWRA.L')) return { ok:true, json:async () => ({ chart:{ result:[{ meta:{ regularMarketPrice:200.12,chartPreviousClose:199.50,currency:'USD',regularMarketTime:Math.floor(Date.now()/1000),marketState:'REGULAR' } }] } }) };
     return null;
@@ -413,6 +467,7 @@ const tests = String.raw`
   assert.strictEqual($('etfMarket').value,'LSE','La selección debe guardar el mercado del ETF');
   assert.strictEqual($('etfPriceSymbol').value,'VWRA.L','La selección debe guardar el símbolo Yahoo exacto');
   await updatePrices({ automatic:true });
+  assert(requestedYahooUrls.some(url=>url.includes('/finance/chart/VWRA.L?')),'Actualizar precios debe consultar explícitamente VWRA.L');
   assert.strictEqual(vwra.cur,200.12,'El precio de VWRA debe proceder de la respuesta del proveedor');
   assert.strictEqual(vwra.quoteSymbol,'VWRA.L','La cotización guardada debe conservar el símbolo de mercado resuelto');
   assert.strictEqual(vwra.quoteCurrency,'USD','La cotización de VWRA debe conservar la moneda USD');
