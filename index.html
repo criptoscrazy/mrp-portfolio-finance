@@ -352,6 +352,28 @@ td.num{font-variant-numeric:tabular-nums;font-size:11px}
 .price-source.binance{color:#d8a900}
 td.note-cell{max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--tx3);font-size:10px;font-style:italic}
 
+/* ── ETF LAYOUT ── */
+#otrosSection-etf .form-row{
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));align-items:end;
+}
+#otrosSection-etf .form-row .f{min-width:0}
+#otrosSection-etf .form-row .f:has(#etfNote){grid-column:span 3}
+.etf-table{width:max-content;min-width:2160px}
+.etf-table th,.etf-table td{white-space:nowrap}
+.etf-table th:nth-child(2),.etf-table td:nth-child(2){width:120px;white-space:normal}
+.etf-table th:nth-child(3),.etf-table td:nth-child(3){width:175px;white-space:normal}
+.etf-table th:nth-child(5),.etf-table td:nth-child(5){width:120px;white-space:normal}
+.etf-table th:nth-child(9),.etf-table td:nth-child(9){min-width:145px}
+.etf-table th:nth-child(16),.etf-table td:nth-child(16){width:130px;white-space:normal}
+.etf-table th:nth-child(18),.etf-table td:nth-child(18){width:150px}
+.etf-table th:last-child,.etf-table td:last-child{
+  position:sticky;right:0;z-index:2;min-width:156px;
+  box-shadow:-10px 0 14px rgba(0,0,0,.16);
+}
+.etf-table th:last-child{background:var(--bg2)}
+.etf-table td:last-child{background:var(--bg2)}
+.etf-table tbody tr:hover td:last-child{background:rgba(124,58,237,.04)}
+
 /* ── PILLS ── */
 .pill{
   display:inline-block;padding:3px 9px;border-radius:20px;
@@ -875,6 +897,10 @@ input::placeholder,textarea::placeholder,select::placeholder{color:var(--tx4);op
   .btn-lang span#langLabel{display:none}
   .news-grid-wrap{grid-template-columns:1fr}
 }
+@media(max-width:480px){
+  #otrosSection-etf .form-row{grid-template-columns:1fr}
+  #otrosSection-etf .form-row .f:has(#etfNote){grid-column:span 1}
+}
 @media(max-width:380px){
   .kpi-v{font-size:13px}
   .topbar{height:44px}
@@ -1349,7 +1375,7 @@ input::placeholder,textarea::placeholder,select::placeholder{color:var(--tx4);op
       <div><span class="lph">.</span><button class="btn-add" onclick="addOtro('etf')"><i class="ti ti-plus"></i> Agregar ETF</button></div>
     </div>
     <div class="card" style="padding:0;overflow:hidden">
-      <div class="tbl-wrap"><table>
+      <div class="tbl-wrap"><table class="etf-table">
         <thead><tr><th>Símbolo</th><th>Mercado</th><th>Nombre</th><th>Tipo</th><th>Índice</th><th>Cant.</th><th>P. Compra</th><th>P. Prom. DCA</th><th>P. Actual</th><th>24h</th><th>Capital</th><th>Valor act.</th><th>G/P $</th><th>G/P %</th><th>TER</th><th>Broker</th><th>Días</th><th>Notas</th><th>Acc.</th></tr></thead>
         <tbody id="etfTb"></tbody>
       </table></div>
