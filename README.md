@@ -240,6 +240,10 @@ El repositorio incluye un workflow que genera actividad mínima en Supabase tres
 
 Los horarios son fijos pero deliberadamente irregulares. GitHub puede retrasar ocasionalmente una ejecución programada.
 
+#### Registro de mantenimiento
+
+El 10 de septiembre de 2026 se verificó que las tres ejecuciones programadas más recientes terminaron correctamente y que el RPC aislado devolvió la confirmación esperada. Esta comprobación no lee ni modifica la cartera: solo valida la disponibilidad operativa del proyecto y del workflow.
+
 Antes de activarlo:
 
 1. Abre **SQL Editor** en el proyecto `mrp-Portfolio Finance`.
