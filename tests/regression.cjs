@@ -98,7 +98,7 @@ const context = vm.createContext({
 const tests = String.raw`
 (async () => {
   assert.strictEqual(
-    releaseFromHtml('<meta name="mrp-release" content="2026-09-05.1">'),
+    releaseFromHtml('<meta name="mrp-release" content="2026-09-25.1">'),
     APP_RELEASE,
     'La versión publicada debe poder detectarse desde el HTML'
   );
@@ -360,6 +360,21 @@ const tests = String.raw`
   const historyAfterBuy=ST.hist[0];
   assert.strictEqual(historyAfterBuy.positionId,btcBinance.positionId,'La compra automática debe quedar vinculada a positionId');
   assert.strictEqual(historyAfterBuy.price,50000,'Historial debe conservar el precio individual de la compra');
+  assert.strictEqual(historyAfterBuy.notes,'Segunda compra','La nota de Comprar debe persistirse en el movimiento');
+  assert.strictEqual(sanitizePortfolioState(historyAfterBuy).notes,'Segunda compra','La sanitización no debe eliminar la nota persistida');
+  assert.notStrictEqual(historyAfterBuy.notes,btcBinance.note,'La nota del movimiento no debe sobrescribir la nota general de la posición');
+  $('hTb').replaceChildren();
+  renderHist();
+  assert($('hTb').children[0].innerHTML.includes('openHistoryNote'),'Historial debe ofrecer un acceso compacto cuando el movimiento tiene nota');
+  openHistoryNote(historyAfterBuy.operationId);
+  const operationNoteText = $('detailGrid').children.flatMap(item => item.children.map(child => child.textContent)).join(' | ');
+  assert(operationNoteText.includes('Segunda compra'),'El visor debe mostrar la nota exacta del movimiento');
+  const noteFreeHistory={...historyAfterBuy,id:'history-without-note',operationId:'history-without-note',notes:''};
+  ST.hist.unshift(noteFreeHistory);
+  $('hTb').replaceChildren();
+  renderHist();
+  assert(!$('hTb').children[0].innerHTML.includes('openHistoryNote'),'Un movimiento sin nota no debe mostrar un control vacío');
+  ST.hist.shift();
 
   applyPositionOperation(btcBinance,'crypto','VENTA',{qty:.5,price:60000,comm:50,date:'2026-08-11',notes:'Venta parcial'});
   assert.strictEqual(btcBinance.qty,1.5,'La venta parcial debe reducir la cantidad');
@@ -506,6 +521,7 @@ const tests = String.raw`
   applyPositionOperation(vwra,'etf','COMPRA',{qty:1,price:205,comm:0,feeStatus:'not_recorded',date:'2026-09-06',notes:'Comisión pendiente',operationSource:'manual'});
   assert.strictEqual(ST.hist[0].totalCost,null,'Una compra sin comisión conocida no debe inventar un total confirmado');
   ST.hist.unshift({id:'legacy-unknown-fee',date:'2025-01-01',type:'COMPRA',sym:'LEGACY',qty:1,price:100,comm:0,broker:'Carga histórica'});
+  $('hTb').replaceChildren();
   renderHist();
   assert.strictEqual(($('hTb').children[0]?.innerHTML.match(/N\/D/g)||[]).length,2,'Una comisión histórica no registrada debe dejar comisión y total como N/D');
   ST.hist.shift();

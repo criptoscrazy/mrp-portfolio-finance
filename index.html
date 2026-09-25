@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="mrp-release" content="2026-09-05.1">
+<meta name="mrp-release" content="2026-09-25.1">
 <title>MRP Portfolio</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -952,7 +952,7 @@ input::placeholder,textarea::placeholder,select::placeholder{color:var(--tx4);op
     <div>
       <div class="logo-name">MRP Portfolio</div>
       <div class="logo-sub" id="logoSub">Investment Tracker</div>
-      <div class="logo-version" title="Versión de la aplicación">v2026-09-05.1</div>
+      <div class="logo-version" title="Versión de la aplicación">v2026-09-25.1</div>
     </div>
   </div>
   <div class="topbar-right">
@@ -2787,7 +2787,7 @@ const PALETTE = ['#7c3aed','#0891b2','#10b981','#f59e0b','#f43f5e','#ec4899','#8
 // STATE
 // ═══════════════════════════════════════════
 const SCHEMA_VERSION = 'position-v3';
-const APP_RELEASE = '2026-09-05.1';
+const APP_RELEASE = '2026-09-25.1';
 const PUBLIC_APP_URL = 'https://criptoscrazy.github.io/mrp-portfolio-finance/';
 const SKEY = 'mrp_portfolio_v3';
 const LEGACY_SKEY = 'mrp_portfolio_v2';
@@ -4498,6 +4498,21 @@ function showAssetDetails(title, subtitle, fields) {
   $('detailModalOverlay').classList.add('open');
 }
 
+// Las notas de Comprar/Vender pertenecen al movimiento, no a la posición.
+// Se muestran bajo demanda para no ensanchar la tabla de Historial ni mezclar
+// este detalle con la nota general editable de la posición.
+function openHistoryNote(operationId) {
+  const operation = (ST.hist || []).find(item => String(item.operationId || item.id) === String(operationId));
+  const note = operation?.notes;
+  if (!String(note ?? '').trim()) return;
+  const typeLabel = operation.type === 'COMPRA' ? 'Compra' : operation.type === 'VENTA' ? 'Venta' : 'Operación';
+  showAssetDetails(
+    'Nota de operación',
+    `${operation.sym || 'Activo'} · ${typeLabel} · ${operation.date || 'Fecha N/D'}`,
+    [{ label:'Nota', value:note, full:true }]
+  );
+}
+
 function openAssetDetails(scope, id) {
   let asset = null;
   let fields = [];
@@ -5410,7 +5425,10 @@ function renderHist() {
     const formatHistoryMoney=value=>h.currency?formatDec(value,{digits:2,currency:currencyLabel(h.currency)}):fmt(value);
     const feeText=feeUnknown ? '<span title="Comisión no registrada">N/D</span>' : formatHistoryMoney(commission);
     const totalText=total == null ? '<span title="Total pendiente: falta comisión registrada">N/D</span>' : formatHistoryMoney(total);
-    tr.innerHTML = `<td class="muted">${escapeHTML(h.date)}</td><td><span class="pill ${h.type==='COMPRA'?'pill-g':'pill-r'}">${escapeHTML(h.type)}</span></td><td class="sym">${escapeHTML(h.sym)}</td><td class="num">${h.qty}</td><td class="num">${formatHistoryMoney(h.executionPrice ?? h.price)}</td><td class="num muted">${feeText}</td><td class="num" style="font-weight:700">${totalText}</td><td class="muted">${escapeHTML(h.custodian||h.notes||'—')}</td><td>${h.legacy?'<span class="pill pill-t" title="Registro anterior conservado sin modificar posiciones">V2</span>':'<i class="ti ti-lock" title="Generado automáticamente"></i>'}</td>`;
+    const operationNoteButton = String(h.notes ?? '').trim()
+      ? `<button class="btn-view" style="margin-left:6px" onclick="openHistoryNote(${inlineArg(h.operationId || h.id)})" title="Ver nota de la operación" aria-label="Ver nota de la operación"><i class="ti ti-note"></i></button>`
+      : '';
+    tr.innerHTML = `<td class="muted">${escapeHTML(h.date)}</td><td><span class="pill ${h.type==='COMPRA'?'pill-g':'pill-r'}">${escapeHTML(h.type)}</span></td><td class="sym" style="white-space:nowrap">${escapeHTML(h.sym)}${operationNoteButton}</td><td class="num">${h.qty}</td><td class="num">${formatHistoryMoney(h.executionPrice ?? h.price)}</td><td class="num muted">${feeText}</td><td class="num" style="font-weight:700">${totalText}</td><td class="muted">${escapeHTML(h.custodian||h.notes||'—')}</td><td>${h.legacy?'<span class="pill pill-t" title="Registro anterior conservado sin modificar posiciones">V2</span>':'<i class="ti ti-lock" title="Generado automáticamente"></i>'}</td>`;
     tb.appendChild(tr);
   });
 }
