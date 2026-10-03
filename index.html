@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="mrp-release" content="2026-09-25.1">
+<meta name="mrp-release" content="2026-10-03.1">
 <title>MRP Portfolio</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -182,7 +182,7 @@ button{cursor:pointer}
 
 /* ── KPI STRIP ── */
 .kpis{
-  display:grid;grid-template-columns:repeat(6,1fr);
+  display:grid;grid-template-columns:repeat(5,1fr);
   background:var(--br);gap:1px;
   border-bottom:1px solid var(--br);
 }
@@ -887,6 +887,7 @@ input::placeholder,textarea::placeholder,select::placeholder{color:var(--tx4);op
   .form-row .f{min-width:100%}
   .g2,.g3,.g4{grid-template-columns:1fr;gap:10px}
   .kpis{grid-template-columns:1fr 1fr;gap:0}
+  .kpis > .kpi:last-child{grid-column:1 / -1}
   .kpi{padding:10px 12px}
   .td-kpis{grid-template-columns:repeat(2,1fr)}
   .td-stab span{display:none}
@@ -957,7 +958,7 @@ input::placeholder,textarea::placeholder,select::placeholder{color:var(--tx4);op
     <div>
       <div class="logo-name">MRP Portfolio</div>
       <div class="logo-sub" id="logoSub">Investment Tracker</div>
-      <div class="logo-version" title="Versión de la aplicación">v2026-09-25.1</div>
+      <div class="logo-version" title="Versión de la aplicación">v2026-10-03.1</div>
     </div>
   </div>
   <div class="topbar-right">
@@ -1022,12 +1023,12 @@ input::placeholder,textarea::placeholder,select::placeholder{color:var(--tx4);op
 <!-- KPIs -->
 <div class="kpis" id="kpiStrip">
   <div class="kpi" id="k0">
-    <div class="kpi-l"><i class="ti ti-wallet"></i> Valor total
+    <div class="kpi-l"><i class="ti ti-wallet"></i> <span id="kValueLabel">Valor actual</span>
       <span class="tip-wrap" style="position:relative" onmouseenter="showTip('tipValor',this)" onmouseleave="hideTip('tipValor')">
         <i class="tip-icon">i</i>
         <div class="tip-box" id="tipValor">
-          <div class="tip-box-title">Valor Total del Portafolio</div>
-          Suma de todos los activos con cotización y conversión válidas, incluidos CEDEARs. Los datos pendientes se identifican como N/D y no se valoran por su coste histórico.
+          <div class="tip-box-title">Valor actual en USD</div>
+          Suma de las posiciones con cotización y conversión válidas en la categoría mostrada; en las vistas transversales corresponde al portfolio completo. Los datos pendientes se identifican como N/D y no se valoran por su coste histórico.
         </div>
       </span>
     </div>
@@ -1035,7 +1036,12 @@ input::placeholder,textarea::placeholder,select::placeholder{color:var(--tx4);op
     <div class="kpi-s" id="kVs">portafolio completo</div>
   </div>
   <div class="kpi">
-    <div class="kpi-l"><i class="ti ti-trending-up"></i> G/P no realizada
+    <div class="kpi-l"><i class="ti ti-chart-bar"></i> <span id="kCostLabel">Coste histórico validado</span></div>
+    <div class="kpi-v" id="kCost">$0.00</div>
+    <div class="kpi-s" id="kCostSub">solo posiciones valoradas</div>
+  </div>
+  <div class="kpi">
+    <div class="kpi-l"><i class="ti ti-trending-up"></i> <span id="kPnlLabel">G/P no realizada</span>
       <span class="tip-wrap" style="position:relative" onmouseenter="showTip('tipGP',this)" onmouseleave="hideTip('tipGP')">
         <i class="tip-icon">i</i>
         <div class="tip-box" id="tipGP">
@@ -1048,12 +1054,12 @@ input::placeholder,textarea::placeholder,select::placeholder{color:var(--tx4);op
     <div class="kpi-s" id="kPnlS">—</div>
   </div>
   <div class="kpi">
-    <div class="kpi-l"><i class="ti ti-chart-line"></i> ROI Total
+    <div class="kpi-l"><i class="ti ti-chart-line"></i> <span id="kRoiLabel">ROI</span>
       <span class="tip-wrap" style="position:relative" onmouseenter="showTip('tipROI',this)" onmouseleave="hideTip('tipROI')">
         <i class="tip-icon">i</i>
         <div class="tip-box" id="tipROI">
           <div class="tip-box-title">ROI — Retorno sobre Inversión</div>
-          Porcentaje de ganancia o pérdida total desde que comenzaste a invertir. Fórmula: (Valor actual − Capital invertido) ÷ Capital invertido × 100.
+          G/P no realizada ÷ coste histórico validado × 100, para las mismas posiciones valoradas de la categoría mostrada. Los datos pendientes no se sustituyen por el coste de compra.
           <div class="tip-scale">
             <div class="tip-scale-row"><span>Negativo</span><span style="color:var(--cr2)">Pérdida</span></div>
             <div class="tip-scale-row"><span>0% − 10%</span><span style="color:var(--ca2)">Conservador</span></div>
@@ -1067,17 +1073,7 @@ input::placeholder,textarea::placeholder,select::placeholder{color:var(--tx4);op
     <div class="kpi-s" id="kROIS">desde inicio</div>
   </div>
   <div class="kpi">
-    <div class="kpi-l"><i class="ti ti-chart-bar"></i> Acciones</div>
-    <div class="kpi-v" id="kSt">$0.00</div>
-    <div class="kpi-s" id="kStS">—</div>
-  </div>
-  <div class="kpi">
-    <div class="kpi-l"><i class="ti ti-currency-bitcoin"></i> Cripto</div>
-    <div class="kpi-v" id="kCr">$0.00</div>
-    <div class="kpi-s" id="kCrS">—</div>
-  </div>
-  <div class="kpi">
-    <div class="kpi-l"><i class="ti ti-stack-2"></i> Posiciones</div>
+    <div class="kpi-l"><i class="ti ti-stack-2"></i> <span id="kPositionsLabel">Posiciones</span></div>
     <div class="kpi-v" id="kPos">0</div>
     <div class="kpi-s" id="kpiPosSub">activas en cartera</div>
   </div>
@@ -2792,7 +2788,7 @@ const PALETTE = ['#7c3aed','#0891b2','#10b981','#f59e0b','#f43f5e','#ec4899','#8
 // STATE
 // ═══════════════════════════════════════════
 const SCHEMA_VERSION = 'position-v3';
-const APP_RELEASE = '2026-09-25.1';
+const APP_RELEASE = '2026-10-03.1';
 const PUBLIC_APP_URL = 'https://criptoscrazy.github.io/mrp-portfolio-finance/';
 const SKEY = 'mrp_portfolio_v3';
 const LEGACY_SKEY = 'mrp_portfolio_v2';
@@ -4962,8 +4958,8 @@ function portfolioValuations() {
   });
   return values;
 }
-function portfolioSummary() {
-  const items=portfolioValuations(), valued=items.filter(isValuationAvailable);
+function portfolioSummary(items=portfolioValuations()) {
+  const valued=items.filter(isValuationAvailable);
   const pnlItems=valued.filter(item=>Number.isFinite(item.costUSD)&&Number.isFinite(item.pnlUSD));
   // Un portafolio con posiciones pero sin ninguna valoración válida no vale
   // cero: su valor es desconocido hasta obtener precio y conversión.
@@ -5015,24 +5011,46 @@ function calcPortfolioMetrics() {
 // ═══════════════════════════════════════════
 // RENDER KPIs
 // ═══════════════════════════════════════════
+function metricAssetClass() {
+  if ($('tab-stocks')?.classList.contains('active')) return 'Acciones';
+  if ($('tab-crypto')?.classList.contains('active')) return 'Cripto';
+  if ($('tab-otros')?.classList.contains('active')) {
+    return [['etf','ETFs'],['cedeares','CEDEARs'],['token','Tokenizadas'],['bonos','Bonos']]
+      .find(([tab])=>$('otrosTab-'+tab)?.classList.contains('active'))?.[1] || 'ETFs';
+  }
+  return null;
+}
 function renderKPIs() {
-  const summary=portfolioSummary(), byClass=summary.byClass;
-  const pendingLabel=summary.pending.length?` · N/D: ${summary.pending.length}`:'';
+  const assetClass=metricAssetClass(), en=LANG==='en';
+  const items=portfolioValuations();
+  // Same aggregation and eligibility rules as Dashboard; only the scope changes.
+  const summary=portfolioSummary(assetClass?items.filter(item=>item.assetClass===assetClass):items);
+  const classLabels={Acciones:'Stocks',Cripto:'Crypto',ETFs:'ETFs',CEDEARs:'CEDEARs',Tokenizadas:'Tokenized assets',Bonos:'Bonds'};
+  const scope=assetClass?(en?classLabels[assetClass]:assetClass):(en?'Complete portfolio':'Portfolio completo');
+  const strip=$('kpiStrip');
+  strip.style.display=$('tab-dash')?.classList.contains('active')?'none':'';
+  strip.setAttribute('aria-label',(en?'Metrics: ':'Métricas: ')+scope);
+  const incomplete=summary.items.filter(item=>!isValuationAvailable(item)||!Number.isFinite(item.costUSD)||!Number.isFinite(item.pnlUSD)).length;
+  const pendingLabel=incomplete?` · N/D: ${incomplete}`:'';
   const pnlKnown=summary.pnlItems.length>0;
-  $('kV').textContent=fmt(summary.totalUSD);
-  $('kVs').textContent=`USD valorados${pendingLabel}`;
+  $('kValueLabel').textContent=(en?'Current value · ':'Valor actual · ')+scope;
+  $('kPnlLabel').textContent=en?'Unrealized P/L':'G/P no realizada';
+  $('kRoiLabel').textContent='ROI';
+  $('kCostLabel').textContent=en?'Validated historical cost':'Coste histórico validado';
+  $('kPositionsLabel').textContent=en?'Positions':'Posiciones';
+  $('kV').textContent=summary.totalUSD==null?'N/D':fmt(summary.totalUSD);
+  $('kVs').textContent=(en?'Valued USD':'USD valorados')+pendingLabel;
   $('kPnl').textContent=pnlKnown?fmt(summary.pnlUSD):'N/D';
-  $('kPnl').className='kpi-v '+(summary.pnlUSD>=0?'gradient-up':'gradient-dn');
-  $('kPnlS').textContent=summary.roiUSD!=null?fmtPct(summary.roiUSD*100)+' ROI'+pendingLabel:'N/D: falta valoración válida';
-  $('kPnlS').className='kpi-s '+(summary.pnlUSD>=0?'up':'dn');
+  $('kPnl').className='kpi-v '+(pnlKnown?(summary.pnlUSD>=0?'gradient-up':'gradient-dn'):'');
+  $('kPnlS').textContent=summary.roiUSD!=null?fmtPct(summary.roiUSD*100)+' ROI'+pendingLabel:(en?'N/D: valid valuation required':'N/D: falta valoración válida');
+  $('kPnlS').className='kpi-s '+(pnlKnown?(summary.pnlUSD>=0?'up':'dn'):'');
   $('kROI').textContent=summary.roiUSD!=null?fmtPct(summary.roiUSD*100):'N/D';
   $('kROI').className='kpi-v '+(summary.roiUSD==null?'':(summary.roiUSD>=0?'gradient-up':'gradient-dn'));
-  $('kROIS').textContent=summary.pending.length?'parcial por datos pendientes':t('kpiROISub');
-  const stockValue=byClass['Acciones']||0,cryptoValue=byClass['Cripto']||0;
-  $('kSt').textContent=fmt(stockValue);$('kStS').textContent='USD valorados';$('kStS').className='kpi-s';
-  $('kCr').textContent=fmt(cryptoValue);$('kCrS').textContent='USD valorados';$('kCrS').className='kpi-s';
+  $('kROIS').textContent=incomplete?(en?'partial: pending data':'parcial por datos pendientes'):t('kpiROISub');
+  $('kCost').textContent=pnlKnown||!summary.items.length?fmt(summary.costUSD):'N/D';
+  $('kCostSub').textContent=(en?'valued positions only':'solo posiciones valoradas')+pendingLabel;
   $('kPos').textContent=summary.items.length;
-  const posSub=$('kpiPosSub');if(posSub)posSub.textContent=summary.pending.length?`${summary.pending.length} pendientes de valorar`:'activas en cartera';
+  const posSub=$('kpiPosSub');if(posSub)posSub.textContent=incomplete?`${incomplete} `+(en?'with pending data':'con datos pendientes'):(en?'active positions':'activas en cartera');
 }
 
 function renderClassPnlTable(summary) {
@@ -5044,23 +5062,8 @@ function renderClassPnlTable(summary) {
     .filter((assetClass,index,array)=>assetClass && array.indexOf(assetClass)===index);
 
   summary.items.forEach(item => {
-    const group = groups.get(item.assetClass) || {
-      itemCount:0, valuedCount:0, costCount:0, pnlCount:0,
-      currentUSD:0, costUSD:0, pnlUSD:0
-    };
-    group.itemCount++;
-    if (isValuationAvailable(item)) {
-      group.valuedCount++;
-      group.currentUSD += item.currentUSD;
-    }
-    if (Number.isFinite(item.costUSD) && item.costUSD > 0) {
-      group.costCount++;
-      group.costUSD += item.costUSD;
-    }
-    if (Number.isFinite(item.costUSD) && item.costUSD > 0 && Number.isFinite(item.pnlUSD)) {
-      group.pnlCount++;
-      group.pnlUSD += item.pnlUSD;
-    }
+    const group = groups.get(item.assetClass) || [];
+    group.push(item);
     groups.set(item.assetClass, group);
   });
 
@@ -5070,19 +5073,19 @@ function renderClassPnlTable(summary) {
   }
 
   tb.innerHTML = orderedClasses.filter(assetClass=>groups.has(assetClass)).map((assetClass,index) => {
-    const group = groups.get(assetClass);
-    const unresolved = group.itemCount - group.pnlCount;
-    const roi = group.costUSD > 0 && group.pnlCount > 0 ? group.pnlUSD / group.costUSD : null;
-    const pnlColor = group.pnlCount > 0 ? (group.pnlUSD >= 0 ? 'var(--cg2)' : 'var(--cr2)') : 'var(--tx3)';
+    const group = portfolioSummary(groups.get(assetClass));
+    const unresolved = group.items.length - group.pnlItems.length;
+    const roi = group.roiUSD;
+    const pnlColor = group.pnlItems.length ? (group.pnlUSD >= 0 ? 'var(--cg2)' : 'var(--cr2)') : 'var(--tx3)';
     const status = unresolved
       ? t('dClassPnlPartial').replace('{n}', unresolved)
       : t('dClassPnlComplete');
     const statusClass = unresolved ? 'pill-y' : 'pill-g';
     return `<tr>
       <td class="sym"><span class="leg-dot" style="display:inline-block;background:${PALETTE[index%PALETTE.length]};margin-right:6px"></span>${escapeHTML(assetClass)}</td>
-      <td class="num">${group.costCount ? fmt(group.costUSD) : 'N/D'}</td>
-      <td class="num">${group.valuedCount ? fmt(group.currentUSD) : 'N/D'}</td>
-      <td class="num" style="color:${pnlColor};font-weight:700">${group.pnlCount ? fmt(group.pnlUSD) : 'N/D'}</td>
+      <td class="num">${group.pnlItems.length ? fmt(group.costUSD) : 'N/D'}</td>
+      <td class="num">${group.totalUSD==null?'N/D':fmt(group.totalUSD)}</td>
+      <td class="num" style="color:${pnlColor};font-weight:700">${group.pnlItems.length ? fmt(group.pnlUSD) : 'N/D'}</td>
       <td class="num" style="color:${pnlColor};font-weight:700">${roi != null ? fmtPct(roi*100) : 'N/D'}</td>
       <td><span class="pill ${statusClass}">${escapeHTML(status)}</span></td>
     </tr>`;
@@ -5557,6 +5560,7 @@ function showTab(n) {
   if (n==='news') fetchNews();
   if (n==='otros') renderOtros();
   if (n==='trading') initTradingDesk();
+  renderKPIs();
 }
 
 
@@ -6132,11 +6136,7 @@ function applyLang() {
   document.querySelectorAll('.tab span').forEach((el, i) => { if (tabKeys[i]) el.textContent = t(tabKeys[i]); });
 
   // KPIs
-  const kpiLabels = document.querySelectorAll('.kpi-l');
-  if (kpiLabels[0]) kpiLabels[0].querySelector('span:not(.tip-wrap):not(.tip-icon)') && (kpiLabels[0].childNodes[1].textContent = ' ' + t('kpiTotal'));
-  $('kVs').textContent = t('kpiTotalSub');
-  $('kROIS').textContent = t('kpiROISub');
-  $('kpiPosSub') && ($('kpiPosSub').textContent = t('kpiPosSub'));
+  renderKPIs();
 
   $('dClassPnlTitle') && ($('dClassPnlTitle').textContent = t('dClassPnlTitle'));
   $('dClassPnlSub') && ($('dClassPnlSub').textContent = t('dClassPnlSub'));
@@ -7325,6 +7325,7 @@ function showOtrosTab(tab) {
   ['etf','cedeares','token','bonos'].forEach(t=>{
     const el=$('otrosSection-'+t); if(el) el.style.display=t===tab?'':'none';
   });
+  renderKPIs();
 }
 
 function renderOtros() {

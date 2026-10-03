@@ -98,7 +98,7 @@ const context = vm.createContext({
 const tests = String.raw`
 (async () => {
   assert.strictEqual(
-    releaseFromHtml('<meta name="mrp-release" content="2026-09-25.1">'),
+    releaseFromHtml('<meta name="mrp-release" content="2026-10-03.1">'),
     APP_RELEASE,
     'La versión publicada debe poder detectarse desde el HTML'
   );
