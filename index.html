@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="mrp-release" content="2026-10-03.1">
+<meta name="mrp-release" content="2026-10-03.2">
 <title>MRP Portfolio</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -736,7 +736,32 @@ input::placeholder,textarea::placeholder,select::placeholder{color:var(--tx4);op
 
 /* ── DASHBOARD HERO ── */
 .dash-hero { }
+#tab-dash.active { display:flex; flex-direction:column; gap:12px; }
+#tab-dash > * { min-width:0; margin-bottom:0!important; }
+#tab-dash .dash-hero { display:block!important; order:0; }
+.dash-summary { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:20px; }
+.dash-summary > div { min-width:0; }
+.dash-summary .metric-value { font-size:24px; overflow-wrap:anywhere; }
+.dash-quality { order:1; border-bottom:1px solid var(--br); padding:8px 4px 12px; }
+.dash-quality summary { cursor:pointer; display:flex; flex-wrap:wrap; gap:8px 20px; align-items:center; }
+.dash-quality .quality-title { font-weight:600; color:var(--tx1); }
+.dash-quality .quality-meta { color:var(--tx2); font-size:11px; }
+.dash-quality ul { margin:12px 0 0; padding-left:18px; color:var(--tx2); }
+.dash-quality li { margin:6px 0; }
+#dashClassPanel { order:2; }
+#dashAllocation { order:3; }
+#dashContribution { order:4; }
+#dashCharts { order:5; }
+#dashEvolution { order:6; }
+.dash-row-button { background:none; border:0; padding:0; color:var(--cv3); cursor:pointer; font:inherit; text-align:left; }
+.dash-row-button:hover { text-decoration:underline; }
+.dash-contribution-table td.num { white-space:nowrap; }
+.dash-contribution-table td:first-child { min-width:170px; }
+.dash-summary-label { font-size:11px; color:var(--tx2); margin-bottom:6px; }
+@media(max-width:760px) { .dash-summary { grid-template-columns:repeat(2,minmax(0,1fr)); gap:16px; } }
+@media(max-width:420px) { .dash-summary .metric-value { font-size:20px; } }
 @media(max-width:768px){
+  #dashAllocation{grid-template-columns:1fr!important}
   .dash-hero{grid-template-columns:1fr!important}
   .dash-hero>div:first-child>div:last-child{grid-template-columns:1fr 1fr!important}
 }
@@ -947,7 +972,7 @@ input::placeholder,textarea::placeholder,select::placeholder{color:var(--tx4);op
   .mkt-bar{display:none}
 }
 </style>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2"></script>
 </head>
 <body>
 
@@ -958,7 +983,7 @@ input::placeholder,textarea::placeholder,select::placeholder{color:var(--tx4);op
     <div>
       <div class="logo-name">MRP Portfolio</div>
       <div class="logo-sub" id="logoSub">Investment Tracker</div>
-      <div class="logo-version" title="Versión de la aplicación">v2026-10-03.1</div>
+      <div class="logo-version" title="Versión de la aplicación">v2026-10-03.2</div>
     </div>
   </div>
   <div class="topbar-right">
@@ -1102,33 +1127,38 @@ input::placeholder,textarea::placeholder,select::placeholder{color:var(--tx4);op
 <div class="section active" id="tab-dash">
 
   <!-- ROW 1: Executive summary — portfolio at a glance -->
-  <div class="dash-hero" style="display:grid;grid-template-columns:2fr 1fr;gap:12px;margin-bottom:12px">
+  <div class="dash-hero">
     <!-- Left: Main value card -->
     <div class="card" style="padding:20px 22px;background:linear-gradient(135deg,var(--bg2) 0%,var(--bg3) 100%);border-color:var(--br2);position:relative;overflow:hidden">
       <div style="position:absolute;top:0;right:0;width:200px;height:200px;background:radial-gradient(circle at 70% 30%,rgba(124,58,237,.08),transparent 70%);pointer-events:none"></div>
       <div style="font-size:10px;color:var(--tx3);text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px;display:flex;align-items:center;gap:6px">
         <i class="ti ti-wallet"></i> Resumen ejecutivo del portafolio
       </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:20px;align-items:start">
+      <div class="dash-summary">
         <div>
-          <div style="font-size:10px;color:var(--tx3);margin-bottom:4px">Valor total</div>
+          <div class="dash-summary-label" id="dValueLabel">Valor actual</div>
           <div style="font-size:28px;font-weight:800;letter-spacing:-.04em;line-height:1" id="dHeroTotal">$0.00</div>
-          <div style="font-size:10px;margin-top:6px" id="dHeroTotalSub" style="color:var(--tx3)">portafolio completo</div>
+          <div style="font-size:11px;margin-top:6px;color:var(--tx2)" id="dHeroTotalSub">USD valorados</div>
         </div>
         <div>
-          <div style="font-size:10px;color:var(--tx3);margin-bottom:4px">G/P no realizada</div>
+          <div class="dash-summary-label" id="dPnlLabel">G/P no realizada</div>
           <div style="font-size:22px;font-weight:700;letter-spacing:-.03em;line-height:1" id="dHeroPnl">—</div>
           <div style="font-size:10px;margin-top:6px" id="dHeroPnlPct">—</div>
         </div>
         <div>
-          <div style="font-size:10px;color:var(--tx3);margin-bottom:4px">Coste histórico validado</div>
+          <div class="dash-summary-label" id="dCostLabel">Coste abierto valorado</div>
           <div style="font-size:22px;font-weight:700;letter-spacing:-.03em;line-height:1" id="dCap">—</div>
-          <div style="font-size:10px;color:var(--tx3);margin-top:6px">solo posiciones valoradas</div>
+          <div style="font-size:11px;color:var(--tx2);margin-top:6px" id="dCostSub">con precio y coste disponibles</div>
+        </div>
+        <div>
+          <div class="dash-summary-label" id="dPositionsLabel">Posiciones</div>
+          <div class="metric-value" id="dPositions">—</div>
+          <div style="font-size:11px;color:var(--tx2);margin-top:6px" id="dPositionsSub">activas en cartera</div>
         </div>
       </div>
     </div>
     <!-- Right: Quick metrics -->
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+    <div hidden>
       <div class="metric-card accent-g" style="padding:12px">
         <div class="metric-label" style="margin-bottom:5px"><i class="ti ti-calendar-stats"></i> IRR
           <span class="tip-wrap" style="position:relative" onmouseenter="showTip('tipIRR',this)" onmouseleave="hideTip('tipIRR')"><i class="tip-icon">i</i>
@@ -1158,14 +1188,19 @@ input::placeholder,textarea::placeholder,select::placeholder{color:var(--tx4);op
       </div>
       <div class="metric-card" style="padding:12px">
         <div class="metric-label" style="margin-bottom:5px"><i class="ti ti-stack-2"></i> Posiciones</div>
-        <div class="metric-value" id="dPositions" style="font-size:16px">—</div>
+        <div class="metric-value" style="font-size:16px">—</div>
         <div class="metric-sub">activos en cartera</div>
       </div>
     </div>
   </div>
 
   <!-- ROW 2: Custodio summary + allocation -->
-  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:12px">
+  <details class="dash-quality" id="dashQuality">
+    <summary><span class="quality-title" id="dQualityTitle">Estado de datos</span><span class="quality-meta" id="dQualitySummary"></span><span class="quality-meta" id="dQualityTime"></span></summary>
+    <ul id="dQualityItems"></ul>
+  </details>
+
+  <div id="dashAllocation" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:12px">
     <div class="card">
       <div class="card-head"><i class="ti ti-chart-donut" style="color:var(--cv3)"></i> Distribución</div>
       <div class="card-sub">Por clase de activo</div>
@@ -1174,14 +1209,14 @@ input::placeholder,textarea::placeholder,select::placeholder{color:var(--tx4);op
     </div>
     <div class="card">
       <div class="card-head"><i class="ti ti-building-bank" style="color:var(--ct2)"></i> Por custodio</div>
-      <div class="card-sub">Capital por broker / wallet / exchange</div>
+      <div class="card-sub" id="dCustodySub">Valor actual por broker / wallet / exchange</div>
       <div class="cw" style="height:170px"><canvas id="cCustodio" role="img" aria-label="Distribución por custodio">Custodio.</canvas></div>
     </div>
     <div class="card">
-      <div class="card-head"><i class="ti ti-tournament" style="color:var(--ca2)"></i> vs Benchmarks</div>
-      <div class="card-sub">Tu ROI acumulado vs cambio 24h del mercado</div>
+      <div class="card-head"><i class="ti ti-tournament" style="color:var(--ca2)"></i> <span id="dMarketTitle">Mercado hoy</span></div>
+      <div class="card-sub" id="dMarketSub">Variación del proveedor · referencia de mercado</div>
       <div style="display:flex;flex-direction:column;gap:8px;margin-top:6px">
-        <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 12px;background:var(--bg3);border-radius:10px;border:1px solid var(--br)">
+        <div hidden>
           <div>
             <div style="font-size:9px;color:var(--tx3);text-transform:uppercase;letter-spacing:.06em">Tu portafolio</div>
             <div style="font-size:18px;font-weight:700;margin-top:2px" id="benchPortfolio">—</div>
@@ -1205,23 +1240,23 @@ input::placeholder,textarea::placeholder,select::placeholder{color:var(--tx4);op
           </div>
           <div style="font-size:10px;color:var(--tx3);text-align:right" id="benchBTCNote">24h</div>
         </div>
-        <div id="benchVerdict" style="font-size:10px;color:var(--tx3);text-align:center;padding:4px">Actualizá para ver comparación</div>
+        <div id="benchVerdict" style="font-size:11px;color:var(--tx2);padding:4px">Sin cotizaciones consultadas</div>
       </div>
     </div>
   </div>
 
-  <div class="card card-mb">
+  <div class="card card-mb" id="dashClassPanel">
     <div class="card-head"><i class="ti ti-arrows-diff" style="color:var(--cr2)"></i> <span id="dClassPnlTitle">G/P por clase de activo</span></div>
     <div class="card-sub" id="dClassPnlSub">Pérdida o ganancia no realizada por clase, con datos valorados</div>
     <div class="tbl-wrap">
       <table class="class-pnl-table">
         <thead><tr>
           <th id="dClassPnlClassHead">Clase</th>
-          <th id="dClassPnlCostHead">Coste histórico</th>
+          <th id="dClassPnlCostHead">Coste abierto valorado</th>
           <th id="dClassPnlValueHead">Valor actual</th>
           <th id="dClassPnlPnlHead">G/P no realizada</th>
           <th id="dClassPnlRoiHead">ROI</th>
-          <th id="dClassPnlStatusHead">Estado</th>
+          <th id="dClassPnlStatusHead">Estado</th><th id="dClassPnlWeightHead">Peso valorado</th>
         </tr></thead>
         <tbody id="dClassPnlTb"></tbody>
       </table>
@@ -1229,17 +1264,29 @@ input::placeholder,textarea::placeholder,select::placeholder{color:var(--tx4);op
   </div>
 
   <!-- ROW 3: Charts -->
-  <div class="g2" style="margin-bottom:12px">
+  <div class="card" id="dashContribution">
+    <div class="card-head" id="dContributionTitle">Principales contribuciones al resultado</div>
+    <div class="card-sub" id="dContributionSub">G/P no realizada en USD · por posición y custodio</div>
+    <div class="tbl-wrap"><table class="dash-contribution-table"><thead><tr><th id="dContributionPosition">Posición</th><th id="dContributionClass">Clase</th><th id="dContributionValue">Valor actual</th><th id="dContributionPnl">G/P no realizada</th></tr></thead><tbody id="dContributionTb"></tbody></table></div>
+  </div>
+  <div class="g2" id="dashCharts" style="margin-bottom:12px">
     <div class="card">
       <div class="card-head"><i class="ti ti-chart-bar" style="color:var(--cg2)"></i> Rentabilidad por activo (%)</div>
-      <div class="card-sub">Desde precio de compra</div>
+      <div class="card-sub" id="dReturnSub">Sobre coste abierto · por posición y custodio</div>
       <div class="cw" id="retWrap" style="height:190px"><canvas id="cRet" role="img" aria-label="Rentabilidad % por activo">Rentabilidad.</canvas></div>
     </div>
     <div class="card">
       <div class="card-head"><i class="ti ti-arrows-diff" style="color:var(--ca2)"></i> G/P por activo (USD)</div>
-      <div class="card-sub">Solo activos con precio actualizado</div>
+      <div class="card-sub" id="dChartPnlSub">Posiciones con precio y coste disponibles</div>
       <div class="cw" style="height:190px"><canvas id="cPnl" role="img" aria-label="G/P por activo en USD">G/P.</canvas></div>
     </div>
+  </div>
+
+  <div class="card" id="dashEvolution">
+    <div class="card-head" id="dEvolutionTitle">Evolución patrimonial</div>
+    <div class="card-sub" id="dEvolutionSub">Valor de cartera registrado · incluye el efecto de compras y ventas</div>
+    <div class="cw" id="dEvolutionChart" style="height:220px"><canvas id="cDashEvolution" role="img" aria-label="Evolución del valor de cartera">Valor patrimonial.</canvas></div>
+    <div class="muted" id="dEvolutionEmpty"></div>
   </div>
 
 </div>
@@ -2747,7 +2794,14 @@ function safeCreateChart(key, canvasEl, config) {
   try {
     if (typeof Chart === 'undefined') { console.warn('Chart.js not loaded, skipping chart:', key); return; }
     if (!canvasEl) return;
-    charts[key] = new Chart(canvasEl, config);
+    if (charts[key] && charts[key].canvas === canvasEl && charts[key].config.type === config.type) {
+      charts[key].data = config.data;
+      charts[key].options = config.options;
+      charts[key].update('none');
+    } else {
+      destroyChart(key);
+      charts[key] = new Chart(canvasEl, config);
+    }
   } catch(e) {
     console.error('Chart creation failed (non-fatal):', key, e);
   }
@@ -2788,7 +2842,7 @@ const PALETTE = ['#7c3aed','#0891b2','#10b981','#f59e0b','#f43f5e','#ec4899','#8
 // STATE
 // ═══════════════════════════════════════════
 const SCHEMA_VERSION = 'position-v3';
-const APP_RELEASE = '2026-10-03.1';
+const APP_RELEASE = '2026-10-03.2';
 const PUBLIC_APP_URL = 'https://criptoscrazy.github.io/mrp-portfolio-finance/';
 const SKEY = 'mrp_portfolio_v3';
 const LEGACY_SKEY = 'mrp_portfolio_v2';
@@ -4895,6 +4949,7 @@ const PORTFOLIO_BASE_CURRENCY = 'USD';
 const CEDEAR_CCL_SKEW_WARNING_MS = 15 * 60 * 1000;
 const QUOTE_STATUS_LABELS = {
   realtime:'En tiempo real', delayed:'Cotización demorada', last_close:'Último cierre disponible',
+  stale:'Cotización antigua', freshness_unknown:'Fecha de cotización desconocida',
   pending:'Dato pendiente', conversion_pending:'Conversión pendiente'
 };
 function madridDateTime(value) {
@@ -4906,11 +4961,16 @@ function madridDateTime(value) {
 }
 function priceStatusFor(asset) {
   if (!Number.isFinite(Number(asset?.cur)) || Number(asset.cur) <= 0) return 'pending';
-  if (asset?.priceStatus) return asset.priceStatus;
-  if (!asset?.priceSourceTimestamp && !asset?.priceUpdatedAt) return 'pending';
+  if (!asset?.priceSourceTimestamp && !asset?.priceUpdatedAt) return 'freshness_unknown';
   const timestamp = new Date(asset.priceSourceTimestamp || asset.priceUpdatedAt);
-  if (!Number.isFinite(timestamp.getTime())) return 'pending';
-  return Date.now() - timestamp.getTime() > 4 * 60 * 60 * 1000 ? 'last_close' : 'delayed';
+  if (!Number.isFinite(timestamp.getTime())) return 'freshness_unknown';
+  const age = Date.now() - timestamp.getTime();
+  const status = asset.priceStatus;
+  // Daily closes tolerate weekends; live crypto quotes require a recent source timestamp.
+  const maxAge = status === 'last_close' ? 96 * 60 * 60 * 1000
+    : status === 'realtime' ? 15 * 60 * 1000 : 4 * 60 * 60 * 1000;
+  if (age > maxAge || age < -5 * 60 * 1000) return 'stale';
+  return status === 'realtime' || status === 'last_close' ? status : 'delayed';
 }
 function isValuationAvailable(item) {
   return Number.isFinite(item?.currentUSD) && item.currentUSD >= 0 &&
@@ -4951,7 +5011,7 @@ function portfolioValuations() {
       id:group.positionId,sym:group.sym,name:group.name,assetClass:'CEDEARs',sourceAsset:group,
       costUSD:group.historicalUSD==null?null:Number(group.historicalUSD),
       currentUSD:group.currentValueUSD==null?null:Number(group.currentValueUSD),
-      pnlUSD:group.pnlUSD==null?null:Number(group.pnlUSD),status,
+      pnlUSD:group.pnlUSD==null?null:Number(group.pnlUSD),status:group.currentValueUSD==null?status:priceStatusFor({cur:group.currentPriceARS,priceStatus:group.priceStatus,priceSourceTimestamp:group.priceSourceTimestamp||group.priceUpdatedAt}),
       source:group.priceSource||'',sourceTimestamp:group.priceSourceTimestamp||group.priceUpdatedAt||null,
       retrievedAt:group.priceRetrievedAt||null,marketState:'',quoteCclSkewMs:group.quoteCclSkewMs
     });
@@ -4970,7 +5030,61 @@ function portfolioSummary(items=portfolioValuations()) {
   const pnlUSD=pnlItems.reduce((sum,item)=>sum+item.pnlUSD,0);
   const byClass={};
   valued.forEach(item=>{byClass[item.assetClass]=(byClass[item.assetClass]||0)+item.currentUSD;});
-  return {items,valued,pnlItems,totalUSD,costUSD,pnlUSD,roiUSD:costUSD>0?pnlUSD/costUSD:null,byClass,pending:items.filter(item=>!isValuationAvailable(item))};
+  const pending=items.filter(item=>!isValuationAvailable(item));
+  const missingCost=items.filter(item=>!Number.isFinite(item.costUSD)||item.costUSD<=0);
+  const incomplete=items.filter(item=>!isValuationAvailable(item)||!Number.isFinite(item.costUSD)||item.costUSD<=0);
+  return {items,valued,pnlItems,totalUSD,costUSD,pnlUSD,roiUSD:costUSD>0?pnlUSD/costUSD:null,byClass,pending,missingCost,incomplete};
+}
+
+function valuationCustodian(item) {
+  const asset=item.sourceAsset||{};
+  return asset.broker||asset.wallet||asset.custody||(LANG==='en'?'Unspecified':'Sin especificar');
+}
+function valuationLabel(item) { return `${item.sym} · ${valuationCustodian(item)}`; }
+function consolidatedExposure(items) {
+  const groups=new Map();
+  items.forEach(item=>{
+    const asset=item.sourceAsset||{};
+    const key=[item.assetClass,asset.instrumentId||asset.priceSymbol||item.sym,asset.market||''].join('|');
+    if(!groups.has(key))groups.set(key,{...item,currentUSD:0,custodians:new Set()});
+    const group=groups.get(key);
+    group.currentUSD+=item.currentUSD;
+    group.custodians.add(valuationCustodian(item));
+  });
+  return [...groups.values()];
+}
+function openAssetClass(assetClass) {
+  if(assetClass==='Acciones')return showTab('stocks');
+  if(assetClass==='Cripto')return showTab('crypto');
+  const sub={CEDEARs:'cedeares',ETFs:'etf',Tokenizadas:'token',Bonos:'bonos'}[assetClass];
+  if(sub){showTab('otros');showOtrosTab(sub);}
+}
+function renderDashboardDetails(summary) {
+  const en=LANG==='en';
+  const stale=summary.valued.filter(item=>['stale','freshness_unknown'].includes(item.status));
+  const cclNeeded=summary.items.some(item=>item.assetClass==='CEDEARs');
+  const cclTime=new Date(ST.cedearCurrentCclUpdatedAt).getTime();
+  const cclOld=cclNeeded&&(!Number.isFinite(cclTime)||Date.now()-cclTime>96*60*60*1000);
+  const issues=[];
+  summary.items.forEach(item=>{
+    const reasons=[];
+    if(!isValuationAvailable(item))reasons.push(en?'price or conversion missing':'sin precio o conversión');
+    if(summary.missingCost.includes(item))reasons.push(en?'cost missing':'sin coste');
+    if(stale.includes(item))reasons.push(en?'old quote or unknown timestamp':'cotización antigua o fecha desconocida');
+    if(item.quoteCclSkewMs>CEDEAR_CCL_SKEW_WARNING_MS)reasons.push(en?'price and CCL at different times':'precio y CCL de horas diferentes');
+    if(reasons.length)issues.push(`${valuationLabel(item)}: ${reasons.join(' · ')}`);
+  });
+  if(cclOld)issues.push(en?'CCL reference is old or undated':'Referencia CCL antigua o sin fecha');
+  $('dQualitySummary').textContent=[`${summary.pending.length} ${en?'without valuation':'sin valoración'}`,`${summary.missingCost.length} ${en?'without cost':'sin coste'}`,`${stale.length} ${en?'old or undated':'antiguas o sin fecha'}`].join(' · ');
+  const times=summary.items.map(item=>new Date(item.retrievedAt||item.sourceAsset?.priceUpdatedAt||item.sourceTimestamp).getTime()).filter(Number.isFinite);
+  $('dQualityTime').textContent=times.length?(en?'Latest query: ':'Última consulta: ')+madridDateTime(Math.max(...times)):(en?'No query timestamp':'Sin fecha de consulta');
+  $('dQualityItems').innerHTML=(issues.length?issues:[en?'All positions have price and cost; no freshness warnings.':'Todas las posiciones tienen precio y coste; sin advertencias de antigüedad.']).map(text=>`<li>${escapeHTML(text)}</li>`).join('');
+  const contribution=summary.pnlItems.slice().sort((a,b)=>Math.abs(b.pnlUSD)-Math.abs(a.pnlUSD)).slice(0,6);
+  $('dContributionTb').innerHTML=contribution.length?contribution.map(item=>`<tr><td>${escapeHTML(valuationLabel(item))}</td><td>${escapeHTML(item.assetClass)}</td><td class="num">${fmt(item.currentUSD)}</td><td class="num" style="color:${item.pnlUSD>=0?'var(--cg2)':'var(--cr2)'}">${fmt(item.pnlUSD)}</td></tr>`).join(''):`<tr><td colspan="4">${en?'No positions with price and cost':'Sin posiciones con precio y coste'}</td></tr>`;
+  const snaps=(ST.snaps||[]).filter(s=>s.value!=null&&s.value!==''&&Number.isFinite(Number(s.value))&&typeof s.date==='string').slice().sort((a,b)=>a.date.localeCompare(b.date));
+  $('dEvolutionEmpty').textContent=snaps.length<2?(en?'Two saved valuations are needed.':'Se necesitan dos valoraciones guardadas.'):'';
+  $('dEvolutionChart').style.display=snaps.length<2?'none':'';
+  safeCreateChart('dashEvolution',$('cDashEvolution'),{type:'line',data:{labels:snaps.map(s=>s.date),datasets:[{data:snaps.map(s=>s.value),borderColor:'#0891b2',borderWidth:2,pointRadius:2,tension:0,fill:false}]},options:{...baseOpts(),plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>fmt(c.raw)}}}}});
 }
 
 function calcDCA(assetOrPositionId) {
@@ -5036,7 +5150,7 @@ function renderKPIs() {
   $('kValueLabel').textContent=(en?'Current value · ':'Valor actual · ')+scope;
   $('kPnlLabel').textContent=en?'Unrealized P/L':'G/P no realizada';
   $('kRoiLabel').textContent='ROI';
-  $('kCostLabel').textContent=en?'Validated historical cost':'Coste histórico validado';
+  $('kCostLabel').textContent=en?'Valued open cost':'Coste abierto valorado';
   $('kPositionsLabel').textContent=en?'Positions':'Posiciones';
   $('kV').textContent=summary.totalUSD==null?'N/D':fmt(summary.totalUSD);
   $('kVs').textContent=(en?'Valued USD':'USD valorados')+pendingLabel;
@@ -5068,13 +5182,13 @@ function renderClassPnlTable(summary) {
   });
 
   if (!groups.size) {
-    tb.innerHTML = `<tr><td colspan="6" class="empty">${escapeHTML(t('dClassPnlEmpty'))}</td></tr>`;
+    tb.innerHTML = `<tr><td colspan="7" class="empty">${escapeHTML(t('dClassPnlEmpty'))}</td></tr>`;
     return;
   }
 
   tb.innerHTML = orderedClasses.filter(assetClass=>groups.has(assetClass)).map((assetClass,index) => {
     const group = portfolioSummary(groups.get(assetClass));
-    const unresolved = group.items.length - group.pnlItems.length;
+  const unresolved = group.incomplete.length;
     const roi = group.roiUSD;
     const pnlColor = group.pnlItems.length ? (group.pnlUSD >= 0 ? 'var(--cg2)' : 'var(--cr2)') : 'var(--tx3)';
     const status = unresolved
@@ -5082,12 +5196,13 @@ function renderClassPnlTable(summary) {
       : t('dClassPnlComplete');
     const statusClass = unresolved ? 'pill-y' : 'pill-g';
     return `<tr>
-      <td class="sym"><span class="leg-dot" style="display:inline-block;background:${PALETTE[index%PALETTE.length]};margin-right:6px"></span>${escapeHTML(assetClass)}</td>
+      <td class="sym"><span class="leg-dot" style="display:inline-block;background:${PALETTE[index%PALETTE.length]};margin-right:6px"></span><button class="dash-row-button" type="button" onclick="openAssetClass('${assetClass}')">${escapeHTML(assetClass)}</button></td>
       <td class="num">${group.pnlItems.length ? fmt(group.costUSD) : 'N/D'}</td>
       <td class="num">${group.totalUSD==null?'N/D':fmt(group.totalUSD)}</td>
       <td class="num" style="color:${pnlColor};font-weight:700">${group.pnlItems.length ? fmt(group.pnlUSD) : 'N/D'}</td>
       <td class="num" style="color:${pnlColor};font-weight:700">${roi != null ? fmtPct(roi*100) : 'N/D'}</td>
       <td><span class="pill ${statusClass}">${escapeHTML(status)}</span></td>
+      <td class="num">${group.totalUSD!=null&&summary.totalUSD>0?(group.totalUSD/summary.totalUSD*100).toFixed(1)+'%':'N/D'}</td>
     </tr>`;
   }).join('');
 }
@@ -5097,7 +5212,7 @@ function renderClassPnlTable(summary) {
 // ═══════════════════════════════════════════
 function renderDash() {
   const m = calcPortfolioMetrics();
-  $('dCap').textContent = fmt(m.tCap);
+  $('dCap').textContent = m.summary.pnlItems.length||!m.summary.items.length?fmt(m.tCap):'N/D';
   if (m.irr !== null) {
     $('dIRR').textContent = fmtPct(m.irr * 100);
     $('dIRR').style.color = m.irr >= 0 ? 'var(--cg2)' : 'var(--cr2)';
@@ -5116,13 +5231,17 @@ function renderDash() {
 
   const summary=m.summary||portfolioSummary();
   const tot=summary.totalUSD;
-  const pendingLabel=summary.pending.length?` · ${summary.pending.length} N/D`:'';
+  const pendingLabel=summary.incomplete.length?` · ${summary.incomplete.length} N/D`:'';
   renderClassPnlTable(summary);
+  renderDashboardDetails(summary);
+  const en=LANG==='en';
+  const dashboardLabels={dValueLabel:en?'Current value':'Valor actual',dPnlLabel:en?'Unrealized P/L':'G/P no realizada',dCostLabel:en?'Valued open cost':'Coste abierto valorado',dCostSub:en?'With price and cost available':'Con precio y coste disponibles',dPositionsLabel:en?'Positions':'Posiciones',dPositionsSub:en?'Active positions':'Activas en cartera',dQualityTitle:en?'Data status':'Estado de datos',dCustodySub:en?'Current value by broker / wallet / exchange':'Valor actual por broker / wallet / exchange',dMarketTitle:en?'Market today':'Mercado hoy',dMarketSub:en?'Provider change · market reference':'Variación del proveedor · referencia de mercado',dContributionTitle:en?'Main contributions to P/L':'Principales contribuciones al resultado',dContributionSub:en?'Unrealized P/L in USD · by position and custodian':'G/P no realizada en USD · por posición y custodio',dContributionPosition:en?'Position':'Posición',dContributionClass:en?'Class':'Clase',dContributionValue:en?'Current value':'Valor actual',dContributionPnl:en?'Unrealized P/L':'G/P no realizada',dClassPnlWeightHead:en?'Valued weight':'Peso valorado',dReturnSub:en?'On open cost · by position and custodian':'Sobre coste abierto · por posición y custodio',dChartPnlSub:en?'Positions with price and cost available':'Posiciones con precio y coste disponibles',dEvolutionTitle:en?'Portfolio value history':'Evolución patrimonial',dEvolutionSub:en?'Recorded portfolio value · includes purchases and sales':'Valor de cartera registrado · incluye el efecto de compras y ventas'};
+  Object.entries(dashboardLabels).forEach(([id,text])=>{if($(id))$(id).textContent=text;});
 
   // Hero KPIs
   const heroTotal = $('dHeroTotal');
   if (heroTotal) { heroTotal.textContent = fmt(tot); heroTotal.style.background='linear-gradient(135deg,var(--cv3),var(--ct2))'; heroTotal.style.webkitBackgroundClip='text'; heroTotal.style.webkitTextFillColor='transparent'; heroTotal.style.backgroundClip='text'; }
-  const heroTotalSub=$('dHeroTotalSub');if(heroTotalSub)heroTotalSub.textContent=`USD valorados${pendingLabel}`;
+  const heroTotalSub=$('dHeroTotalSub');if(heroTotalSub)heroTotalSub.textContent=`${en?'Valued USD':'USD valorados'}${summary.pending.length?` · ${summary.pending.length} N/D`:''}`;
   const pnl2=summary.pnlUSD,pp2=summary.roiUSD;
   const heroPnl = $('dHeroPnl');
   const heroPnlPct = $('dHeroPnlPct');
@@ -5138,7 +5257,6 @@ function renderDash() {
     const key = asset.broker || asset.wallet || asset.custody || 'Sin especificar';
     custodioData[key] = (custodioData[key]||0) + item.currentUSD;
   });
-  destroyChart('custodio');
   if ($('cCustodio') && Object.keys(custodioData).length > 0) {
     const custLabels = Object.keys(custodioData);
     const custVals = Object.values(custodioData);
@@ -5147,11 +5265,10 @@ function renderDash() {
       data: { labels: custLabels, datasets: [{ data: custVals, backgroundColor: PALETTE.slice(0, custLabels.length), borderWidth: 2, borderColor: getComputedStyle(document.documentElement).getPropertyValue('--bg2').trim(), hoverOffset: 6 }] },
       options: { responsive:true, maintainAspectRatio:false, cutout:'60%', plugins: { legend: { position:'right', labels: { color:getTick(), font:{size:9}, padding:8 } }, tooltip: { callbacks: { label: c => ' '+fmt(c.raw)+' ('+((c.raw/tot*100).toFixed(1))+'%)' } } } }
     });
-  }
+  } else destroyChart('custodio');
   const classes=Object.keys(summary.byClass),classValues=classes.map(key=>summary.byClass[key]);
   $('allocLeg').innerHTML=classes.map((assetClass,index)=>`<span class="leg-i"><span class="leg-dot" style="background:${PALETTE[index%PALETTE.length]}"></span>${escapeHTML(assetClass)} ${(tot>0?summary.byClass[assetClass]/tot*100:0).toFixed(1)}%</span>`).join('')+
     (summary.pending.length?`<span class="leg-i"><span class="leg-dot" style="background:var(--tx3)"></span>N/D ${summary.pending.length}</span>`:'');
-  destroyChart('alloc');
   safeCreateChart('alloc', $('cAlloc'), {
     type:'doughnut',
     data:{labels:classes,datasets:[{data:classValues,backgroundColor:PALETTE.slice(0,classes.length),borderWidth:3,borderColor:getComputedStyle(document.documentElement).getPropertyValue('--bg2').trim(),hoverOffset:6}]},
@@ -5161,21 +5278,21 @@ function renderDash() {
   const rA = summary.valued.filter(item=>item.pnlUSD!=null);
   const rH = Math.max(160, rA.length*30+50);
   $('retWrap').style.height = rH + 'px';
-  destroyChart('ret');
+  if(!rA.length)destroyChart('ret');
   if (rA.length) {
     safeCreateChart('ret', $('cRet'), {
       type:'bar',
-      data:{labels:rA.map(item=>item.sym),datasets:[{data:rA.map(item=>+((item.pnlUSD/item.costUSD||0)*100).toFixed(2)),backgroundColor:rA.map(item=>(item.pnlUSD/item.costUSD||0)>=0?'rgba(16,185,129,.7)':'rgba(244,63,94,.7)'),borderRadius:5,borderSkipped:false}]},
+      data:{labels:rA.map(valuationLabel),datasets:[{data:rA.map(item=>+((item.pnlUSD/item.costUSD||0)*100).toFixed(2)),backgroundColor:rA.map(item=>(item.pnlUSD/item.costUSD||0)>=0?'rgba(16,185,129,.7)':'rgba(244,63,94,.7)'),borderRadius:5,borderSkipped:false}]},
       options:{...baseOpts(),indexAxis:'y',plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>' '+(c.raw>=0?'+':'')+c.raw+'%'}}},scales:{x:{ticks:{color:getTick(),font:{size:9},callback:v=>v+'%'},grid:{color:getGrid()}},y:{ticks:{color:getTick(),font:{size:9}},grid:{display:false}}}}
     });
   }
 
   const pA = summary.valued.filter(item=>item.pnlUSD!=null);
-  destroyChart('pnl');
+  if(!pA.length)destroyChart('pnl');
   if (pA.length) {
     safeCreateChart('pnl', $('cPnl'), {
       type:'bar',
-      data:{labels:pA.map(item=>item.sym),datasets:[{data:pA.map(item=>+item.pnlUSD.toFixed(2)),backgroundColor:pA.map(item=>item.pnlUSD>=0?'rgba(16,185,129,.65)':'rgba(244,63,94,.65)'),borderRadius:5,borderSkipped:false}]},
+      data:{labels:pA.map(valuationLabel),datasets:[{data:pA.map(item=>+item.pnlUSD.toFixed(2)),backgroundColor:pA.map(item=>item.pnlUSD>=0?'rgba(16,185,129,.65)':'rgba(244,63,94,.65)'),borderRadius:5,borderSkipped:false}]},
       options:{...baseOpts(),plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>' '+fmt(c.raw)}}},scales:{x:{ticks:{color:getTick(),font:{size:9}},grid:{display:false}},y:{ticks:{color:getTick(),font:{size:9},callback:v=>fmt(v,0)},grid:{color:getGrid()}}}}
     });
   }
@@ -5328,12 +5445,12 @@ function renderDCA() {
 // ═══════════════════════════════════════════
 function renderRisk() {
   const summary=portfolioSummary();
-  const all=summary.valued;
+  const all=consolidatedExposure(summary.valued);
   const total=summary.totalUSD;
   const tb = $('riskTb'); tb.innerHTML = '';
 
   // By asset chart
-  const labels = all.map(item => item.sym);
+  const labels = all.map(item => `${item.sym} · ${item.assetClass}`);
   const vals = all.map(item => item.currentUSD);
   destroyChart('risk');
   safeCreateChart('risk', $('cRisk'), {
@@ -5367,8 +5484,8 @@ function renderRisk() {
     const barColor = pct > 25 ? 'var(--cr)' : pct > 15 ? 'var(--ca)' : 'var(--cg)';
     const tr = document.createElement('tr');
     tr.innerHTML = `
-      <td class="sym">${item.sym} <span class="muted" style="font-size:10px">${item.name}</span></td>
-      <td><span class="pill ${type==='Cripto'?'pill-y':'pill-b'}">${type}</span></td>
+      <td class="sym">${escapeHTML(item.sym)} <span class="muted" style="font-size:10px">${escapeHTML(item.name)} · ${escapeHTML([...item.custodians].join(', '))}</span></td>
+      <td><span class="pill ${type==='Cripto'?'pill-y':'pill-b'}">${escapeHTML(type)}</span></td>
       <td class="num">${fmt(v)}</td>
       <td class="num" style="font-weight:700">${pct.toFixed(1)}%</td>
       <td><div class="risk-bar-wrap"><div class="risk-bar-bg"><div class="risk-bar-fill" style="width:${Math.min(pct*2,100)}%;background:${barColor}"></div></div><span class="risk-pct">${pct.toFixed(1)}%</span></div></td>
@@ -5743,7 +5860,7 @@ const I18N = {
     dAllocSub: 'Por valor actual — acciones vs cripto',
     dClassPnlTitle: 'G/P por clase de activo',
     dClassPnlSub: 'Pérdida o ganancia no realizada por clase, con datos valorados',
-    dClassPnlClass: 'Clase', dClassPnlCost: 'Coste histórico',
+    dClassPnlClass: 'Clase', dClassPnlCost: 'Coste abierto valorado',
     dClassPnlValue: 'Valor actual', dClassPnlPnl: 'G/P no realizada',
     dClassPnlRoi: 'ROI', dClassPnlStatus: 'Estado',
     dClassPnlComplete: 'Completo', dClassPnlPartial: 'Parcial · N/D: {n}',
@@ -5946,7 +6063,7 @@ const I18N = {
     dAllocSub: 'By current value — stocks vs crypto',
     dClassPnlTitle: 'P&L by asset class',
     dClassPnlSub: 'Unrealized gain or loss by class, using valued data',
-    dClassPnlClass: 'Class', dClassPnlCost: 'Historical cost',
+    dClassPnlClass: 'Class', dClassPnlCost: 'Valued open cost',
     dClassPnlValue: 'Current value', dClassPnlPnl: 'Unrealized P&L',
     dClassPnlRoi: 'ROI', dClassPnlStatus: 'Status',
     dClassPnlComplete: 'Complete', dClassPnlPartial: 'Partial · N/D: {n}',
@@ -7687,9 +7804,9 @@ function renderBenchmarks() {
 
   // Verdict — clarify this compares different time periods, avoid misleading "you're beating the market" claim
   const verdict=$('benchVerdict');
-  if(verdict&&benchData.sp500){
-    verdict.innerHTML = `<span style="color:var(--tx3);font-size:11px">⚠️ Comparación no equivalente: tu ROI es acumulado desde la compra de cada activo, mientras que el S&P 500 y BTC muestran solo el cambio de las últimas 24hs. No es una comparación directa de rendimiento.</span>`;
-  }
+  if(verdict)verdict.textContent=benchData.sp500||benchData.btc
+    ? (LANG==='en'?'Market reference; not portfolio performance.':'Referencia de mercado; no representa la rentabilidad de tu cartera.')
+    : (LANG==='en'?'No market quotes queried':'Sin cotizaciones de mercado consultadas');
 }
 
 // Patch updatePrices to also fetch benchmarks and check alerts
@@ -8149,8 +8266,25 @@ let cloudSyncPending = false;
 let cloudSyncTimer = null;
 let cloudSyncPromise = null;
 
+function readCloudRevision() {
+  if(!syncUser)return undefined;
+  try {
+    const record=JSON.parse(localStorage.getItem('mrp_cloud_revision')||'null');
+    return record?.userId===syncUser.id?record.updatedAt:undefined;
+  } catch { return undefined; }
+}
+function rememberCloudRevision(updatedAt) {
+  if(syncUser)localStorage.setItem('mrp_cloud_revision',JSON.stringify({userId:syncUser.id,updatedAt:updatedAt||null}));
+}
+async function readCloudPortfolio() {
+  const {data,error}=await sb.from(PORTFOLIO_TABLE).select('data, updated_at').eq('user_id',syncUser.id).maybeSingle();
+  if(error&&error.code!=='PGRST116')throw error;
+  if(data?.data&&!validatePortfolioStateShape(data.data))throw new Error('Cloud portfolio state has an invalid structure');
+  return data;
+}
+
 function scheduleCloudSync(delay = 800) {
-  if (!sb || !syncUser) return;
+  if (!sb || !syncUser || pendingConflict) return;
   cloudSyncPending = true;
   clearTimeout(cloudSyncTimer);
   cloudSyncTimer = setTimeout(() => {
@@ -8319,17 +8453,9 @@ async function checkForConflictsAndSync() {
   if (!sb || !syncUser || syncCheckInFlight) return;
   syncCheckInFlight = true;
   try {
-    const { data, error } = await sb
-      .from(PORTFOLIO_TABLE)
-      .select('data, updated_at')
-      .eq('user_id', syncUser.id)
-      .maybeSingle();
-
-    if (error && error.code !== 'PGRST116') throw error;
-
-    if (data?.data && !validatePortfolioStateShape(data.data)) {
-      throw new Error('Cloud portfolio state has an invalid structure');
-    }
+    const previousRevision=readCloudRevision();
+    const data=await readCloudPortfolio();
+    rememberCloudRevision(data?.updated_at);
     const hasLocalData = hasRealData(ST);
     const hasCloudData = data && data.data && hasRealData(data.data);
     const localTimestamp = localStorage.getItem('mrp_last_local_change');
@@ -8370,7 +8496,12 @@ async function checkForConflictsAndSync() {
       return;
     }
 
-    // Different payloads: compare timestamps to decide automatically, ONLY ask if truly ambiguous
+    // A different remote revision is never overwritten on the strength of a device clock.
+    if(previousRevision===undefined||previousRevision!==(data?.updated_at||null)) {
+      showConflictModal(ST,data.data,data.updated_at);
+      return;
+    }
+    // Only this device changed since the last accepted remote revision.
     if (Number.isFinite(localTime) && Number.isFinite(cloudTime)) {
       const diffSeconds = Math.abs(localTime - cloudTime) / 1000;
       if (diffSeconds < 5) {
@@ -8489,8 +8620,11 @@ function countPortfolioRecords(state) {
 }
 
 function showConflictModal(localData, cloudData, cloudUpdatedAt) {
+  clearTimeout(cloudSyncTimer);
+  cloudSyncTimer=null;
   pendingConflict = { local: localData, cloud: cloudData, cloudUpdatedAt };
   conflictChoice = null;
+  localStorage.setItem('mrp_sync_conflict_backup',JSON.stringify({userId:syncUser?.id||null,savedAt:new Date().toISOString(),local:localData,cloud:cloudData}));
 
   const localCount = countPortfolioRecords(localData);
   const cloudCount = countPortfolioRecords(cloudData);
@@ -8521,15 +8655,19 @@ function selectConflictOption(choice) {
 async function confirmConflictResolution() {
   if (!conflictChoice || !pendingConflict) return;
   let completed = false;
+  const selectedConflict=pendingConflict;
   try {
     if (conflictChoice === 'local') {
-      completed = await pushToCloud();
+      rememberCloudRevision(selectedConflict.cloudUpdatedAt);
+      completed = await pushToCloud({resolveConflict:true});
     } else {
       if (!validatePortfolioStateShape(pendingConflict.cloud)) {
         throw new Error('Selected cloud state has an invalid structure');
       }
       preserveCedearPreMigrationBackup(pendingConflict.cloud);
       ST = upgradeCedearState(sanitizePortfolioState({ ...ST, ...pendingConflict.cloud }));
+      rememberCloudRevision(pendingConflict.cloudUpdatedAt);
+      cloudSyncPending=false;
       save(true, { scheduleSync: false, timestamp: pendingConflict.cloudUpdatedAt });
       try { renderAll(); } catch(e) { console.error('renderAll error (non-fatal):', e); }
       finishSync('ok');
@@ -8540,15 +8678,18 @@ async function confirmConflictResolution() {
     updateSyncButton('error');
     showToast('No se pudo completar la sincronización. Tus datos locales se conservaron.', 'err', 5000);
   } finally {
-    $('conflictModalOverlay').classList.remove('open');
-    pendingConflict = null;
+    if(completed&&pendingConflict===selectedConflict){
+      $('conflictModalOverlay').classList.remove('open');
+      pendingConflict = null;
+    }
     if (completed) showToast('Sincronización completada', 'ok');
   }
 }
 
 // ── PUSH / PULL ──
-async function pushToCloud() {
+async function pushToCloud({resolveConflict=false}={}) {
   if (!sb || !syncUser) return false;
+  if(pendingConflict&&!resolveConflict)return false;
   cloudSyncPending = true;
   clearTimeout(cloudSyncTimer);
   cloudSyncTimer = null;
@@ -8558,6 +8699,14 @@ async function pushToCloud() {
   updateSyncButton('syncing');
   cloudSyncPromise = (async () => {
     try {
+      if(readCloudRevision()===undefined){
+        const remote=await readCloudPortfolio();
+        rememberCloudRevision(remote?.updated_at);
+        if(remote?.data&&hasRealData(remote.data)&&!portfolioStatesEqual(ST,remote.data)){
+          showConflictModal(ST,remote.data,remote.updated_at);
+          return false;
+        }
+      }
       while (cloudSyncPending && sb && syncUser) {
         cloudSyncPending = false;
         const snapshot = sanitizePortfolioState(ST);
@@ -8565,14 +8714,24 @@ async function pushToCloud() {
           throw new Error('Portfolio state failed validation before cloud upload');
         }
         const payload = JSON.parse(JSON.stringify(snapshot));
-        const ts = new Date().toISOString();
-        const { error } = await sb
-          .from(PORTFOLIO_TABLE)
-          .upsert({ user_id: syncUser.id, data: payload, updated_at: ts });
-        if (error) throw error;
+        const revision=readCloudRevision();
+        const ts = new Date(Math.max(Date.now(),(Date.parse(revision)||0)+1)).toISOString();
+        const write=revision===null
+          ? sb.from(PORTFOLIO_TABLE).insert({user_id:syncUser.id,data:payload,updated_at:ts})
+          : sb.from(PORTFOLIO_TABLE).update({data:payload,updated_at:ts}).eq('user_id',syncUser.id).eq('updated_at',revision);
+        const {data:written,error}=await write.select('updated_at').maybeSingle();
+        if(error&&error.code!=='23505')throw error;
+        if(error||!written){
+          cloudSyncPending=true;
+          const remote=await readCloudPortfolio();
+          showConflictModal(ST,remote?.data||{},remote?.updated_at);
+          updateSyncButton('error');
+          return false;
+        }
+        rememberCloudRevision(written.updated_at);
         // Do not overwrite a newer local-change timestamp when another edit arrived
         // while this request was in flight. The queued pass will reconcile it.
-        if (!cloudSyncPending) localStorage.setItem('mrp_last_local_change', ts);
+        if (!cloudSyncPending) localStorage.setItem('mrp_last_local_change', written.updated_at);
       }
       clearTimeout(cloudSyncTimer);
       cloudSyncTimer = null;

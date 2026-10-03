@@ -73,6 +73,7 @@ const localStorageStub = {
 
 const context = vm.createContext({
   assert,
+  publishedHtml: html,
   console,
   document: documentStub,
   window: { addEventListener() {}, innerWidth: 1440 },
@@ -98,7 +99,7 @@ const context = vm.createContext({
 const tests = String.raw`
 (async () => {
   assert.strictEqual(
-    releaseFromHtml('<meta name="mrp-release" content="2026-10-03.1">'),
+    releaseFromHtml(publishedHtml),
     APP_RELEASE,
     'La versión publicada debe poder detectarse desde el HTML'
   );
@@ -627,7 +628,86 @@ const tests = String.raw`
   assert.strictEqual(persistedVwra.market,'LSE','La persistencia V3 debe conservar el mercado');
   assert.strictEqual(persistedVwra.priceSymbol,'VWRA.L','La persistencia V3 debe conservar el ticker del proveedor');
 
-  console.log('OK: V3 posiciones, operaciones, migración, sincronización, CEDEAR y ETF');
+  const untouched=JSON.stringify(ST);
+  const oldQuote={cur:100,priceStatus:'realtime',priceSourceTimestamp:'2020-01-01T00:00:00Z'};
+  assert.strictEqual(priceStatusFor(oldQuote),'stale');
+  assert.strictEqual(priceStatusFor({cur:100}),'freshness_unknown');
+  const projection=[
+    {sym:'BTC',assetClass:'Cripto',currentUSD:100,costUSD:80,pnlUSD:20,sourceAsset:{broker:'Binance'}},
+    {sym:'BTC',assetClass:'Cripto',currentUSD:200,costUSD:150,pnlUSD:50,sourceAsset:{broker:'Exodus'}}
+  ];
+  assert.notStrictEqual(valuationLabel(projection[0]),valuationLabel(projection[1]));
+  assert.strictEqual(consolidatedExposure(projection)[0].currentUSD,300);
+  const exposureBefore=JSON.stringify(projection);
+  consolidatedExposure(projection);
+  assert.strictEqual(JSON.stringify(projection),exposureBefore);
+  const noCost={...projection[0],costUSD:null,pnlUSD:null};
+  assert.strictEqual(portfolioSummary([noCost]).missingCost.length,1);
+  assert.strictEqual(portfolioSummary([noCost]).totalUSD,100);
+  assert.strictEqual(JSON.stringify(ST),untouched,'Las proyecciones no deben modificar la cartera');
+
+  syncUser={id:'synthetic-user'};
+  let remote={data:JSON.parse(JSON.stringify(ST)),updated_at:'2026-10-01T00:00:00.000Z'};
+  let writes=0, injectedEdit=null;
+  sb={from(){
+    let mode='read',payload=null,expected=null;
+    const builder={
+      select(){return builder;},
+      eq(key,value){if(key==='updated_at')expected=value;return builder;},
+      update(value){mode='update';payload=value;return builder;},
+      insert(value){mode='insert';payload=value;return builder;},
+      async maybeSingle(){
+        if(mode==='read')return {data:remote,error:null};
+        writes++;
+        if(injectedEdit){const edit=injectedEdit;injectedEdit=null;edit();}
+        if(mode==='insert'&&remote)return {data:null,error:{code:'23505'}};
+        if(mode==='update'&&remote.updated_at!==expected)return {data:null,error:null};
+        remote={data:payload.data,updated_at:payload.updated_at};
+        return {data:{updated_at:remote.updated_at},error:null};
+      }
+    };return builder;
+  }};
+  pendingConflict=null;
+  rememberCloudRevision(remote.updated_at);
+  assert.strictEqual(await pushToCloud(),true,'Una revisión vigente puede guardarse');
+  assert.strictEqual(readCloudRevision(),remote.updated_at);
+  const localBeforeRace=JSON.stringify(ST);
+  remote={data:JSON.parse(JSON.stringify(ST)),updated_at:'2030-01-01T00:00:00.000Z'};
+  const remoteBeforeRace=JSON.stringify(remote);
+  assert.strictEqual(await pushToCloud(),false,'Un dispositivo desactualizado no debe sobrescribir');
+  assert.strictEqual(JSON.stringify(remote),remoteBeforeRace);
+  assert.strictEqual(JSON.stringify(ST),localBeforeRace);
+  assert(pendingConflict);
+  assert(JSON.parse(localStorage.getItem('mrp_sync_conflict_backup')).local);
+  const writesBefore= writes;
+  assert.strictEqual(await pushToCloud(),false,'El conflicto bloquea nuevas subidas automáticas');
+  assert.strictEqual(writes,writesBefore);
+  conflictChoice='local';
+  injectedEdit=()=>{remote.updated_at='2031-01-01T00:00:00.000Z';};
+  await confirmConflictResolution();
+  assert(pendingConflict,'Una segunda edición remota conserva el diálogo de conflicto');
+  assert.strictEqual(JSON.stringify(ST),localBeforeRace);
+  pendingConflict=null;
+  remote=null;
+  rememberCloudRevision(null);
+  assert.strictEqual(await pushToCloud(),true,'Una cartera nueva se inserta una sola vez');
+  assert(remote.data);
+  rememberCloudRevision(null);
+  assert.strictEqual(await pushToCloud(),false,'Una inserción duplicada no sobrescribe la fila existente');
+  pendingConflict=null;
+  rememberCloudRevision(remote.updated_at);
+  injectedEdit=()=>{ST.syncTestMarker='second-edit';cloudSyncPending=true;};
+  const writesBeforeQueue=writes;
+  assert.strictEqual(await pushToCloud(),true);
+  assert.strictEqual(writes-writesBeforeQueue,2,'Una edición durante la subida requiere una segunda escritura condicionada');
+  assert.strictEqual(remote.data.syncTestMarker,'second-edit');
+  const localStorageSet=localStorage.setItem;
+  localStorage.setItem=(key,value)=>{if(key==='mrp_sync_conflict_backup')throw new Error('synthetic quota');localStorageSet(key,value);};
+  assert.throws(()=>showConflictModal(ST,remote.data,remote.updated_at),/synthetic quota/);
+  assert(pendingConflict,'Sin espacio para backup se debe mantener bloqueada la subida');
+  assert.strictEqual(await pushToCloud(),false);
+  localStorage.setItem=localStorageSet;
+  console.log('OK: V3, CEDEAR, ETF, frescura, cobertura, exposición y conflictos CAS');
 })()
 `;
 

@@ -26,6 +26,23 @@ La sesión puede conservarse en el navegador. Si ya existe una sesión válida, 
 
 En el Dashboard, la tarjeta **G/P por clase de activo** separa el resultado no realizado de Acciones, Cripto, CEDEARs y Otros. El G/P y el ROI de cada clase utilizan las mismas posiciones valoradas que el total general; cuando falta un precio o coste válido, la fila queda marcada como parcial.
 
+### Dashboard: versión 2026-10-03.2
+
+- El resumen muestra valor actual, G/P no realizada, coste abierto valorado y posiciones activas. El coste abierto corresponde a las unidades que todavía conservas, no al total histórico de todas tus compras.
+- **Estado de datos** distingue posiciones sin valoración, sin coste y cotizaciones antiguas o sin fecha. Puedes desplegarlo para identificar cada posición. Una cotización antigua sigue valorando la cartera, pero no se presenta como reciente.
+- Las referencias de antigüedad son 15 minutos para tiempo real, 4 horas para datos diferidos y 96 horas para último cierre, contemplando fines de semana. No garantizan que el proveedor tenga datos de mercado en vivo.
+- Las clases muestran también su peso sobre el valor disponible. Puedes pulsar una clase para abrir su módulo.
+- Las principales contribuciones al resultado y las etiquetas de los gráficos distinguen activo y custodio; BTC en dos wallets sigue siendo dos posiciones separadas.
+- Riesgo agrupa la exposición al mismo instrumento entre custodios, sin fusionar posiciones ni mezclar Acciones con CEDEARs.
+- **Mercado hoy** es una referencia de variación del proveedor, no una comparación directa con el ROI acumulado de tu cartera.
+- **Evolución patrimonial** utiliza los snapshots ya guardados. Incluye el efecto de compras y ventas; no es una rentabilidad ajustada por aportes. Se necesitan dos valoraciones para mostrar la gráfica.
+
+### Ediciones desde varios dispositivos
+
+Las subidas de esta versión comprueban la revisión que se leyó de Supabase. Si otro dispositivo cambió la cartera, no se sobrescribe automáticamente: aparece un conflicto y debes elegir la copia correcta. Se conserva una copia local de ambos estados en el almacenamiento de ese navegador, antes de resolverlo.
+
+Esta protección no cambia las tablas ni las políticas RLS y no puede impedir que una versión antigua escriba sin comprobar revisiones. Actualiza todas las pestañas y accesos antes de editar; evita editar simultáneamente y conserva un backup JSON independiente. El respaldo de conflicto es local, puede eliminarse al borrar los datos del navegador y no sustituye al backup exportado.
+
 ## 3. Registrar acciones
 
 1. Entra en **Acciones**.

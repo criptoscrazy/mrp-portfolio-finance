@@ -14,6 +14,8 @@ const fixtures = JSON.parse(JSON.stringify(ctx.fixtures));
 const direct = (id, type, qty, cost, cur) => ({id,positionId:id,type,sym:id,name:id,qty,buy:cost/qty,openCost:cost,cur,quoteCurrency:'USD',priceStatus:'last_close',priceSource:'Prueba',broker:'Prueba',date:'2026-09-01'});
 fixtures.stocks = [direct('stock', 'stock', 2, 200, 150), {...direct('stock-pending','stock',1,50,0),cur:null}];
 fixtures.otros.push(direct('etf','etf',3,600,250),direct('token','token',4,400,120),{id:'bond',positionId:'bond',type:'bono',sym:'BONO',nominal:1000,capUSD:900});
+fixtures.snaps=[{date:'2026-10-01',value:190000},{date:'2026-10-02',value:200000}];
+const chartAsset=process.env.MRP_TEST_CHART_ASSET;
 
 (async () => {
   const server = http.createServer((req,res)=>{res.writeHead(200,{'Content-Type':'text/html; charset=utf-8'});res.end(html);});
@@ -23,13 +25,28 @@ fixtures.otros.push(direct('etf','etf',3,600,250),direct('token','token',4,400,1
   try {
     browser=await chromium.launch({headless:true,executablePath:'/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'});
     const context=await browser.newContext({viewport:{width:1440,height:1000}});
-    await context.route('**/*',route=>new URL(route.request().url()).origin===origin?route.continue():route.abort());
+    await context.route('**/*',route=>{
+      if(chartAsset&&route.request().url().includes('/Chart.js/4.4.1/'))return route.fulfill({contentType:'text/javascript',body:fs.readFileSync(chartAsset)});
+      return new URL(route.request().url()).origin===origin?route.continue():route.abort();
+    });
     await context.addInitScript(()=>Object.defineProperty(navigator,'onLine',{get:()=>false}));
     const page=await context.newPage(),errors=[];
     page.on('pageerror',error=>errors.push(error.message));
     await page.goto(origin,{waitUntil:'domcontentloaded'});await page.waitForTimeout(600);
     await page.evaluate(fixtures=>{ST=fixtures;LANG='es';renderAll();applyLang();},fixtures);
     const before=await page.evaluate(()=>JSON.stringify(ST));
+    if(chartAsset){
+      assert(await page.evaluate(()=>{
+        const previous=charts.pnl;
+        const labels=previous.data.labels;
+        renderDash();
+        return charts.pnl===previous&&labels.some(label=>label.includes('BTC')&&label.includes('Binance'))&&labels.some(label=>label.includes('BTC')&&label.includes('Exodus'))&&charts.dashEvolution.data.datasets[0].data.length===2;
+      }),'Los gráficos reales reutilizan la instancia, separan custodios y leen snapshots');
+      assert(await page.evaluate(()=>{
+        const canvas=$('cPnl'),pixels=canvas.getContext('2d').getImageData(0,0,canvas.width,canvas.height).data;
+        return pixels.some((value,index)=>index%4===3&&value>0);
+      }),'La gráfica debe dibujar píxeles');
+    }
     for(const [tab,sub,assetClass] of [
       ['stocks',null,'Acciones'],['crypto',null,'Cripto'],['otros','etf','ETFs'],
       ['otros','cedeares','CEDEARs'],['otros','token','Tokenizadas'],['otros','bonos','Bonos']
@@ -51,7 +68,7 @@ fixtures.otros.push(direct('etf','etf',3,600,250),direct('token','token',4,400,1
       if(metrics.classValue!=null)assert.equal(metrics.scopedValue,metrics.classValue,'Exactly the Dashboard class value');
       const classRow=page.locator('#dClassPnlTb tr').filter({has:page.locator('td.sym', {hasText:assetClass})});
       const classCells=await classRow.locator('td.num').allTextContents();
-      assert.deepEqual(classCells,[metrics.cost,metrics.value,metrics.pnl,metrics.roi],'Dashboard class breakdown must match the module');
+      assert.deepEqual(classCells.slice(0,4),[metrics.cost,metrics.value,metrics.pnl,metrics.roi],'Dashboard class breakdown must match the module');
       assert.equal(await page.locator('#kpiStrip').isVisible(),true);
       assert.equal(await page.locator('#kpiStrip > .kpi').count(),5);
     }
@@ -81,7 +98,7 @@ fixtures.otros.push(direct('etf','etf',3,600,250),direct('token','token',4,400,1
     assert.equal(await page.locator('#kPos').textContent(),'2','Pending positions still count');
     await page.evaluate(()=>{LANG='en';applyLang();});
     assert.equal(await page.locator('#kValueLabel').textContent(),'Current value · Crypto');
-    assert.equal(await page.locator('#kCostLabel').textContent(),'Validated historical cost');
+    assert.equal(await page.locator('#kCostLabel').textContent(),'Valued open cost');
     await page.evaluate(fixtures=>{ST=fixtures;LANG='es';applyLang();showTab('otros');showOtrosTab('cedeares');},fixtures);
     await page.setViewportSize({width:390,height:844});
     await page.waitForTimeout(300);
@@ -89,6 +106,24 @@ fixtures.otros.push(direct('etf','etf',3,600,250),direct('token','token',4,400,1
     assert(layout.bodyWidth<=layout.width+1,JSON.stringify(layout));
     assert(layout.kpisWidth<=layout.width+1);
     await page.screenshot({path:'/private/tmp/mrp-context-cedears-mobile.png',fullPage:true});
+    await page.evaluate(()=>showTab('dash'));
+    await page.waitForTimeout(200);
+    assert(await page.locator('#dashQuality').isVisible());
+    assert(await page.locator('#dashContribution').isVisible());
+    assert(await page.locator('#dashEvolution').isVisible());
+    assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),'Dashboard móvil sin desbordamiento');
+    assert(await page.evaluate(()=>{
+      const boxes=[...$('dashAllocation').children].map(el=>el.getBoundingClientRect());
+      return boxes.every(box=>box.width>innerWidth*.8)&&boxes[1].top>=boxes[0].bottom;
+    }),'Paneles móviles apilados y legibles');
+    await page.screenshot({path:'/private/tmp/mrp-dashboard-clarity-mobile.png',fullPage:true});
+    await page.evaluate(()=>{
+      ST.crypto[0].broker='<img src=x onerror="window.dashboardXss=1">';
+      ST.crypto[0].name='<svg onload="window.dashboardXss=1">';
+      renderDash();renderRisk();
+    });
+    assert.equal(await page.evaluate(()=>window.dashboardXss),undefined);
+    assert.equal(await page.locator('#dContributionTb img, #dQualityItems img, #riskTb img, #riskTb svg').count(),0,'Nombres y custodios hostiles deben mostrarse como texto');
     assert.deepEqual(errors,[]);
     console.log(JSON.stringify({ok:true,categories:6,network:'Blocked; synthetic data only',layout}));
   } finally {

@@ -22,6 +22,7 @@ const lot = (id, sym, date, quantity, unit, total, ticket, ratio = '10') => ({
     args: ['--allow-file-access-from-files']
   });
   const page = await browser.newPage({ viewport: { width: 1440, height: 1100 }, deviceScaleFactor: 1 });
+  await page.addInitScript(()=>Object.defineProperty(navigator,'onLine',{get:()=>false}));
   const pageErrors = [];
   page.on('pageerror', error => pageErrors.push(error.message));
   await page.route('http://**/*', route => route.abort());
