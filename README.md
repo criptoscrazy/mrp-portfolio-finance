@@ -246,6 +246,8 @@ Cada comprobación usa como máximo dos reintentos ante fallos transitorios. Exi
 
 El 3 de octubre de 2026 se verificó que el workflow seguía habilitado y que las ejecuciones del 26, 28 y 30 de septiembre terminaron correctamente. A pesar de ello el usuario notificó una nueva pausa. La pauta anterior de tres consultas semanales no evitó la pausa; no hay evidencia de que el workflow se hubiera detenido. La pauta actual se ajusta a la orientación de [Supabase sobre actividad diaria](https://supabase.com/docs/guides/platform/free-project-pausing), sin asegurar que el plan gratuito nunca vuelva a pausarse.
 
+Tras la reactivación del proyecto ese mismo día, Supabase confirmó `ACTIVE_HEALTHY` y la [primera comprobación remota posterior a la reactivación](https://github.com/criptoscrazy/mrp-portfolio-finance/actions/runs/37118821752) terminó correctamente con el workflow del commit `e288d34`. Una consulta adicional desde la configuración pública de la aplicación devolvió HTTP 200 y `checked_at: 2026-10-03T11:11:26.074267+00:00`. La revisión de metadatos confirmó que el RPC seguía siendo `security invoker`, con `search_path` vacío y sin referencias a tablas de cartera. No se consultaron filas financieras ni se modificaron datos, esquema, RLS o permisos.
+
 Antes de activarlo:
 
 1. Abre **SQL Editor** en el proyecto `mrp-Portfolio Finance`.
