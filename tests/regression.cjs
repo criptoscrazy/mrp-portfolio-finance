@@ -236,6 +236,89 @@ const tests = String.raw`
   const consolidatedCedears=consolidatedSummary.valued.filter(item=>item.assetClass==='CEDEARs');
   assert.strictEqual(consolidatedCedears.length, 3, 'El Dashboard debe consolidar los seis lotes en tres posiciones CEDEAR sin duplicarlos');
   assert.strictEqual(consolidatedSummary.byClass.CEDEARs, 23240, 'El Dashboard debe incorporar los CEDEARs en USD');
+  // Coste medio is a read-only projection of the same six known lots.
+  const meanState=ST,meanStateBefore=JSON.stringify(ST);
+  const meanRows=positionCostMeanRows().filter(row=>row.type==='CEDEAR');
+  assert.strictEqual(meanRows.length,3,'Coste medio debe mostrar tres posiciones CEDEAR, no seis lotes');
+  for(const [symbol,quantity,cost,average,count] of [
+    ['AAPL',822,9042.97,11.00118005,4],['NVDA',271,2016.29,7.4401845,1],['TSLA',69,1493.68,21.64753623,1]
+  ]){
+    const row=meanRows.find(item=>item.sym===symbol),group=consolidateCedears().find(item=>item.sym===symbol);
+    assert.strictEqual(row.quantity,quantity,symbol+' debe conservar cantidad abierta');
+    assert.strictEqual(row.costUSD,cost,symbol+' debe reutilizar coste USD con gastos registrados');
+    assert.strictEqual(row.averageUSD,average,symbol+' debe conservar promedio preciso');
+    assert.strictEqual(row.currentUSD,20,symbol+' debe usar 24000 ARS / 1200 CCL');
+    assert.strictEqual(row.count,count,symbol+' debe contar los lotes registrados');
+    assert(Math.abs(row.currentUSD*quantity-Number(group.currentValueUSD))<1e-8,'El precio unitario debe coincidir con la valoración principal');
+  }
+  renderDCA();
+  assert.strictEqual($('dcaTitle').textContent,'Coste medio por posición','El título debe renombrarse');
+  assert.strictEqual(I18N.es.tabDCA,'Coste medio por posición','La pestaña ES debe renombrarse');
+  assert.strictEqual(JSON.stringify(ST),meanStateBefore,'Calcular y renderizar no debe modificar ningún dato');
+  assert.strictEqual($('dcaTb').children.filter(row=>row.innerHTML.includes('Apple Inc.')).length,1,'AAPL debe aparecer una sola vez');
+  assert($('dcaTb').children.some(row=>row.innerHTML.includes('Test')),'El custodio debe ser visible sin una columna adicional');
+  renderDCA();
+  assert.strictEqual($('dcaTb').children.length,meanRows.length+1,'Un re-render no debe duplicar filas');
+
+  ST=JSON.parse(meanStateBefore);
+  ST.otros.push({...ST.otros.find(lot=>lot.id==='a1'),id:'other-custodian',positionId:'pos_cedear_aapl_other',broker:'Otro broker',quantityDecimal:'10',qty:10,totalCostDecimal:'150',grossAmountDecimal:'100'});
+  const sameSymbolRows=positionCostMeanRows().filter(row=>row.sym==='AAPL');
+  assert.strictEqual(sameSymbolRows.length,2,'Mismo símbolo en dos custodios debe conservar dos posiciones');
+  assert.strictEqual(sameSymbolRows.find(row=>row.custodian==='Test').costUSD,9042.97,'El custodio original no debe mezclarse');
+  assert.strictEqual(sameSymbolRows.find(row=>row.custodian==='Otro broker').averageUSD,15,'Otro custodio debe conservar su propio coste');
+
+  for(const missing of ['cost','price','ccl','currency']){
+    ST=JSON.parse(meanStateBefore);
+    if(missing==='cost')ST.otros.find(lot=>lot.id==='a1').totalCostDecimal=null;
+    if(missing==='price')ST.otros.filter(lot=>lot.sym==='AAPL').forEach(lot=>lot.cur=null);
+    if(missing==='ccl')ST.cedearCurrentCclDecimal=null;
+    if(missing==='currency')ST.otros.find(lot=>lot.id==='a1').purchaseCurrency='ARS';
+    const row=positionCostMeanRows().find(item=>item.sym==='AAPL');
+    if(missing==='cost'||missing==='currency'){
+      assert.strictEqual(row.costUSD,null,'Sin coste USD fiable no debe inventarse un total');
+      assert.strictEqual(row.averageUSD,null,'No debe reconstruir el coste usando el precio original ni CCL histórico');
+    }else assert.strictEqual(row.currentUSD,null,'Sin cotización o CCL válido el precio debe ser N/D');
+    renderDCA();
+    const markup=$('dcaTb').children.find(item=>item.innerHTML.includes('Apple Inc.')).innerHTML;
+    assert(markup.includes('Pendiente')&&markup.includes('N/D'),'Un dato imprescindible ausente debe quedar pendiente');
+    assert(!markup.includes('Ganando')&&!markup.includes('Perdiendo'),'No debe inventar una comparación de rentabilidad');
+  }
+  for(const invalidCcl of ['0','-1','Infinity','invalid']){
+    ST=JSON.parse(meanStateBefore);ST.cedearCurrentCclDecimal=invalidCcl;
+    assert.strictEqual(positionCostMeanRows().find(row=>row.sym==='AAPL').currentUSD,null,'El CCL inválido no debe producir un precio');
+  }
+  for(const invalidCost of [undefined,'invalid','-1']){
+    ST=JSON.parse(meanStateBefore);ST.otros.find(lot=>lot.id==='a1').totalCostDecimal=invalidCost;
+    assert.strictEqual(positionCostMeanRows().find(row=>row.sym==='AAPL').averageUSD,null,'Un coste ausente o inválido no debe sustituirse por el bruto');
+  }
+  ST=JSON.parse(meanStateBefore);
+  ST.cedearSales=ST.otros.filter(lot=>lot.sym==='AAPL').map(lot=>({lotId:lot.id,quantityDecimal:lot.quantityDecimal}));
+  assert(!positionCostMeanRows().some(row=>row.sym==='AAPL'),'Una posición vendida completamente debe quedar fuera de las posiciones abiertas');
+  ST=JSON.parse(meanStateBefore);
+  ST.cedearExpenses=[{id:'expense-other-currency',lotId:'a1',currency:'ARS',amountDecimal:'100'}];
+  assert.strictEqual(positionCostMeanRows().find(row=>row.sym==='AAPL').costUSD,null,'Gastos sin coste USD fiable no deben convertirse silenciosamente');
+  ST=JSON.parse(meanStateBefore);
+  ST.otros.push({id:'excluded-token',type:'token',sym:'TOKEN',qty:1,buy:10},{id:'excluded-bond',type:'bono',sym:'BOND',nominal:100});
+  assert(!positionCostMeanRows().some(row=>row.sym==='TOKEN'||row.sym==='BOND'),'El alcance no debe ampliarse a Tokenizadas o Bonos');
+  ST=JSON.parse(meanStateBefore);
+  ST.otros.filter(lot=>lot.sym==='AAPL').forEach(lot=>{lot.cclAtPurchaseDecimal='1';lot.mepAtPurchaseDecimal='99999';lot.historicalArsEquivalentDecimal='999999';});
+  assert.strictEqual(positionCostMeanRows().find(row=>row.sym==='AAPL').averageUSD,11.00118005,'El promedio MEP no debe depender de conversiones históricas');
+  ST.otros.find(lot=>lot.id==='a1').unitPriceDecimal='999999';
+  assert.strictEqual(positionCostMeanRows().find(row=>row.sym==='AAPL').averageUSD,11.00118005,'El total USD registrado no debe reconstruirse desde el precio original');
+  ST.otros.find(lot=>lot.id==='a1').totalCostDecimal='0';
+  assert.strictEqual(positionCostMeanRows().find(row=>row.sym==='AAPL').costUSD,6029.68,'Un cero explícito no debe sustituirse por el bruto');
+
+  ST=JSON.parse(meanStateBefore);
+  ST.otros.find(lot=>lot.id==='a1').broker='<img src=x onerror=alert(1)>';
+  ST.otros.find(lot=>lot.id==='a1').sym='<svg/onload=alert(2)>';
+  renderDCA();
+  const hostileMean=$('dcaTb').children.map(row=>row.innerHTML).join('')+$('dcaVisual').innerHTML;
+  assert(!hostileMean.includes('<img')&&!hostileMean.includes('<svg'),'Texto hostil debe escaparse también en la comparativa visual');
+  assert(hostileMean.includes('&lt;img'),'El custodio hostil debe mostrarse solo como texto');
+  ST=meanState;LANG='en';renderDCA();
+  assert.strictEqual($('dcaTitle').textContent,'Average cost per position','La vista EN debe tener el nuevo nombre');
+  LANG='es';renderDCA();
+  assert.strictEqual(JSON.stringify(ST),meanStateBefore,'La revisión completa debe conservar los seis lotes, Historial y snapshots');
   const retainedCCL=ST.cedearCurrentCclDecimal;
   fetchWithFallback = async () => null;
   assert.strictEqual(await refreshCedearCurrentCCL(), false, 'Debe informar si no hay CCL automático disponible');
@@ -416,6 +499,13 @@ const tests = String.raw`
   assert($('cedTimelineTb').innerHTML.includes('Venta'),'El Timeline CEDEAR debe incorporar la venta');
   assert($('cedTimelineTb').innerHTML.includes('Venta registrada'),'Una venta CEDEAR no debe figurar como valuación pendiente');
   assert.strictEqual(ST.hist[0].positionId,cedearPosition.positionId,'La venta CEDEAR debe vincularse a su posición');
+  const meanAfterSale=positionCostMeanRows().find(row=>row.positionId===cedearPosition.positionId);
+  const groupAfterSale=consolidateCedears().find(group=>group.positionId===cedearPosition.positionId);
+  assert.strictEqual(meanAfterSale.quantity,522,'Coste medio debe usar solo las unidades aún abiertas');
+  assert.strictEqual(meanAfterSale.costUSD,Number(groupAfterSale.historicalUSD),'Tras vender debe reutilizar el coste abierto existente');
+  assert.strictEqual(meanAfterSale.averageUSD,Number(decDiv(groupAfterSale.historicalUSD,groupAfterSale.quantity,8)),'Tras vender no debe promediar el coste original de unidades cerradas');
+  const stateBeforeMeanRender=JSON.stringify(ST);renderDCA();
+  assert.strictEqual(JSON.stringify(ST),stateBeforeMeanRender,'Renderizar tras una venta no debe reescribir ningún lote o snapshot');
 
   const vwraGross = 2.788 * 195.48;
   let vwra = {

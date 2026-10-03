@@ -614,6 +614,10 @@ input::placeholder,textarea::placeholder,select::placeholder{color:var(--tx4);op
 /* ── DCA TABLE ── */
 .dca-bar-wrap{width:80px;height:6px;background:var(--bg4);border-radius:3px;overflow:hidden;display:inline-block;vertical-align:middle;margin-right:6px}
 .dca-bar{height:100%;border-radius:3px}
+@media(max-width:600px){
+  #dcaVisual>div{flex-wrap:wrap;gap:8px!important}
+  #dcaVisual .risk-bar-wrap{flex:1 0 100%!important;order:1}
+}
 
 /* ── IMPORT ZONE ── */
 .drop-zone{
@@ -935,6 +939,7 @@ input::placeholder,textarea::placeholder,select::placeholder{color:var(--tx4);op
   }
   .tab i{font-size:16px}
   .tab span{font-size:8px;display:block;text-align:center;line-height:1.2;white-space:nowrap}
+  #costMeanTab{min-width:140px}
   .tab.active{border-top-color:var(--cv);border-bottom:none;color:var(--cv3)}
   .tab.active::after{display:none}
   .content{padding-bottom:75px}
@@ -1084,7 +1089,7 @@ input::placeholder,textarea::placeholder,select::placeholder{color:var(--tx4);op
   <div class="tab" onclick="showTab('stocks')"><i class="ti ti-chart-bar"></i> <span>Acciones</span></div>
   <div class="tab" onclick="showTab('crypto')"><i class="ti ti-currency-bitcoin"></i> <span>Cripto</span></div>
   <div class="tab" onclick="showTab('otros')"><i class="ti ti-building-bank"></i> <span>Otros</span></div>
-  <div class="tab" onclick="showTab('dca')"><i class="ti ti-calculator"></i> <span>DCA</span></div>
+  <div class="tab" id="costMeanTab" onclick="showTab('dca')"><i class="ti ti-calculator"></i> <span>Coste medio por posición</span></div>
   <div class="tab" onclick="showTab('risk')"><i class="ti ti-shield"></i> <span>Riesgo</span></div>
   <div class="tab" onclick="showTab('income')"><i class="ti ti-cash"></i> <span>Ingresos</span></div>
   <div class="tab" onclick="showTab('hist')"><i class="ti ti-history"></i> <span>Historial</span></div>
@@ -1521,26 +1526,26 @@ input::placeholder,textarea::placeholder,select::placeholder{color:var(--tx4);op
 </div>
 <!-- ═══ DCA ═══ -->
 <div class="section" id="tab-dca">
-  <div class="sect-t"><i class="ti ti-calculator"></i> Precio Promedio Ponderado por Activo
+  <div class="sect-t"><i class="ti ti-calculator"></i> <span id="dcaTitle">Coste medio por posición</span>
     <span class="tip-wrap" style="position:relative;margin-left:4px" onmouseenter="showTip('tipDCA',this)" onmouseleave="hideTip('tipDCA')"><i class="tip-icon">i</i>
-      <div class="tip-box" id="tipDCA"><div class="tip-box-title">DCA — Dollar Cost Averaging</div>Si compraste el mismo activo en distintos momentos y a distintos precios, el "precio promedio ponderado" es el costo real de tu posición. Fórmula: Total invertido ÷ Total de unidades. Si el precio actual es mayor a tu promedio, estás ganando.</div>
+      <div class="tip-box" id="tipDCA"><div class="tip-box-title" id="dcaTipTitle">Coste medio por posición</div><span id="dcaTipText">Coste registrado de las unidades abiertas ÷ cantidad abierta. Cada custodio mantiene su propia posición. En CEDEARs se reutiliza el coste histórico USD; el precio actual comparable es cotización ARS ÷ CCL vigente. No sustituye al precio original de compra, que se conserva en posición e Historial. Los datos imprescindibles ausentes se muestran como N/D.</span></div>
     </span>
   </div>
   <div class="card card-mb" style="padding:0;overflow:hidden">
     <div class="tbl-wrap">
       <table>
         <thead><tr>
-          <th>Símbolo</th><th>Nombre</th><th>Tipo</th><th>Total unidades</th>
-          <th>Total invertido</th><th>P. Promedio DCA</th><th>P. Actual</th>
-          <th>Diferencia vs promedio</th><th>Estado</th><th>Compras registradas</th>
+          <th id="dcaSymHead">Símbolo</th><th id="dcaNameHead">Nombre</th><th id="dcaTypeHead">Tipo</th><th id="dcaQtyHead">Total unidades</th>
+          <th id="dcaCostHead">Coste abierto (USD)</th><th id="dcaAvgHead">Coste medio (USD)</th><th id="dcaPriceHead">P. actual (USD)</th>
+          <th id="dcaDiffHead">Diferencia / unidad (USD)</th><th id="dcaStatusHead">Estado</th><th id="dcaCountHead">Compras registradas</th>
         </tr></thead>
         <tbody id="dcaTb"></tbody>
       </table>
     </div>
   </div>
   <div class="card">
-    <div class="card-head"><i class="ti ti-chart-dots" style="color:var(--cv3)"></i> DCA visual — comparativa precio promedio vs actual</div>
-    <div class="card-sub">La barra muestra qué tan lejos está el precio actual de tu promedio de compra</div>
+    <div class="card-head"><i class="ti ti-chart-dots" style="color:var(--cv3)"></i> <span id="dcaChartTitle">Coste medio vs precio actual</span></div>
+    <div class="card-sub" id="dcaChartSub">Comparación por unidad en USD · posiciones separadas por custodio</div>
     <div id="dcaVisual"></div>
   </div>
 </div>
@@ -5236,46 +5241,80 @@ function renderTbl(assets, tbodyId, type) {
 // ═══════════════════════════════════════════
 // RENDER DCA
 // ═══════════════════════════════════════════
+function positionCostMeanRows() {
+  // Read-only view model. Keep the existing position/lot accounting intact.
+  const direct=[...(ST.stocks||[]),...(ST.crypto||[]),...(ST.otros||[]).filter(asset=>asset.type==='etf')]
+    .filter(asset=>asset.status!=='closed'&&Number(asset.qty)>0).map(asset=>{
+      const dca=calcDCA(asset),type=asset.type==='etf'?'ETF':(ST.stocks||[]).includes(asset)?t('stockType'):t('cryptoType');
+      const valuation=directUSDValuation(asset,type),quantity=dca.totalQty;
+      return {positionId:asset.positionId||asset.id,sym:asset.sym,name:asset.name,type,
+        custodian:asset.wallet||asset.broker||'',quantity,costUSD:dca.totalInv,averageUSD:dca.avgPrice,
+        currentUSD:isValuationAvailable(valuation)?valuation.currentUSD/quantity:null,count:dca.count};
+    });
+  const cedears=consolidateCedears().filter(group=>decPositive(group.quantity)).map(group=>{
+    const openLots=group.lots.filter(lot=>decPositive(cedearLotValues(lot).quantity));
+    // Consolidation has a gross-cost fallback for legacy lots. This view must
+    // not treat that fallback as a confirmed USD cost or convert old ARS costs.
+    const reliableCost=openLots.length>0&&openLots.every(lot=>{
+      const total=dec(lot.totalCostDecimal),values=cedearLotValues(lot);
+      return lot.purchaseCurrency==='USD_MEP'&&total!=null&&decCmp(total,'0')>=0&&values.crossCurrencyExpenses.length===0;
+    });
+    const cost=reliableCost?dec(group.historicalUSD):null;
+    const average=cost!=null?decDiv(cost,group.quantity,8):null;
+    const current=group.currentValueUSD!=null?decDiv(group.currentValueUSD,group.quantity,8):null;
+    return {positionId:group.positionId,sym:group.sym,name:group.name,type:'CEDEAR',custodian:group.broker,
+      quantity:Number(group.quantity),costUSD:cost!=null?Number(cost):null,averageUSD:average!=null?Number(average):null,
+      currentUSD:current!=null?Number(current):null,count:group.lots.length};
+  });
+  return [...direct,...cedears];
+}
+
 function renderDCA() {
-  const all = [...ST.stocks, ...ST.crypto, ...(ST.otros||[]).filter(asset=>asset.type==='etf')].filter(asset=>asset.status!=='closed'&&Number(asset.qty)>0);
-  const tb = $('dcaTb'); tb.innerHTML = '';
-  const visual = $('dcaVisual'); visual.innerHTML = '';
-  if (!all.length) { tb.innerHTML = '<tr><td colspan="10" class="empty"><i class="ti ti-calculator"></i><p>Sin activos registrados.</p></td></tr>'; return; }
+  [['dcaTitle','dcaTitle'],['dcaTipTitle','dcaTitle'],['dcaTipText','dcaTipText'],
+    ['dcaChartTitle','dcaChartTitle'],['dcaChartSub','dcaChartSub'],['dcaSymHead','thSym'],['dcaNameHead','thName'],
+    ['dcaTypeHead','dcaTypeHead'],['dcaQtyHead','thTotalUnits'],['dcaCostHead','thTotalInv'],['dcaAvgHead','thAvgPrice'],
+    ['dcaPriceHead','thCurPrice'],['dcaDiffHead','thDiffVsAvg'],['dcaStatusHead','thStatus'],['dcaCountHead','thBuysCount']]
+    .forEach(([id,key])=>{const element=$(id);if(element)element.textContent=t(key);});
+  const all = positionCostMeanRows();
+  const tb = $('dcaTb'); tb.replaceChildren();
+  const visual = $('dcaVisual'); visual.replaceChildren();
+  const money=value=>value==null?'N/D':fmt(value);
+  if (!all.length) { tb.innerHTML = `<tr><td colspan="10" class="empty"><i class="ti ti-calculator"></i><p>${escapeHTML(t('dcaEmpty'))}</p></td></tr>`; return; }
   all.forEach(a => {
-    const dca = calcDCA(a);
-    const avgP = dca ? dca.avgPrice : a.buy;
-    const curP = a.cur;
-    const diff = curP != null ? curP - avgP : null;
+    const avgP = a.averageUSD;
+    const curP = a.currentUSD;
+    const diff = curP != null && avgP != null ? curP - avgP : null;
     const diffPct = (diff != null && avgP > 0) ? diff / avgP : null;
-    const type = a.type === 'etf' ? 'ETF' : ST.stocks.find(s=>s.id===a.id) ? 'Acción' : 'Cripto';
-    const pill = diffPct!=null ? `<span class="pill ${diffPct>=0?'pill-g':'pill-r'}">${fmtPct(diffPct*100)}</span>` : '<span class="pill pill-t">—</span>';
-    const estado = curP==null ? `<span class="pill pill-b">${t('statusNoPrice')}</span>` : diffPct>=0 ? `<span class="pill pill-g">${t('statusWinning')}</span>` : `<span class="pill pill-r">${t('statusLosing')}</span>`;
+    const pill = diffPct!=null ? `<span class="pill ${diffPct>=0?'pill-g':'pill-r'}">${fmtPct(diffPct*100)}</span>` : '<span class="pill pill-t">N/D</span>';
+    const estado = diff==null ? `<span class="pill pill-b">${t('dcaPending')}</span>` : diff>=0 ? `<span class="pill pill-g">${t('statusWinning')}</span>` : `<span class="pill pill-r">${t('statusLosing')}</span>`;
+    const custodian=a.custodian?`<div class="muted" style="font-size:10px;margin-top:3px">${escapeHTML(a.custodian)}</div>`:'';
     const tr = document.createElement('tr');
+    tr.setAttribute('data-position-id',a.positionId);
     tr.innerHTML = `
-      <td class="sym">${a.sym}</td><td class="muted">${a.name}</td>
-      <td><span class="pill ${type==='Cripto'?'pill-y':type==='ETF'?'pill-t':'pill-b'}">${type}</span></td>
-      <td class="num">${dca?dca.totalQty.toLocaleString('es-AR',{maximumFractionDigits:8}):a.qty}</td>
-      <td class="num">${dca?fmt(dca.totalInv):fmt(a.qty*a.buy)}</td>
-      <td class="num" style="color:var(--ca2);font-weight:700">${fmt(avgP)}</td>
-      <td class="num">${curP!=null?fmt(curP):'<span style="color:var(--tx4)">—</span>'}</td>
-      <td class="num">${diff!=null?(diff>=0?'+':'')+fmt(diff):'—'}</td>
+      <td class="sym">${escapeHTML(a.sym)}</td><td class="muted">${escapeHTML(a.name)}${custodian}</td>
+      <td><span class="pill ${a.type===t('cryptoType')?'pill-y':a.type==='ETF'||a.type==='CEDEAR'?'pill-t':'pill-b'}">${escapeHTML(a.type)}</span></td>
+      <td class="num">${a.quantity.toLocaleString('es-AR',{maximumFractionDigits:8})}</td>
+      <td class="num">${money(a.costUSD)}</td>
+      <td class="num" style="color:var(--ca2);font-weight:700">${money(avgP)}</td>
+      <td class="num">${money(curP)}</td>
+      <td class="num">${diff!=null?(diff>=0?'+':'')+fmt(diff):'N/D'}</td>
       <td>${estado}</td>
-      <td class="num">${dca?dca.count:1} compra${dca&&dca.count!==1?'s':''}</td>`;
+      <td class="num">${a.count} ${t(a.count===1?'buys1':'buysN')}</td>`;
     tb.appendChild(tr);
 
     // Visual bar
-    const pct = curP != null && avgP > 0 ? Math.min(Math.max((curP / avgP) * 50, 0), 100) : 50;
+    const pct = diffPct!=null ? Math.min(Math.max((curP / avgP) * 50, 0), 100) : null;
     const isUp = diff != null && diff >= 0;
     visual.innerHTML += `
       <div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--br)">
-        <div style="min-width:60px;font-weight:700;color:var(--cv3)">${a.sym}</div>
-        <div style="min-width:90px;font-size:10px;color:var(--tx3)">Prom: <span style="color:var(--ca2);font-weight:700">${fmt(avgP)}</span></div>
+        <div style="min-width:60px;font-weight:700;color:var(--cv3)">${escapeHTML(a.sym)}${custodian}</div>
+        <div style="min-width:90px;font-size:10px;color:var(--tx3)">${t('dcaMeanLabel')}: <span style="color:var(--ca2);font-weight:700">${money(avgP)}</span></div>
         <div class="risk-bar-wrap" style="flex:1">
           <div class="risk-bar-bg">
-            <div class="risk-bar-fill" style="width:${pct}%;background:${isUp?'var(--cg)':'var(--cr)'}"></div>
+            ${pct!=null?`<div class="risk-bar-fill" style="width:${pct}%;background:${isUp?'var(--cg)':'var(--cr)'}"></div>`:''}
           </div>
         </div>
-        <div style="min-width:90px;font-size:10px;color:var(--tx3)">Actual: <span style="color:${isUp?'var(--cg2)':'var(--cr2)'};font-weight:700">${curP!=null?fmt(curP):'—'}</span></div>
+        <div style="min-width:90px;font-size:10px;color:var(--tx3)">${t('dcaCurrentLabel')}: <span style="color:${diff==null?'var(--tx3)':isUp?'var(--cg2)':'var(--cr2)'};font-weight:700">${money(curP)}</span></div>
         <div style="min-width:70px;text-align:right">${pill}</div>
       </div>`;
   });
@@ -5669,7 +5708,7 @@ const I18N = {
     tabDash: 'Dashboard',
     tabStocks: 'Acciones',
     tabCrypto: 'Cripto',
-    tabDCA: 'Promedio DCA',
+    tabDCA: 'Coste medio por posición',
     tabRisk: 'Riesgo',
     tabIncome: 'Ingresos',
     tabHist: 'Historial',
@@ -5726,12 +5765,14 @@ const I18N = {
     lblAddr: 'Dirección (opcional)',
     btnAdd: 'Agregar', btnRecord: 'Registrar', btnSave: 'Guardar',
     // DCA
-    dcaTitle: 'Precio Promedio Ponderado por Activo',
-    dcaChartTitle: 'DCA visual — comparativa precio promedio vs actual',
-    dcaChartSub: 'La barra muestra qué tan lejos está el precio actual de tu promedio de compra',
-    thTotalUnits: 'Total unidades', thTotalInv: 'Total invertido',
-    thAvgPrice: 'P. Promedio DCA', thCurPrice: 'P. Actual',
-    thDiffVsAvg: 'Diferencia vs promedio', thStatus: 'Estado',
+    dcaTitle: 'Coste medio por posición',
+    dcaTipText: 'Coste registrado de las unidades abiertas ÷ cantidad abierta. Cada custodio mantiene su propia posición. En CEDEARs se reutiliza el coste histórico USD; el precio actual comparable es cotización ARS ÷ CCL vigente. No sustituye al precio original de compra, que se conserva en posición e Historial. Los datos imprescindibles ausentes se muestran como N/D.',
+    dcaChartTitle: 'Coste medio vs precio actual',
+    dcaChartSub: 'Comparación por unidad en USD · posiciones separadas por custodio',
+    dcaTypeHead:'Tipo',dcaMeanLabel:'Medio',dcaCurrentLabel:'Actual',dcaPending:'Pendiente',dcaEmpty:'Sin posiciones abiertas.',
+    thTotalUnits: 'Total unidades', thTotalInv: 'Coste abierto (USD)',
+    thAvgPrice: 'Coste medio (USD)', thCurPrice: 'P. actual (USD)',
+    thDiffVsAvg: 'Diferencia / unidad (USD)', thStatus: 'Estado',
     thBuysCount: 'Compras registradas',
     statusWinning: 'Ganando', statusLosing: 'Perdiendo', statusNoPrice: 'Sin precio',
     // RISK
@@ -5870,7 +5911,7 @@ const I18N = {
     tabDash: 'Dashboard',
     tabStocks: 'Stocks',
     tabCrypto: 'Crypto',
-    tabDCA: 'DCA Average',
+    tabDCA: 'Average cost per position',
     tabRisk: 'Risk',
     tabIncome: 'Income',
     tabHist: 'History',
@@ -5927,12 +5968,14 @@ const I18N = {
     lblAddr: 'Address (optional)',
     btnAdd: 'Add', btnRecord: 'Record', btnSave: 'Save',
     // DCA
-    dcaTitle: 'Weighted Average Price by Asset',
-    dcaChartTitle: 'DCA visual — average price vs current price',
-    dcaChartSub: 'The bar shows how far the current price is from your average cost',
-    thTotalUnits: 'Total units', thTotalInv: 'Total invested',
-    thAvgPrice: 'DCA avg. price', thCurPrice: 'Current price',
-    thDiffVsAvg: 'Diff vs average', thStatus: 'Status',
+    dcaTitle: 'Average cost per position',
+    dcaTipText: 'Recorded cost of open units ÷ open quantity. Each custodian keeps a separate position. CEDEARs reuse historical USD cost; their comparable current price is the ARS quote ÷ current CCL. The original purchase price remains in the position and History. Missing required data is shown as N/D.',
+    dcaChartTitle: 'Average cost vs current price',
+    dcaChartSub: 'Per-unit comparison in USD · positions separated by custodian',
+    dcaTypeHead:'Type',dcaMeanLabel:'Average',dcaCurrentLabel:'Current',dcaPending:'Pending',dcaEmpty:'No open positions.',
+    thTotalUnits: 'Total units', thTotalInv: 'Open cost (USD)',
+    thAvgPrice: 'Average cost (USD)', thCurPrice: 'Current price (USD)',
+    thDiffVsAvg: 'Difference / unit (USD)', thStatus: 'Status',
     thBuysCount: 'Recorded buys',
     statusWinning: 'Winning', statusLosing: 'Losing', statusNoPrice: 'No price',
     // RISK
@@ -7662,6 +7705,7 @@ function renderAll() {
   renderDash();
   if($('alertsList')) renderAlerts();
   renderBenchmarks();
+  if($('tab-dca')?.classList.contains('active')) renderDCA();
 }
 
 
