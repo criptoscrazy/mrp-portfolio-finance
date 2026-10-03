@@ -232,17 +232,19 @@ Supabase puede pausar proyectos del plan gratuito con poca actividad. Si el bot�
 
 ### Mantenimiento automático con GitHub Actions
 
-El repositorio incluye un workflow que genera actividad mínima en Supabase tres veces por semana:
+El repositorio incluye un workflow que consulta PostgreSQL mediante el RPC aislado `keepalive` tres veces al día:
 
-- Lunes a las `06:17 UTC`.
-- Miércoles a las `18:43 UTC`.
-- Sábado a las `11:29 UTC`.
+- Todos los días a las `06:17 UTC`.
+- Todos los días a las `14:43 UTC`.
+- Todos los días a las `22:29 UTC`.
 
-Los horarios son fijos pero deliberadamente irregulares. GitHub puede retrasar ocasionalmente una ejecución programada.
+Los horarios evitan el inicio de cada hora. GitHub puede retrasar o descartar ocasionalmente una ejecución programada; no constituye una garantía de disponibilidad.
+
+Cada comprobación usa como máximo dos reintentos ante fallos transitorios. Exige `ok: true` y una hora UTC de PostgreSQL reciente (máximo cinco minutos de antigüedad, con un minuto de tolerancia de reloj). Un HTTP 200, una respuesta vacía, una confirmación antigua o un error no bastan para marcarla como correcta. El resumen de Actions registra únicamente la hora técnica de confirmación; nunca datos de cartera ni credenciales.
 
 #### Registro de mantenimiento
 
-El 10 de septiembre de 2026 se verificó que las tres ejecuciones programadas más recientes terminaron correctamente y que el RPC aislado devolvió la confirmación esperada. Esta comprobación no lee ni modifica la cartera: solo valida la disponibilidad operativa del proyecto y del workflow.
+El 3 de octubre de 2026 se verificó que el workflow seguía habilitado y que las ejecuciones del 26, 28 y 30 de septiembre terminaron correctamente. A pesar de ello el usuario notificó una nueva pausa. La pauta anterior de tres consultas semanales no evitó la pausa; no hay evidencia de que el workflow se hubiera detenido. La pauta actual se ajusta a la orientación de [Supabase sobre actividad diaria](https://supabase.com/docs/guides/platform/free-project-pausing), sin asegurar que el plan gratuito nunca vuelva a pausarse.
 
 Antes de activarlo:
 
@@ -250,12 +252,16 @@ Antes de activarlo:
 2. Copia y ejecuta el contenido de `supabase/keepalive.sql`.
 3. En GitHub abre **Settings > Secrets and variables > Actions**.
 4. Crea el secreto `SUPABASE_URL` con la URL del proyecto, sin una barra final.
-5. Crea el secreto `SUPABASE_ANON_KEY` con la clave pública `anon` o `publishable`.
+5. Crea el secreto `SUPABASE_ANON_KEY` con la clave pública `anon` o `publishable`. El workflow rechaza claves privilegiadas y URLs de otros proyectos. Con una clave `publishable` se envía únicamente `apikey`; con el JWT `anon` se incluye también `Authorization`.
 6. Abre **Actions > Supabase keepalive**.
 7. Pulsa **Run workflow** para realizar la primera prueba.
-8. Comprueba que la ejecución termina en verde y muestra `Supabase keepalive completed successfully`.
+8. Comprueba que la ejecución termina en verde, muestra `Supabase keepalive completed successfully` y registra una hora UTC reciente de confirmación.
 
 La función `keepalive` no lee ni modifica `portfolio_data`. Solo devuelve una confirmación y la hora del servidor. No utilices una clave `service_role` en este workflow.
+
+El ajuste del calendario no requiere migraciones: reutiliza exactamente ese RPC con `security invoker`. No crea tablas, cambia RLS ni permisos financieros. Una petición al índice `/rest/v1/` no sustituye esta confirmación de consulta PostgreSQL. Si el proyecto ya está pausado, el workflow no puede reactivarlo: primero hay que pulsar **Resume project** y esperar a **Healthy**.
+
+Para comprobar la protección contra falsos positivos, fallos HTTP y claves privilegiadas sin usar datos reales: `node tests/keepalive.cjs`.
 
 ### Evitar que GitHub desactive el workflow
 
@@ -270,7 +276,7 @@ Cada seis u ocho semanas:
 
 No se recomienda crear commits automáticos sin contenido útil únicamente para simular actividad. Si no hay nada que actualizar, basta con revisar si el workflow continúa habilitado y volver a habilitarlo manualmente cuando GitHub lo solicite.
 
-Supabase no garantiza una cifra exacta de solicitudes que impida toda pausa. Si el proyecto vuelve a pausarse con este calendario, aumenta la frecuencia a una ejecución diaria.
+Supabase no publica un umbral exacto ni garantiza que estas consultas técnicas impidan toda pausa. Si vuelve a ocurrir con la pauta diaria validada, revisar las ejecuciones y evaluar otra solución gratuita antes de añadir más actividad o privilegios. En GitHub, revisar las preferencias de notificación de fallos de Actions; el workflow muestra los errores, pero la recepción de emails depende de esas preferencias personales.
 
 ## 15. Privacidad y seguridad
 
