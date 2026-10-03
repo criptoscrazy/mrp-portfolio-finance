@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="mrp-release" content="2026-10-03.2">
+<meta name="mrp-release" content="2026-10-03.3">
 <title>MRP Portfolio</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -983,7 +983,7 @@ input::placeholder,textarea::placeholder,select::placeholder{color:var(--tx4);op
     <div>
       <div class="logo-name">MRP Portfolio</div>
       <div class="logo-sub" id="logoSub">Investment Tracker</div>
-      <div class="logo-version" title="Versión de la aplicación">v2026-10-03.2</div>
+      <div class="logo-version" title="Versión de la aplicación">v2026-10-03.3</div>
     </div>
   </div>
   <div class="topbar-right">
@@ -1278,7 +1278,7 @@ input::placeholder,textarea::placeholder,select::placeholder{color:var(--tx4);op
     <div class="card">
       <div class="card-head"><i class="ti ti-arrows-diff" style="color:var(--ca2)"></i> G/P por activo (USD)</div>
       <div class="card-sub" id="dChartPnlSub">Posiciones con precio y coste disponibles</div>
-      <div class="cw" style="height:190px"><canvas id="cPnl" role="img" aria-label="G/P por activo en USD">G/P.</canvas></div>
+      <div class="cw" id="pnlWrap" style="height:190px"><canvas id="cPnl" role="img" aria-label="G/P por activo en USD">G/P.</canvas></div>
     </div>
   </div>
 
@@ -2842,7 +2842,7 @@ const PALETTE = ['#7c3aed','#0891b2','#10b981','#f59e0b','#f43f5e','#ec4899','#8
 // STATE
 // ═══════════════════════════════════════════
 const SCHEMA_VERSION = 'position-v3';
-const APP_RELEASE = '2026-10-03.2';
+const APP_RELEASE = '2026-10-03.3';
 const PUBLIC_APP_URL = 'https://criptoscrazy.github.io/mrp-portfolio-finance/';
 const SKEY = 'mrp_portfolio_v3';
 const LEGACY_SKEY = 'mrp_portfolio_v2';
@@ -5041,6 +5041,34 @@ function valuationCustodian(item) {
   return asset.broker||asset.wallet||asset.custody||(LANG==='en'?'Unspecified':'Sin especificar');
 }
 function valuationLabel(item) { return `${item.sym} · ${valuationCustodian(item)}`; }
+function dashboardChartLabel(item) {
+  const lines=[String(item.sym)],words=String(valuationCustodian(item)).split(/\s+/);
+  let line='';
+  words.forEach(word=>{
+    if(line&&(line+' '+word).length>24){lines.push(line);line='';}
+    line+=(line?' ':'')+word;
+  });
+  if(line)lines.push(line);
+  return lines;
+}
+function dashboardBarOptions(items,percentage) {
+  const dark=document.documentElement.getAttribute('data-theme')!=='light';
+  const text=dark?'#dbe8f5':'#23364c',axis=dark?'#a6bace':'#465c72';
+  return {...baseOpts(),indexAxis:'y',layout:{padding:{right:12}},
+    plugins:{legend:{display:false},tooltip:{
+      backgroundColor:dark?'#091321':'#ffffff',titleColor:text,bodyColor:text,
+      borderColor:dark?'#34536c':'#b8cbd8',borderWidth:1,padding:12,
+      callbacks:{title:contexts=>{
+        const item=items[contexts[0]?.dataIndex];
+        return item?`${valuationLabel(item)} · ${item.name||item.sym}`:'';
+      },label:c=>percentage?' '+fmtPct(c.raw):' '+fmt(c.raw)}
+    }},
+    scales:{
+      x:{ticks:{color:axis,font:{size:11,family:'monospace'},maxTicksLimit:5,callback:v=>percentage?v+'%':fmt(v,0)},
+        grid:{color:c=>c.tick.value===0?(dark?'#76c8e0':'#26728a'):getGrid()},border:{display:false}},
+      y:{ticks:{color:text,font:{size:12,weight:'600',family:'Inter, system-ui, sans-serif'},autoSkip:false,padding:10},grid:{display:false},border:{display:false}}
+    }};
+}
 function consolidatedExposure(items) {
   const groups=new Map();
   items.forEach(item=>{
@@ -5276,24 +5304,25 @@ function renderDash() {
   });
 
   const rA = summary.valued.filter(item=>item.pnlUSD!=null);
-  const rH = Math.max(160, rA.length*30+50);
+  const rH = Math.max(200,rA.reduce((height,item)=>height+Math.max(48,dashboardChartLabel(item).length*17+12),60));
   $('retWrap').style.height = rH + 'px';
   if(!rA.length)destroyChart('ret');
   if (rA.length) {
     safeCreateChart('ret', $('cRet'), {
       type:'bar',
-      data:{labels:rA.map(valuationLabel),datasets:[{data:rA.map(item=>+((item.pnlUSD/item.costUSD||0)*100).toFixed(2)),backgroundColor:rA.map(item=>(item.pnlUSD/item.costUSD||0)>=0?'rgba(16,185,129,.7)':'rgba(244,63,94,.7)'),borderRadius:5,borderSkipped:false}]},
-      options:{...baseOpts(),indexAxis:'y',plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>' '+(c.raw>=0?'+':'')+c.raw+'%'}}},scales:{x:{ticks:{color:getTick(),font:{size:9},callback:v=>v+'%'},grid:{color:getGrid()}},y:{ticks:{color:getTick(),font:{size:9}},grid:{display:false}}}}
+      data:{labels:rA.map(dashboardChartLabel),datasets:[{data:rA.map(item=>+((item.pnlUSD/item.costUSD||0)*100).toFixed(2)),backgroundColor:rA.map(item=>item.pnlUSD>=0?'#21bda0':'#ed5979'),borderRadius:2,borderSkipped:false,maxBarThickness:18}]},
+      options:dashboardBarOptions(rA,true)
     });
   }
 
   const pA = summary.valued.filter(item=>item.pnlUSD!=null);
+  $('pnlWrap').style.height=Math.max(200,pA.reduce((height,item)=>height+Math.max(48,dashboardChartLabel(item).length*17+12),60))+'px';
   if(!pA.length)destroyChart('pnl');
   if (pA.length) {
     safeCreateChart('pnl', $('cPnl'), {
       type:'bar',
-      data:{labels:pA.map(valuationLabel),datasets:[{data:pA.map(item=>+item.pnlUSD.toFixed(2)),backgroundColor:pA.map(item=>item.pnlUSD>=0?'rgba(16,185,129,.65)':'rgba(244,63,94,.65)'),borderRadius:5,borderSkipped:false}]},
-      options:{...baseOpts(),plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>' '+fmt(c.raw)}}},scales:{x:{ticks:{color:getTick(),font:{size:9}},grid:{display:false}},y:{ticks:{color:getTick(),font:{size:9},callback:v=>fmt(v,0)},grid:{color:getGrid()}}}}
+      data:{labels:pA.map(dashboardChartLabel),datasets:[{data:pA.map(item=>+item.pnlUSD.toFixed(2)),backgroundColor:pA.map(item=>item.pnlUSD>=0?'#21bda0':'#ed5979'),borderRadius:2,borderSkipped:false,maxBarThickness:18}]},
+      options:dashboardBarOptions(pA,false)
     });
   }
 }

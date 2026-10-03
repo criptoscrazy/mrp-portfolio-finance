@@ -42,6 +42,11 @@ const chartAsset=process.env.MRP_TEST_CHART_ASSET;
         renderDash();
         return charts.pnl===previous&&labels.some(label=>label.includes('BTC')&&label.includes('Binance'))&&labels.some(label=>label.includes('BTC')&&label.includes('Exodus'))&&charts.dashEvolution.data.datasets[0].data.length===2;
       }),'Los gráficos reales reutilizan la instancia, separan custodios y leen snapshots');
+      assert(await page.evaluate(()=>['ret','pnl'].every(key=>charts[key].options.indexAxis==='y'&&charts[key].options.scales.y.ticks.font.size>=12&&charts[key].options.scales.y.ticks.autoSkip===false&&charts[key].options.scales.y.ticks.color==='#dbe8f5')),'Ambas gráficas deben tener etiquetas horizontales, grandes y de alto contraste');
+      assert(await page.evaluate(()=>{
+        const item={sym:'VWRA',sourceAsset:{broker:'Interactive Brokers Custodia Internacional'}};
+        return dashboardChartLabel(item).slice(1).join(' ')===valuationCustodian(item);
+      }),'El custodio largo debe conservarse íntegro al dividir las líneas');
       assert(await page.evaluate(()=>{
         const canvas=$('cPnl'),pixels=canvas.getContext('2d').getImageData(0,0,canvas.width,canvas.height).data;
         return pixels.some((value,index)=>index%4===3&&value>0);
@@ -82,6 +87,13 @@ const chartAsset=process.env.MRP_TEST_CHART_ASSET;
     assert.equal(await page.locator('#dPositions').isVisible(),true);
     assert.equal(await page.locator('#btnTxt').isVisible(),true,'Global update control retained');
     await page.screenshot({path:'/private/tmp/mrp-context-dashboard-desktop.png',fullPage:true});
+    if(chartAsset){
+      await page.evaluate(()=>{document.documentElement.setAttribute('data-theme','light');renderDash();});
+      assert.equal(await page.evaluate(()=>charts.ret.options.scales.y.ticks.color),'#23364c');
+      await page.locator('#dashCharts').screenshot({path:'/private/tmp/mrp-dashboard-charts-light.png'});
+      await page.evaluate(()=>{document.documentElement.setAttribute('data-theme','dark');renderDash();});
+      await page.locator('#dashCharts').screenshot({path:'/private/tmp/mrp-dashboard-charts-dark.png'});
+    }
     await page.evaluate(()=>showTab('hist'));
     assert.equal(await page.evaluate(()=>metricAssetClass()),null,'Cross-category views retain global scope');
     assert.equal(await page.evaluate(()=>$('kV').textContent===fmt(portfolioSummary().totalUSD)),true);
@@ -117,6 +129,7 @@ const chartAsset=process.env.MRP_TEST_CHART_ASSET;
       return boxes.every(box=>box.width>innerWidth*.8)&&boxes[1].top>=boxes[0].bottom;
     }),'Paneles móviles apilados y legibles');
     await page.screenshot({path:'/private/tmp/mrp-dashboard-clarity-mobile.png',fullPage:true});
+    if(chartAsset)await page.locator('#dashCharts').screenshot({path:'/private/tmp/mrp-dashboard-charts-mobile.png'});
     await page.evaluate(()=>{
       ST.crypto[0].broker='<img src=x onerror="window.dashboardXss=1">';
       ST.crypto[0].name='<svg onload="window.dashboardXss=1">';
