@@ -1,0 +1,46 @@
+const assert=require('node:assert/strict');
+const fs=require('node:fs');
+const vm=require('node:vm');
+const path=require('node:path');
+const {XMLParser}=require(process.env.MRP_XML_PARSER_PATH||'/private/tmp/mrp-news-tests/node_modules/fast-xml-parser');
+const source=fs.readFileSync(path.join(__dirname,'../supabase/functions/portfolio-news/index.js'),'utf8');
+const calls=[];
+let mode='es';
+const rss=(title='Bitcoin avanza',link='https://example.com/article')=>`<rss><channel><item><title>${title}</title><link>${link}</link><source>Fuente española</source><pubDate>Sun, 04 Oct 2026 10:00:00 GMT</pubDate></item></channel></rss>`;
+const context=vm.createContext({XMLParser,URL,URLSearchParams,Request,Response,AbortSignal,TextDecoder,Uint8Array,Map,Set,Date,JSON,
+  fetch:async url=>{
+    calls.push(String(url));
+    if(mode==='failure')return new Response('',{status:503});
+    const params=new URL(url).searchParams;
+    if(mode==='en'&&(params.get('hl')==='es'||params.get('setlang')==='es-es'))return new Response('<rss><channel/></rss>');
+    return new Response(rss());
+  }});
+vm.runInContext(source.replace(/^import .*;\n/,'').replace(/export /g,'').replace('Deno.serve(handler);','this.handle=handler;this.parse=parseFeed;this.reset=()=>cache.clear();'),context);
+const request=(body,origin='https://criptoscrazy.github.io')=>new Request('https://example.com/functions/v1/portfolio-news',{method:'POST',headers:{Origin:origin},body:JSON.stringify(body)});
+const asset={symbol:'BTC',name:'Bitcoin',kind:'crypto'};
+(async()=>{
+  let response=await context.handle(request(asset));
+  assert.equal(response.status,200);
+  let data=await response.json();
+  assert.equal(data.items[0].language,'es');
+  assert.equal(new URL(calls[0]).hostname,'news.google.com');
+  assert.equal(new URL(calls[0]).searchParams.get('hl'),'es');
+  const count=calls.length;await context.handle(request(asset));assert.equal(calls.length,count,'Cache avoids repeated feeds');
+  context.reset();mode='en';response=await context.handle(request(asset));data=await response.json();
+  assert.equal(data.items[0].language,'en');
+  context.reset();mode='failure';assert.equal((await context.handle(request(asset))).status,502);
+  assert.equal((await context.handle(request({...asset,url:'http://169.254.169.254'}))).status,400);
+  assert.equal((await context.handle(request({...asset,name:'<script>'}))).status,400);
+  assert.equal((await context.handle(request({...asset,symbol:'../secrets'}))).status,400);
+  assert.equal((await context.handle(request(asset,'https://untrusted.example'))).status,403);
+  assert.equal((await context.handle(new Request('https://example.com',{method:'GET'}))).status,405);
+  response=await context.handle(new Request('https://example.com',{method:'OPTIONS',headers:{Origin:'https://criptoscrazy.github.io'}}));
+  assert.equal(response.status,204);assert.equal(response.headers.get('Access-Control-Allow-Origin'),'https://criptoscrazy.github.io');
+  response=await context.handle(new Request('https://example.com',{method:'OPTIONS',headers:{Origin:'null'}}));
+  assert.equal(response.headers.get('Access-Control-Allow-Origin'),'null','Standalone HTML supported for public news only');
+  assert.throws(()=>context.parse('<!DOCTYPE foo><rss/>','BTC','es'),/Unsupported/);
+  assert.equal(context.parse(rss('Invalid link','javascript:alert(1)'),'BTC','es').length,0);
+  assert.equal(context.parse(rss('Bing link','http://www.bing.com/news/apiclick.aspx?url=https%3A%2F%2Fexample.com%2Farticle'),'BTC','es')[0].link,'https://example.com/article');
+  assert(!source.includes('SERVICE_ROLE')&&!source.includes('.from('),'No database access or privileged keys');
+  console.log('OK: RSS ES, English fallback, cache, input validation, CORS, XML safety, no database access');
+})().catch(error=>{console.error(error);process.exitCode=1;});

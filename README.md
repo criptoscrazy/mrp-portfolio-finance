@@ -394,3 +394,10 @@ Las operaciones nuevas conservan de forma interna el origen manual y campos rese
 ## 20. Alcance
 
 MRP Portfolio es una herramienta personal de registro y análisis. No es un broker, no ejecuta órdenes, no garantiza la disponibilidad de cotizaciones y no ofrece asesoramiento financiero, fiscal o legal.
+# Noticias de cartera
+
+La función `supabase/functions/portfolio-news/index.js` consulta RSS públicos de Google News y Bing News: primero español y, si no hay resultados disponibles, inglés identificado como fuente original. Envía únicamente símbolo, nombre y clase de activo; no lee tablas ni recibe cantidades, costes, custodios o claves de brokers. Los enlaces se validan y no se cargan imágenes externas de los artículos.
+
+Se despliega como `portfolio-news` con verificación JWT habilitada. CORS permite el origen publicado `https://criptoscrazy.github.io` y el origen `null` del HTML local; no otorga acceso a datos privados. Si fallan las fuentes, la interfaz lo informa y ofrece enlaces de consulta, sin inventar noticias.
+
+Pruebas enfocadas: `node tests/news-ux.cjs` y `node tests/news-edge.cjs`. Para esta última, instalar `fast-xml-parser@5.11.2` en un directorio temporal y definir `MRP_XML_PARSER_PATH` hacia el paquete; no requiere añadir dependencias a la aplicación.

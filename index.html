@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="mrp-release" content="2026-10-03.3">
+<meta name="mrp-release" content="2026-10-04.1">
 <title>MRP Portfolio</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -811,8 +811,8 @@ input::placeholder,textarea::placeholder,select::placeholder{color:var(--tx4);op
 .mkt-bar-inner{display:flex;align-items:center;gap:20px;height:30px;overflow-x:auto}
 .mkt-bar-inner::-webkit-scrollbar{height:0}
 .mkt-item{display:flex;align-items:center;gap:5px;white-space:nowrap;flex-shrink:0}
-.mkt-name{font-size:10px;color:var(--tx3);font-weight:500}
-.mkt-status{font-size:10px;font-weight:600;color:var(--tx3)}
+.mkt-name{font-size:11px;color:var(--tx2);font-weight:500}
+.mkt-status{font-size:11px;font-weight:600;color:var(--tx2)}
 .mkt-dot{width:6px;height:6px;border-radius:50%;background:var(--tx4);flex-shrink:0}
 .mkt-open{background:var(--cg2) !important;box-shadow:0 0 5px var(--cg)}
 .mkt-pre{background:var(--ca2) !important}
@@ -983,7 +983,7 @@ input::placeholder,textarea::placeholder,select::placeholder{color:var(--tx4);op
     <div>
       <div class="logo-name">MRP Portfolio</div>
       <div class="logo-sub" id="logoSub">Investment Tracker</div>
-      <div class="logo-version" title="Versión de la aplicación">v2026-10-03.3</div>
+      <div class="logo-version" title="Versión de la aplicación">v2026-10-04.1</div>
     </div>
   </div>
   <div class="topbar-right">
@@ -1115,10 +1115,10 @@ input::placeholder,textarea::placeholder,select::placeholder{color:var(--tx4);op
   <div class="tab" onclick="showTab('income')"><i class="ti ti-cash"></i> <span>Ingresos</span></div>
   <div class="tab" onclick="showTab('hist')"><i class="ti ti-history"></i> <span>Historial</span></div>
   <div class="tab" onclick="showTab('evol')"><i class="ti ti-chart-line"></i> <span>Evolución</span></div>
-  <div class="tab" onclick="showTab('cfg')"><i class="ti ti-settings"></i> <span>Config</span></div>
-  <div class="tab" onclick="showTab('tv')"><i class="ti ti-chart-candle"></i> <span>Gráficos</span></div>
   <div class="tab" onclick="showTab('news')"><i class="ti ti-news"></i> <span>Noticias</span></div>
+  <div class="tab" onclick="showTab('tv')"><i class="ti ti-chart-candle"></i> <span>TradingView</span></div>
   <div class="tab td-tab" onclick="showTab('trading')"><i class="ti ti-chart-candle" style="color:var(--ca2)"></i> <span style="color:var(--ca2)">Trading Desk</span></div>
+  <div class="tab" onclick="showTab('cfg')"><i class="ti ti-settings"></i> <span>Config</span></div>
 </nav>
 
 <main class="content">
@@ -1936,11 +1936,12 @@ input::placeholder,textarea::placeholder,select::placeholder{color:var(--tx4);op
     <div style="display:flex;gap:6px;flex-wrap:wrap;flex:1" id="newsFilterPills">
       <span class="a-pill active" id="news-all" onclick="filterNews('all')">Todos</span>
     </div>
-    <button class="btn-add" onclick="fetchNews()" style="height:32px;padding:0 14px">
+    <button class="btn-add" id="newsRefresh" onclick="fetchNews()" style="height:32px;padding:0 14px">
       <i class="ti ti-refresh" id="newsRefIco"></i> Actualizar noticias
     </button>
   </div>
-  <div id="newsGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:12px">
+  <div id="newsStatus" role="status" aria-live="polite" style="font-size:11px;color:var(--tx2);margin-bottom:12px"></div>
+  <div id="newsGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,320px),1fr));gap:12px">
     <div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--tx3)">
       <i class="ti ti-news" style="font-size:36px;display:block;margin-bottom:12px;color:var(--tx4)"></i>
       <p style="font-size:13px;margin-bottom:8px">Hacé clic en "Actualizar noticias" para cargar las últimas novedades de tu cartera</p>
@@ -2842,7 +2843,7 @@ const PALETTE = ['#7c3aed','#0891b2','#10b981','#f59e0b','#f43f5e','#ec4899','#8
 // STATE
 // ═══════════════════════════════════════════
 const SCHEMA_VERSION = 'position-v3';
-const APP_RELEASE = '2026-10-03.3';
+const APP_RELEASE = '2026-10-04.1';
 const PUBLIC_APP_URL = 'https://criptoscrazy.github.io/mrp-portfolio-finance/';
 const SKEY = 'mrp_portfolio_v3';
 const LEGACY_SKEY = 'mrp_portfolio_v2';
@@ -5688,7 +5689,7 @@ function renderAEvol() {
 // ═══════════════════════════════════════════
 // TAB ROUTER
 // ═══════════════════════════════════════════
-const TABS = ['dash','stocks','crypto','otros','dca','risk','income','hist','evol','cfg','tv','news','trading'];
+const TABS = ['dash','stocks','crypto','otros','dca','risk','income','hist','evol','news','tv','trading','cfg'];
 function showTab(n) {
   document.querySelectorAll('.tab').forEach((t,i) => t.classList.toggle('active', TABS[i]===n));
   document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
@@ -6278,7 +6279,7 @@ function applyLang() {
   $('btnTxt').textContent = t('btnUpdate');
 
   // TABS
-  const tabKeys = ['tabDash','tabStocks','tabCrypto','tabOtros','tabDCA','tabRisk','tabIncome','tabHist','tabEvol','tabCfg','tabTV','tabNews','tabTrading'];
+  const tabKeys = ['tabDash','tabStocks','tabCrypto','tabOtros','tabDCA','tabRisk','tabIncome','tabHist','tabEvol','tabNews','tabTV','tabTrading','tabCfg'];
   document.querySelectorAll('.tab span').forEach((el, i) => { if (tabKeys[i]) el.textContent = t(tabKeys[i]); });
 
   // KPIs
@@ -8002,27 +8003,28 @@ function renderTVAssetInfo() {
 // ═══════════════════════════════════════════
 let allNewsItems = [];
 let newsFilter = 'all';
-const NEWS_ICONS = { BTC:'₿', ETH:'Ξ', SOL:'◎', BNB:'B', ADA:'₳', AAPL:'', MSFT:'⊞', NVDA:'⚡', AMZN:'∞', TSLA:'⚡' };
-
-// GNews API — free tier, 100 req/day
-const GNEWS_KEY = ''; // optional — works without key via RSS fallback
-
+let newsLoading = false;
 async function fetchNews() {
+  if(newsLoading)return;
   const refIco = $('newsRefIco');
+  const refresh=$('newsRefresh'),status=$('newsStatus'),grid=$('newsGrid');
+  const all=portfolioValuations().map(item=>({sym:item.sym,name:item.name||item.sym,kind:({Cripto:'crypto',Acciones:'stock',ETFs:'etf',CEDEARs:'cedear',Bonos:'bond'})[item.assetClass]||'other'}));
+  const assets=[...new Map(all.filter(asset=>/^[A-Z0-9.^=-]{1,24}$/.test(asset.sym)).map(asset=>[asset.sym,asset])).values()];
+  if(!assets.length){grid.replaceChildren();status.textContent='Sin activos en cartera';return;}
+  newsLoading=true;
+  refresh.disabled=true;
   refIco.classList.add('spin');
-  const all = [...ST.stocks, ...ST.crypto];
-  if (!all.length) { showToast('Agregá activos para ver noticias', 'warn'); refIco.classList.remove('spin'); return; }
-
-  const symbols = [...new Set(all.map(a => a.sym))];
-  $('newsSymsList').textContent = symbols.join(', ');
-
-  // Build filter pills
+  status.textContent='Consultando fuentes…';
+  const symbols=assets.map(asset=>asset.sym);
+  if(newsFilter!=='all'&&!symbols.includes(newsFilter))newsFilter='all';
   const pillsEl = $('newsFilterPills');
-  pillsEl.innerHTML = `<span class="a-pill active" id="news-all" onclick="filterNews('all')">Todos</span>` +
-    symbols.map(s => `<span class="a-pill" id="news-${s}" onclick="filterNews('${s}')">${s}</span>`).join('');
-
-  // Show skeletons
-  const grid = $('newsGrid');
+  pillsEl.replaceChildren();
+  ['all',...symbols].forEach(sym=>{
+    const pill=document.createElement('button');
+    pill.type='button';pill.id='news-'+sym;pill.className='a-pill'+(newsFilter===sym?' active':'');
+    pill.textContent=sym==='all'?'Todos':sym;
+    pill.addEventListener('click',()=>filterNews(sym));pillsEl.appendChild(pill);
+  });
   grid.innerHTML = Array(6).fill(0).map(() => `
     <div class="news-skeleton">
       <div class="sk-img"></div>
@@ -8033,121 +8035,50 @@ async function fetchNews() {
       <div class="sk-line w40" style="margin-bottom:14px"></div>
     </div>`).join('');
 
-  allNewsItems = [];
-
-  // Try multiple RSS/API sources per asset
-  const fetchPromises = symbols.slice(0, 8).map(sym => fetchAssetNews(sym, all.find(a=>a.sym===sym)?.name || sym));
-  const results = await Promise.allSettled(fetchPromises);
-  results.forEach(r => { if (r.status === 'fulfilled' && r.value) allNewsItems.push(...r.value); });
-
-  // Sort by date desc, deduplicate by title
-  const seen = new Set();
-  allNewsItems = allNewsItems
-    .filter(n => { if (seen.has(n.title)) return false; seen.add(n.title); return true; })
-    .sort((a, b) => new Date(b.pubDate) - new Date(a.pubDate));
-
-  refIco.classList.remove('spin');
-  filterNews(newsFilter);
-
-  if (allNewsItems.length === 0) {
-    grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--tx3)">
-      <i class="ti ti-wifi-off" style="font-size:36px;display:block;margin-bottom:12px;color:var(--tx4)"></i>
-      <p style="font-size:13px;margin-bottom:6px">Las fuentes de noticias no respondieron</p>
-      <p style="font-size:11px;color:var(--tx4);margin-bottom:14px">Probamos varias fuentes sin éxito. Puede ser temporal — intentá de nuevo en unos minutos.</p>
-      <button onclick="fetchNews()" style="padding:8px 16px;background:var(--bg3);border:1px solid var(--br2);border-radius:8px;color:var(--tx2);font-size:11px;font-weight:600;cursor:pointer">
-        <i class="ti ti-refresh"></i> Reintentar
-      </button>
-    </div>`;
-  } else {
-    showToast(`${allNewsItems.length} noticias cargadas`, 'ok', 3000);
-  }
-}
-
-// Try multiple CORS proxies in sequence for RSS feeds, more resilient than a single point of failure
-async function fetchRSSWithFallback(targetUrl, timeoutMs = 6000) {
-  const proxies = [
-    url => `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`,
-    url => `https://corsproxy.io/?url=${encodeURIComponent(url)}`,
-    url => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`,
-  ];
-  for (const buildProxyUrl of proxies) {
-    try {
-      const proxyUrl = buildProxyUrl(targetUrl);
-      const r = await fetch(proxyUrl, { signal: AbortSignal.timeout(timeoutMs) });
-      if (!r.ok) continue;
-      // allorigins wraps content in {contents: "..."}, others return raw text/xml directly
-      const text = await r.text();
-      let xmlText = text;
-      try {
-        const parsed = JSON.parse(text);
-        if (parsed?.contents) xmlText = parsed.contents;
-      } catch(e) { /* not JSON, assume raw XML already */ }
-      if (xmlText && xmlText.length > 50) return xmlText;
-    } catch(e) { /* try next proxy */ }
-  }
-  return null;
-}
-
-async function fetchAssetNews(sym, name) {
-  const items = [];
-  const isCrypto = !!ST.crypto.find(c => c.sym === sym);
-
-  // Crypto: CoinDesk RSS via resilient multi-proxy fetch
-  if (isCrypto) {
-    try {
-      const xmlText = await fetchRSSWithFallback('https://feeds.feedburner.com/CoinDesk?format=rss');
-      if (xmlText) {
-        const parser = new DOMParser();
-        const xml = parser.parseFromString(xmlText, 'text/xml');
-        const entries = xml.querySelectorAll('item');
-        entries.forEach(e => {
-          const title = e.querySelector('title')?.textContent || '';
-          const link  = e.querySelector('link')?.textContent || '';
-          const desc  = e.querySelector('description')?.textContent?.replace(/<[^>]+>/g,'') || '';
-          const pub   = e.querySelector('pubDate')?.textContent || '';
-          const upperTitle = (title + desc).toUpperCase();
-          if (upperTitle.includes(sym) || upperTitle.includes(name.toUpperCase().split(' ')[0])) {
-            items.push({ sym, title, link, description: desc.slice(0,180)+'…', pubDate: pub || new Date().toISOString(), source:'CoinDesk', image:null });
-          }
-        });
-      }
-    } catch(e) {}
-  }
-
-  // Stocks + Crypto: Yahoo Finance RSS via resilient multi-proxy fetch
   try {
-    const query = isCrypto ? sym + '-USD' : sym;
-    const xmlText = await fetchRSSWithFallback(`https://finance.yahoo.com/rss/headline?s=${query}`);
-    if (xmlText) {
-      const parser = new DOMParser();
-      const xml = parser.parseFromString(xmlText, 'text/xml');
-      const entries = xml.querySelectorAll('item');
-      entries.forEach(e => {
-        const title = e.querySelector('title')?.textContent || '';
-        const link  = e.querySelector('link')?.textContent || e.querySelector('link')?.nextSibling?.nodeValue || '';
-        const desc  = e.querySelector('description')?.textContent?.replace(/<[^>]+>/g,'') || '';
-        const pub   = e.querySelector('pubDate')?.textContent || '';
-        if (title && link) {
-          items.push({ sym, title, link, description: desc.slice(0,180)+'…', pubDate: pub || new Date().toISOString(), source:'Yahoo Finance', image:null });
-        }
-      });
-    }
-  } catch(e) {}
-
-  // Fallback: CryptoCompare news for crypto
-  if (isCrypto && items.length < 3) {
-    try {
-      const r = await fetch(`https://min-api.cryptocompare.com/data/v2/news/?categories=${sym}&excludeCategories=Sponsored&lang=EN&sortOrder=latest`, { signal: AbortSignal.timeout(6000) });
-      if (r.ok) {
-        const d = await r.json();
-        (d.Data || []).slice(0, 5).forEach(n => {
-          items.push({ sym, title: n.title, link: n.url, description: n.body?.slice(0,180)+'…' || '', pubDate: new Date(n.published_on * 1000).toISOString(), source: n.source_info?.name || 'CryptoCompare', image: n.imageurl || null });
-        });
+    const collected=[];let failed=0,completed=0,next=0;
+    const worker=async()=>{
+      while(next<assets.length){
+        const asset=assets[next++];
+        try{collected.push(...await fetchAssetNews(asset.sym,asset.name,asset.kind));}catch{failed++;}
+        completed++;status.textContent=`Consultando fuentes · ${completed}/${assets.length}`;
       }
-    } catch(e) {}
+    };
+    await Promise.all(Array.from({length:Math.min(4,assets.length)},worker));
+    const seen=new Set();
+    if(collected.length||!failed)allNewsItems=collected.filter(n=>{
+      const key=n.sym+'|'+n.link;if(seen.has(key))return false;seen.add(key);return true;
+    }).sort((a,b)=>(Date.parse(b.pubDate)||0)-(Date.parse(a.pubDate)||0));
+    filterNews(newsFilter);
+    status.textContent=`${allNewsItems.length} noticias${failed?' · '+failed+' fuentes no disponibles':''}`;
+    if(!allNewsItems.length)showNewsFallback(assets,failed>0);
+  } finally {
+    newsLoading=false;refresh.disabled=false;refIco.classList.remove('spin');
   }
+}
 
-  return items.slice(0, 8);
+async function fetchAssetNews(sym, name, kind='other') {
+  const response=await fetch(SUPABASE_URL+'/functions/v1/portfolio-news',{
+    method:'POST',headers:{'Content-Type':'application/json','apikey':SUPABASE_ANON_KEY,'Authorization':'Bearer '+SUPABASE_ANON_KEY},
+    body:JSON.stringify({symbol:sym,name:String(name).replace(/[<>"\\\r\n]/g,'').slice(0,100),kind}),signal:AbortSignal.timeout(18000)
+  });
+  if(!response.ok)throw new Error('News provider HTTP '+response.status);
+  const data=await response.json();
+  if(!Array.isArray(data.items))throw new Error('Invalid news response');
+  return data.items.slice(0,8).filter(item=>item&&item.sym===sym&&typeof item.title==='string'&&safeHttpsUrl(item.link)).map(item=>({...item,image:null}));
+}
+function showNewsFallback(assets,failed) {
+  const grid=$('newsGrid');grid.replaceChildren();
+  const message=document.createElement('p');message.style.gridColumn='1/-1';
+  message.textContent=failed?'Las fuentes no están disponibles ahora.':'Sin noticias recientes.';
+  grid.appendChild(message);
+  assets.forEach(asset=>{
+    const link=document.createElement('a');link.className='news-link';
+    const url=new URL('https://news.google.com/search');
+    url.search=new URLSearchParams({q:asset.name||asset.sym,hl:'es',gl:'ES',ceid:'ES:es'}).toString();
+    link.href=url.href;link.target='_blank';link.rel='noopener noreferrer';
+    link.textContent=asset.sym+' · Google News en español';grid.appendChild(link);
+  });
 }
 
 function filterNews(sym) {
@@ -8163,7 +8094,7 @@ function filterNews(sym) {
   if (!filtered.length && allNewsItems.length > 0) {
     grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--tx3)">
       <i class="ti ti-news-off" style="font-size:32px;display:block;margin-bottom:10px;color:var(--tx4)"></i>
-      <p>Sin noticias recientes para ${sym}</p>
+      <p>Sin noticias recientes para ${escapeHTML(sym)}</p>
     </div>`;
     return;
   }
@@ -8196,8 +8127,6 @@ function filterNews(sym) {
       image.loading = 'lazy';
       image.addEventListener('error', () => image.replaceWith(createNewsPlaceholder()), { once: true });
       card.appendChild(image);
-    } else {
-      card.appendChild(createNewsPlaceholder());
     }
 
     const body = document.createElement('div');
@@ -8206,7 +8135,12 @@ function filterNews(sym) {
     const tag = document.createElement('span');
     tag.className = `news-tag ${tagClass}`;
     tag.textContent = String(n.sym ?? '');
-    body.appendChild(tag);
+    const tags=document.createElement('div');
+    tags.appendChild(tag);
+    const language=document.createElement('span');
+    language.className='news-tag pill-t';language.style.marginLeft='6px';
+    language.textContent=n.language==='en'?'EN · Fuente original':'ES';
+    tags.appendChild(language);body.appendChild(tags);
 
     const title = document.createElement('div');
     title.className = 'news-title';
@@ -8257,6 +8191,7 @@ function filterNews(sym) {
 
 function getRelativeTime(dateStr) {
   try {
+    if(!dateStr||!Number.isFinite(Date.parse(dateStr)))return 'Sin fecha';
     const diff = Date.now() - new Date(dateStr).getTime();
     const mins = Math.floor(diff / 60000);
     const hrs = Math.floor(mins / 60);
