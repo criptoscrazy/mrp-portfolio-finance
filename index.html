@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="mrp-release" content="2026-10-06.2">
+<meta name="mrp-release" content="2026-10-06.3">
 <title>MRP Portfolio</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -143,7 +143,7 @@ button{cursor:pointer}
 }
 .logo-name{font-size:15px;font-weight:700;letter-spacing:-.03em;color:var(--tx1)}
 .logo-sub{font-size:9px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--tx3);margin-top:1px}
-.logo-version{font-size:8px;font-weight:600;letter-spacing:.04em;color:var(--tx4);margin-top:2px;font-variant-numeric:tabular-nums}
+.logo-version{font-size:9px;font-weight:600;letter-spacing:.04em;color:var(--tx4);margin-top:2px;font-variant-numeric:tabular-nums}
 .topbar-center{display:flex;align-items:center;gap:6px}
 .topbar-right{display:flex;align-items:center;gap:10px}
 .upd-time{font-size:10px;color:var(--tx3);text-align:right}
@@ -390,6 +390,28 @@ td.note-cell{max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:
 .risk-bar-wrap{display:flex;align-items:center;gap:8px;width:100%}
 .risk-bar-bg{flex:1;height:4px;background:var(--bg4);border-radius:2px;overflow:hidden}
 .risk-bar-fill{height:100%;border-radius:2px;transition:width .5s}
+.profit-review{margin:0 0 20px;padding:18px 0;border-top:1px solid var(--br);border-bottom:1px solid var(--br)}
+.profit-review-head{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.profit-review-head h3{font-size:14px;margin:0;display:flex;align-items:center;gap:8px}
+.profit-review-state{font-size:12px;color:var(--tx2);line-height:1.6;margin-bottom:12px}
+.profit-settings{margin-bottom:14px}.profit-settings summary{cursor:pointer;color:var(--tx2);font-size:12px}
+.profit-settings-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;max-width:620px;margin:14px 0}
+.profit-settings-grid label{display:block;font-size:12px;color:var(--tx2);margin-bottom:6px}
+.profit-settings-grid input[type=number]{width:100%;min-height:36px;background:var(--input-bg);border:1px solid var(--br2);border-radius:6px;color:var(--tx1);padding:8px}
+.profit-settings-checks{display:flex;gap:12px 20px;flex-wrap:wrap;font-size:12px;color:var(--tx2);margin-bottom:14px}
+.profit-settings-checks label{display:flex;align-items:center;gap:6px}
+.profit-review table{min-width:850px}.profit-review th,.profit-review td{white-space:nowrap}
+.profit-review .profit-reasons{white-space:normal;min-width:200px;max-width:300px;line-height:1.6}
+.profit-review .profit-position{min-width:150px}.profit-review .profit-position .muted{display:block;margin-top:4px}
+@media(max-width:600px){
+  .profit-settings-grid{grid-template-columns:1fr}.profit-review-head h3{font-size:14px}
+  .profit-review table{min-width:0;display:block}.profit-review thead{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)}
+  .profit-review tbody{display:grid;gap:10px}.profit-review tr{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));padding:8px;background:var(--bg2);border:1px solid var(--br);border-radius:6px}
+  .profit-review td{display:block;border:0;padding:8px;text-align:left;font-size:13px;white-space:normal;overflow-wrap:anywhere;min-width:0}
+  .profit-review td::before{content:attr(data-label);display:block;font-size:10px;font-weight:500;color:var(--tx2);margin-bottom:5px}
+  .profit-review .profit-position,.profit-review .profit-reasons,.profit-review td:only-child{grid-column:1/-1;min-width:0;max-width:none}
+  .profit-review td:last-child{display:flex;align-items:center;justify-content:flex-end}.profit-review td:last-child::before{display:none}
+}
 .risk-pct{font-size:10px;font-weight:700;color:var(--tx2);min-width:34px;text-align:right}
 
 /* ── FORM ROW ── */
@@ -999,7 +1021,7 @@ input::placeholder,textarea::placeholder,select::placeholder{color:var(--tx4);op
     <div>
       <div class="logo-name">MRP Portfolio</div>
       <div class="logo-sub" id="logoSub">Investment Tracker</div>
-      <div class="logo-version" title="Versión de la aplicación">v2026-10-06.2</div>
+      <div class="logo-version" title="Versión de la aplicación">v2026-10-06.3</div>
     </div>
   </div>
   <div class="topbar-right">
@@ -1629,7 +1651,7 @@ input::placeholder,textarea::placeholder,select::placeholder{color:var(--tx4);op
           <div class="tip-box" id="tipExp"><div class="tip-box-title">Exposición al Riesgo</div>Qué porcentaje de tu portafolio representa cada activo. Una posición muy concentrada (>25%) aumenta el riesgo. Se recomienda diversificar para que ningún activo represente más del 15-20% del total.</div>
         </span>
       </div>
-      <div class="card-sub">% del portfolio total por posición</div>
+      <div class="card-sub">% de activos invertidos · por instrumento</div>
       <div class="cw" style="height:220px"><canvas id="cRisk" role="img" aria-label="Exposición por activo">Exposición.</canvas></div>
     </div>
     <div class="card">
@@ -1638,11 +1660,29 @@ input::placeholder,textarea::placeholder,select::placeholder{color:var(--tx4);op
       <div class="cw" style="height:220px"><canvas id="cSector" role="img" aria-label="Exposición por sector">Sector.</canvas></div>
     </div>
   </div>
+  <section class="profit-review" aria-labelledby="profitReviewTitle">
+    <div class="profit-review-head"><h3 id="profitReviewTitle"><i class="ti ti-coins" style="color:var(--cg2)"></i> Gestión de beneficios</h3><span id="profitReviewCount" class="muted"></span></div>
+    <details class="profit-settings" id="profitReviewSettings"><summary>Umbrales de revisión</summary>
+      <div class="profit-settings-grid">
+        <div><label for="profitGainThreshold">Ganancia relevante (%)</label><input id="profitGainThreshold" type="number" min="0.01" step="any" placeholder="Sin definir"></div>
+        <div><label for="profitWeightThreshold">Concentración (% de activos invertidos)</label><input id="profitWeightThreshold" type="number" min="0.01" max="100" step="any" placeholder="Sin definir"></div>
+      </div>
+      <div class="profit-settings-checks">
+        <label><input id="profitGainEnabled" type="checkbox"> Ganancia relevante</label>
+        <label><input id="profitConcentrationEnabled" type="checkbox"> Ganancia + concentración</label>
+        <label><input id="profitTargetEnabled" type="checkbox"> Target alcanzado</label>
+        <label><input id="profitPartialEnabled" type="checkbox"> Revisión de toma parcial</label>
+      </div>
+      <button class="btn-snap" onclick="saveProfitReviewSettings()"><i class="ti ti-device-floppy"></i> Guardar umbrales</button>
+    </details>
+    <div class="profit-review-state" id="profitReviewState" role="status"></div>
+    <div class="tbl-wrap"><table><thead><tr><th>Posición / custodio</th><th>Rentabilidad</th><th>G/P no realizada</th><th>% de activos invertidos</th><th>Motivo de revisión</th><th>Prioridad</th><th></th></tr></thead><tbody id="profitReviewTb"></tbody></table></div>
+  </section>
   <div class="card card-mb">
     <div class="card-head"><i class="ti ti-list-check" style="color:var(--cv3)"></i> Detalle de exposición y alertas</div>
     <div class="card-sub">Posiciones con alta concentración aparecen marcadas</div>
     <div class="tbl-wrap"><table>
-      <thead><tr><th>Activo</th><th>Tipo</th><th>Valor actual</th><th>% portafolio</th><th>Concentración</th><th>Alerta</th></tr></thead>
+      <thead><tr><th>Activo</th><th>Tipo</th><th>Valor actual</th><th>% de activos invertidos</th><th>Concentración</th><th>Alerta</th></tr></thead>
       <tbody id="riskTb"></tbody>
     </table></div>
   </div>
@@ -2871,7 +2911,7 @@ const PALETTE = ['#7c3aed','#0891b2','#10b981','#f59e0b','#f43f5e','#ec4899','#8
 // STATE
 // ═══════════════════════════════════════════
 const SCHEMA_VERSION = 'position-v3';
-const APP_RELEASE = '2026-10-06.2';
+const APP_RELEASE = '2026-10-06.3';
 const PUBLIC_APP_URL = 'https://criptoscrazy.github.io/mrp-portfolio-finance/';
 const SKEY = 'mrp_portfolio_v3';
 const LEGACY_SKEY = 'mrp_portfolio_v2';
@@ -2921,6 +2961,7 @@ let ST = {
   apyPositions: [],
   liquidity: [],
   liquidityFx: [],
+  profitReview: { gainThresholdPct:null, concentrationThresholdPct:null, gainEnabled:true, concentrationEnabled:true, targetEnabled:true, partialEnabled:true },
   alerts: [],
   otros: [],
   cedearExpenses: [],
@@ -3014,6 +3055,7 @@ function validatePortfolioStateShape(value, { requireCoreArrays = false } = {}) 
   if (requireCoreArrays && (!Array.isArray(value.stocks) || !Array.isArray(value.crypto))) return false;
   if (!PORTFOLIO_ARRAY_KEYS.every(key => isValidRecordArray(value[key]))) return false;
   if (!validateLiquidityState(value)) return false;
+  if (!validateProfitReviewSettings(value.profitReview)) return false;
 
   if (value.aSnaps !== undefined) {
     if (!isPlainRecord(value.aSnaps)) return false;
@@ -5494,11 +5536,14 @@ function dashboardBarOptions(items,percentage) {
       y:{ticks:{color:text,font:{size:12,weight:'600',family:'Inter, system-ui, sans-serif'},autoSkip:false,padding:10},grid:{display:false},border:{display:false}}
     }};
 }
+function valuationExposureKey(item) {
+  const asset=item.sourceAsset||{};
+  return [item.assetClass,asset.instrumentId||asset.priceSymbol||item.sym,asset.market||''].join('|');
+}
 function consolidatedExposure(items) {
   const groups=new Map();
   items.forEach(item=>{
-    const asset=item.sourceAsset||{};
-    const key=[item.assetClass,asset.instrumentId||asset.priceSymbol||item.sym,asset.market||''].join('|');
+    const key=valuationExposureKey(item);
     if(!groups.has(key))groups.set(key,{...item,currentUSD:0,custodians:new Set()});
     const group=groups.get(key);
     group.currentUSD+=item.currentUSD;
@@ -5900,10 +5945,109 @@ function renderDCA() {
 // ═══════════════════════════════════════════
 // RENDER RISK
 // ═══════════════════════════════════════════
+function profitReviewSettings(state=ST) {
+  return {gainThresholdPct:null,concentrationThresholdPct:null,gainEnabled:true,concentrationEnabled:true,targetEnabled:true,partialEnabled:true,...state.profitReview};
+}
+function validateProfitReviewSettings(settings) {
+  if(settings===undefined)return true;
+  if(!isPlainRecord(settings))return false;
+  const thresholdKeys=['gainThresholdPct','concentrationThresholdPct'],switches=['gainEnabled','concentrationEnabled','targetEnabled','partialEnabled'];
+  if(Object.keys(settings).some(key=>![...thresholdKeys,...switches].includes(key)))return false;
+  return thresholdKeys.every(key=>settings[key]===undefined||settings[key]===null||(typeof settings[key]==='number'&&Number.isFinite(settings[key])&&settings[key]>0&&(key!=='concentrationThresholdPct'||settings[key]<=100)))&&switches.every(key=>settings[key]===undefined||typeof settings[key]==='boolean');
+}
+function profitReviewData(summary=portfolioSummary(),settings=profitReviewSettings()) {
+  const fresh=item=>isValuationAvailable(item)&&!['stale','freshness_unknown'].includes(item.status);
+  const weightReliable=summary.totalUSD>0&&summary.items.every(fresh);
+  const exposures=new Map(consolidatedExposure(summary.valued).map(item=>[valuationExposureKey(item),item.currentUSD]));
+  const positions=summary.items.filter(item=>item.assetClass!=='Productos no disponibles').map(item=>{
+    const asset=item.sourceAsset||{},positionId=asset.positionId;
+    const priceValid=fresh(item),roi=priceValid&&Number.isFinite(item.costUSD)&&item.costUSD>0&&Number.isFinite(item.pnlUSD)?item.pnlUSD/item.costUSD*100:null;
+    const weight=isValuationAvailable(item)&&summary.totalUSD>0?item.currentUSD/summary.totalUSD*100:null;
+    const instrumentWeight=summary.totalUSD>0?(exposures.get(valuationExposureKey(item))||0)/summary.totalUSD*100:null;
+    const target=item.assetClass==='Acciones'&&Number(asset.tg)>0?Number(asset.tg):null;
+    const targetHit=!!(settings.targetEnabled&&priceValid&&target!==null&&item.quoteCurrency==='USD'&&Number(asset.cur)>=target);
+    const gainHit=!!(settings.gainEnabled&&roi!==null&&settings.gainThresholdPct!==null&&roi>=settings.gainThresholdPct);
+    const concentrationHit=!!(settings.concentrationEnabled&&weightReliable&&weight!==null&&settings.concentrationThresholdPct!==null&&weight>=settings.concentrationThresholdPct);
+    const combined=gainHit&&concentrationHit;
+    const partial=!!(settings.partialEnabled&&roi>0&&[gainHit,concentrationHit,targetHit].filter(Boolean).length>=2);
+    const reasons=[];
+    if(combined)reasons.push('Ganancia + concentración');else if(gainHit)reasons.push('Ganancia relevante');
+    if(targetHit)reasons.push('Target alcanzado');
+    if(partial){if(concentrationHit&&!combined)reasons.push('Concentración elevada');reasons.push('Revisar toma parcial de beneficios');}
+    return {item,positionId,roi,weight,instrumentWeight,weightReliable,target,gainHit,concentrationHit,targetHit,partial,reasons,priority:combined||partial?2:targetHit?1:0};
+  });
+  const rows=positions.filter(row=>row.positionId&&row.reasons.length).sort((a,b)=>b.priority-a.priority||(b.item.pnlUSD||0)-(a.item.pnlUSD||0));
+  return {rows,positions,weightReliable,pending:positions.filter(row=>!fresh(row.item)||row.roi===null).length};
+}
+function saveProfitReviewSettings() {
+  const settings={gainThresholdPct:$('profitGainThreshold').value.trim()===''?null:Number($('profitGainThreshold').value),concentrationThresholdPct:$('profitWeightThreshold').value.trim()===''?null:Number($('profitWeightThreshold').value)};
+  for(const [key,id] of [['gainEnabled','profitGainEnabled'],['concentrationEnabled','profitConcentrationEnabled'],['targetEnabled','profitTargetEnabled'],['partialEnabled','profitPartialEnabled']])settings[key]=$(id).checked;
+  if(!validateProfitReviewSettings(settings)){showToast('Indicá porcentajes positivos; concentración hasta 100%.','warn');return;}
+  try{
+    commitLiquidityMutation(()=>{ST.profitReview=settings;});
+    $('profitReviewSettings').dataset.dirty='';$('profitReviewSettings').open=false;
+    renderProfitReview();showToast('Umbrales guardados');
+  }catch(error){showToast(error.message,'err',6000);}
+}
+function profitReviewLastSale(positionId,state=ST) {
+  const sale=(state.hist||[]).filter(entry=>entry.positionId===positionId&&entry.type==='VENTA'&&entry.operationStatus==='confirmed'&&!entry.legacy).slice().sort((a,b)=>String(b.date).localeCompare(String(a.date)))[0];
+  if(!sale)return null;
+  const remaining=sale.qtyBefore!=null&&sale.qtyAfter!=null&&Number(sale.qtyBefore)>0?Number(sale.qtyAfter)/Number(sale.qtyBefore)*100:null;
+  const realized=sale.realizedPnl!=null&&Number.isFinite(Number(sale.realizedPnl))&&knownOperationCommission(sale)!==null?Number(sale.realizedPnl):null;
+  return {sale,remaining,realized,currency:sale.currency||'USD',liquidityAmount:sale.liquidityId?sale.liquidityAmountDecimal:null,liquidityCurrency:sale.liquidityCurrency||null};
+}
+function openProfitReviewDetails(positionId) {
+  const row=profitReviewData().positions.find(item=>item.positionId===positionId);if(!row)return;
+  const fields=[
+    {label:'Valor actual',value:row.item.currentUSD==null?'N/D':fmt(row.item.currentUSD)},
+    {label:'Coste abierto',value:row.item.costUSD==null?'N/D':fmt(row.item.costUSD)},
+    {label:'G/P no realizada de la posición actual',value:row.item.pnlUSD==null?'N/D':fmt(row.item.pnlUSD)},
+    {label:'Rentabilidad sobre coste abierto',value:row.roi==null?'N/D':fmtPct(row.roi)},
+    {label:'% de activos invertidos · posición',value:row.weight==null?'N/D':fmtPct(row.weight)+(row.weightReliable?'':' · valoración parcial')},
+    {label:'% de activos invertidos · instrumento entre custodios',value:row.instrumentWeight==null?'N/D':fmtPct(row.instrumentWeight)+(row.weightReliable?'':' · valoración parcial')},
+    {label:'Motivos de revisión',value:row.reasons.join(' · ')||'Sin alertas',full:true},
+    {label:'Target registrado (USD)',value:row.target==null?'Sin target':fmt(row.target)},
+    {label:'Fecha de cotización',value:row.item.sourceTimestamp?madridDateTime(row.item.sourceTimestamp):'N/D'}
+  ];
+  const last=profitReviewLastSale(positionId);
+  if(last)fields.push(
+    {label:'Última venta registrada',value:last.sale.date},
+    {label:'Porcentaje que permaneció tras esa venta',value:last.remaining==null?'N/D':fmtPct(last.remaining)},
+    {label:'Beneficio realizado en esa venta',value:last.realized==null?'N/D':liquidityMoney(last.realized,last.currency)},
+    {label:'Liquidez liberada · importe neto acreditado',value:last.liquidityAmount==null?'Sin afectar Liquidez':liquidityMoney(last.liquidityAmount,last.liquidityCurrency)},
+    {label:'Cuenta de Liquidez',value:last.sale.liquidityId?liquidityLabel(findLiquidity(last.sale.liquidityId)):'Sin afectar Liquidez',full:true}
+  );
+  showAssetDetails('Revisión de beneficios',valuationLabel(row.item),fields);
+}
+function renderProfitReview(summary=portfolioSummary()) {
+  if(!$('profitReviewTb'))return;
+  const settings=profitReviewSettings(),data=profitReviewData(summary,settings),panel=$('profitReviewSettings');
+  if(!panel.open||!panel.dataset.dirty){
+    $('profitGainThreshold').value=settings.gainThresholdPct??'';$('profitWeightThreshold').value=settings.concentrationThresholdPct??'';
+    for(const [key,id] of [['gainEnabled','profitGainEnabled'],['concentrationEnabled','profitConcentrationEnabled'],['targetEnabled','profitTargetEnabled'],['partialEnabled','profitPartialEnabled']])$(id).checked=settings[key];
+  }
+  const notices=[];
+  if(settings.gainEnabled&&settings.gainThresholdPct===null)notices.push('Ganancia relevante: umbral pendiente');
+  if(settings.concentrationEnabled&&settings.concentrationThresholdPct===null)notices.push('Concentración: umbral pendiente');
+  if(summary.items.length&&!data.weightReliable)notices.push('Concentración pendiente: valoración incompleta o antigua');
+  if(data.pending)notices.push(`${data.pending} posiciones con datos pendientes para evaluar rentabilidad`);
+  $('profitReviewState').textContent=notices.join(' · ');
+  $('profitReviewCount').textContent=`${data.rows.length} posiciones para revisar`;
+  const body=$('profitReviewTb');body.replaceChildren();
+  for(const row of data.rows){
+    const tr=document.createElement('tr');
+    tr.innerHTML=`<td class="profit-position"><strong>${escapeHTML(row.item.sym)}</strong><span class="muted">${escapeHTML(valuationCustodian(row.item))}</span></td><td class="num">${row.roi==null?'N/D':fmtPct(row.roi)}</td><td class="num">${row.item.pnlUSD==null?'N/D':fmt(row.item.pnlUSD)}</td><td class="num">${row.weight==null?'N/D':row.weight.toFixed(2)+'%'}${row.weightReliable?'':' · parcial'}</td><td class="profit-reasons">${row.reasons.map(escapeHTML).join('<br>')}</td><td><span class="pill ${row.priority===2?'pill-y':row.priority===1?'pill-b':'pill-g'}">${['Informativa','Media','Alta'][row.priority]}</span></td>`;
+    [...tr.children].forEach((cell,index)=>{cell.dataset.label=['Posición / custodio','Rentabilidad','G/P no realizada','% de activos invertidos','Motivo de revisión','Prioridad'][index];});
+    const cell=document.createElement('td'),button=document.createElement('button');button.className='btn-view';button.title='Revisar posición';button.setAttribute('aria-label',`Revisar ${valuationLabel(row.item)}`);button.innerHTML='<i class="ti ti-eye"></i>';button.addEventListener('click',()=>openProfitReviewDetails(row.positionId));cell.appendChild(button);tr.appendChild(cell);body.appendChild(tr);
+  }
+  if(!data.rows.length){const tr=document.createElement('tr'),cell=document.createElement('td');cell.colSpan=7;cell.className='empty';cell.textContent='Sin alertas de revisión con los datos disponibles';tr.appendChild(cell);body.appendChild(tr);}
+}
+$('profitReviewSettings')?.addEventListener('input',()=>{$('profitReviewSettings').dataset.dirty='1';});
 function renderRisk() {
   const summary=portfolioSummary();
   const all=consolidatedExposure(summary.valued);
   const total=summary.totalUSD;
+  renderProfitReview(summary);
   const tb = $('riskTb'); tb.innerHTML = '';
 
   // By asset chart
@@ -8294,6 +8438,7 @@ function renderAll() {
   if($('alertsList')) renderAlerts();
   renderBenchmarks();
   if($('tab-dca')?.classList.contains('active')) renderDCA();
+  if($('tab-risk')?.classList.contains('active')) renderRisk();
 }
 
 
