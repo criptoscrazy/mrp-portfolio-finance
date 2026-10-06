@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="mrp-release" content="2026-10-04.1">
+<meta name="mrp-release" content="2026-10-06.1">
 <title>MRP Portfolio</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -533,6 +533,22 @@ input::placeholder,textarea::placeholder,select::placeholder{color:var(--tx4);op
 .modal-field textarea:focus{border-color:var(--cv);outline:none;box-shadow:0 0 0 3px rgba(124,58,237,.12)}
 .modal-field textarea{resize:vertical;min-height:60px;line-height:1.5}
 .modal-field.full{grid-column:1/-1}
+.liquidity-toolbar{display:flex;align-items:center;justify-content:space-between;gap:16px;margin:16px 0;flex-wrap:wrap}
+.liquidity-totals{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:18px;margin:20px 0}
+.liquidity-total{min-width:0;border-bottom:2px solid var(--br2);padding:12px 0;display:flex;flex-direction:column;gap:7px}
+.liquidity-total span{font-size:11px;color:var(--tx2);line-height:1.5;min-height:32px}
+.liquidity-total strong{font-size:21px;white-space:nowrap;color:var(--tx1);font-variant-numeric:tabular-nums}
+.liquidity-total small,.liquidity-source{font-size:11px;color:var(--tx2);line-height:1.6}
+.liquidity-table{min-width:1050px}.liquidity-table .num{white-space:nowrap}
+.liquidity-actions{position:sticky;right:0;background:var(--bg2);white-space:nowrap;z-index:1}
+.liquidity-source{min-width:185px;max-width:240px;overflow-wrap:anywhere}
+.liquidity-fx{margin:20px 0}.liquidity-fx summary{cursor:pointer;font-size:12px;color:var(--tx2)}
+.liquidity-modal{max-width:640px;border-radius:8px}.liquidity-modal h3{font-size:16px;margin-bottom:18px}
+.liquidity-modal .modal-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+.liquidity-modal .modal-field label,.liquidity-funding label{font-size:10px;letter-spacing:0}
+.liquidity-funding{min-width:220px;flex:1;grid-column:1/-1}.liquidity-funding input{margin-top:4px}
+[hidden]{display:none!important}
+@media(max-width:600px){.liquidity-totals{grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.liquidity-total strong{font-size:18px}.liquidity-modal .modal-grid{grid-template-columns:1fr}.liquidity-funding{min-width:0;width:100%}}
 .modal-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:18px}
 .btn-cancel{
   padding:8px 18px;background:var(--bg3);
@@ -983,7 +999,7 @@ input::placeholder,textarea::placeholder,select::placeholder{color:var(--tx4);op
     <div>
       <div class="logo-name">MRP Portfolio</div>
       <div class="logo-sub" id="logoSub">Investment Tracker</div>
-      <div class="logo-version" title="Versión de la aplicación">v2026-10-04.1</div>
+      <div class="logo-version" title="Versión de la aplicación">v2026-10-06.1</div>
     </div>
   </div>
   <div class="topbar-right">
@@ -1110,6 +1126,7 @@ input::placeholder,textarea::placeholder,select::placeholder{color:var(--tx4);op
   <div class="tab" onclick="showTab('stocks')"><i class="ti ti-chart-bar"></i> <span>Acciones</span></div>
   <div class="tab" onclick="showTab('crypto')"><i class="ti ti-currency-bitcoin"></i> <span>Cripto</span></div>
   <div class="tab" onclick="showTab('otros')"><i class="ti ti-building-bank"></i> <span>Otros</span></div>
+  <div class="tab" onclick="showTab('liquidity')"><i class="ti ti-wallet"></i> <span>Liquidez</span></div>
   <div class="tab" id="costMeanTab" onclick="showTab('dca')"><i class="ti ti-calculator"></i> <span>Coste medio por posición</span></div>
   <div class="tab" onclick="showTab('risk')"><i class="ti ti-shield"></i> <span>Riesgo</span></div>
   <div class="tab" onclick="showTab('income')"><i class="ti ti-cash"></i> <span>Ingresos</span></div>
@@ -1195,6 +1212,7 @@ input::placeholder,textarea::placeholder,select::placeholder{color:var(--tx4);op
   </div>
 
   <!-- ROW 2: Custodio summary + allocation -->
+  <div class="liquidity-totals" id="dashLiquidityTotals"></div>
   <details class="dash-quality" id="dashQuality">
     <summary><span class="quality-title" id="dQualityTitle">Estado de datos</span><span class="quality-meta" id="dQualitySummary"></span><span class="quality-meta" id="dQualityTime"></span></summary>
     <ul id="dQualityItems"></ul>
@@ -1331,6 +1349,15 @@ input::placeholder,textarea::placeholder,select::placeholder{color:var(--tx4);op
       </table>
     </div>
   </div>
+</div>
+
+<!-- LIQUIDITY -->
+<div class="section" id="tab-liquidity">
+  <div class="liquidity-toolbar"><div class="sect-t"><i class="ti ti-wallet"></i> Liquidez</div><button class="btn-add" onclick="openLiquidityAccount()"><i class="ti ti-plus"></i> Nuevo saldo</button></div>
+  <div class="liquidity-totals" id="liquidityTotals"></div>
+  <div class="tbl-wrap"><table class="liquidity-table"><thead><tr><th>Entidad / producto</th><th>Moneda</th><th>Saldo actual</th><th>Disponibilidad</th><th>Valor USD</th><th>Valoración</th><th>Observaciones</th><th>Acciones</th></tr></thead><tbody id="liquidityTb"></tbody></table></div>
+  <details class="liquidity-fx"><summary>Tipos de cambio · USD por unidad</summary><div class="liquidity-toolbar"><span id="liquidityFxStatus"></span><button class="btn-snap" onclick="openLiquidityFx()"><i class="ti ti-edit"></i> Registrar cotización</button></div><div class="tbl-wrap"><table><thead><tr><th>Moneda</th><th>USD por unidad</th><th>Fuente</th><th>Fecha de valoración</th><th>Estado</th></tr></thead><tbody id="liquidityFxTb"></tbody></table></div></details>
+  <div class="sect-t" style="margin-top:24px"><i class="ti ti-history"></i> Movimientos recientes</div><div class="tbl-wrap"><table><thead><tr><th>Fecha</th><th>Movimiento</th><th>Origen</th><th>Destino</th><th>Importe</th><th>Comisión</th></tr></thead><tbody id="liquidityHistoryTb"></tbody></table></div>
 </div>
 
 <!-- ═══ CRIPTO ═══ -->
@@ -1760,6 +1787,7 @@ input::placeholder,textarea::placeholder,select::placeholder{color:var(--tx4);op
 
 <!-- ═══ HISTORIAL ═══ -->
 <div class="section" id="tab-hist">
+  <div style="margin-bottom:12px"><label for="historyScope">Movimientos</label><select id="historyScope" onchange="renderHist()"><option value="all">Todos</option><option value="positions">Activos</option><option value="liquidity">Liquidez</option></select></div>
   <div style="padding:11px 14px;background:rgba(8,145,178,.08);border:1px solid rgba(8,145,178,.2);border-radius:8px;margin-bottom:12px;font-size:11px;color:var(--ct2)">
     <i class="ti ti-lock"></i> El Historial se genera automáticamente al usar <strong>Comprar</strong> o <strong>Vender</strong> en cada posición.
   </div>
@@ -2843,7 +2871,7 @@ const PALETTE = ['#7c3aed','#0891b2','#10b981','#f59e0b','#f43f5e','#ec4899','#8
 // STATE
 // ═══════════════════════════════════════════
 const SCHEMA_VERSION = 'position-v3';
-const APP_RELEASE = '2026-10-04.1';
+const APP_RELEASE = '2026-10-06.1';
 const PUBLIC_APP_URL = 'https://criptoscrazy.github.io/mrp-portfolio-finance/';
 const SKEY = 'mrp_portfolio_v3';
 const LEGACY_SKEY = 'mrp_portfolio_v2';
@@ -2891,6 +2919,8 @@ let ST = {
   hist: [],
   income: [],
   apyPositions: [],
+  liquidity: [],
+  liquidityFx: [],
   alerts: [],
   otros: [],
   cedearExpenses: [],
@@ -2902,7 +2932,7 @@ let ST = {
 };
 
 const PORTFOLIO_ARRAY_KEYS = [
-  'stocks', 'crypto', 'hist', 'income', 'apyPositions', 'alerts', 'otros', 'cedearExpenses', 'cedearValuations', 'cedearSales', 'snaps'
+  'stocks', 'crypto', 'hist', 'income', 'apyPositions', 'alerts', 'otros', 'cedearExpenses', 'cedearValuations', 'cedearSales', 'snaps', 'liquidity', 'liquidityFx'
 ];
 const TRADING_ARRAY_KEYS = [
   'positions', 'journal', 'watchlist', 'checklist', 'rules', 'psychEntries'
@@ -2931,7 +2961,7 @@ const NUMERIC_STATE_KEYS = new Set([
   'avgBuy', 'openCost', 'realizedPnl', 'qtyBefore', 'qtyAfter', 'avgBefore', 'avgAfter',
   'openCostBefore', 'openCostAfter', 'executionPrice', 'grossAmount', 'commission', 'totalCost', 'netProceeds'
 ]);
-const BOOLEAN_STATE_KEYS = new Set(['checked', 'triggered']);
+const BOOLEAN_STATE_KEYS = new Set(['checked', 'triggered', 'costUnknown', 'basisKnown']);
 const STRING_STATE_KEYS = new Set([
   'id', 'sym', 'symbol', 'ticker', 'name', 'date', 'type', 'notes', 'note',
   'sector', 'broker', 'custody', 'wallet', 'addr', 'platform', 'expiry', 'dir',
@@ -2946,7 +2976,10 @@ const STRING_STATE_KEYS = new Set([
   'positionId','assetType','custodian','operationId','operationStatus','migrationStatus','legacyReason',
   'saleGroupId','currency','costCurrency','quantityBeforeDecimal','quantityAfterDecimal','costRemovedDecimal',
   'market','listingCurrency','isin','priceSymbol','instrumentId','instrumentSource','feeStatus','costFeeStatus',
-  'operationSource','reconciliationStatus','brokerTradeId','brokerOrderId','executionTimestamp','externalSource'
+  'operationSource','reconciliationStatus','brokerTradeId','brokerOrderId','executionTimestamp','externalSource',
+  'liquidityId','fromLiquidityId','toLiquidityId','balanceDecimal','availability','product','assetKind',
+  'rateUSDDecimal','valuedAt','balanceBeforeDecimal','balanceAfterDecimal','destinationAmountDecimal',
+  'liquidityAmountDecimal','liquidityCurrency','feeDecimal','fromCurrency','toCurrency','basisUSDDecimal','liquidityStartedAt','sourcePositionId'
 ]);
 
 function isPlainRecord(value) {
@@ -2980,6 +3013,7 @@ function validatePortfolioStateShape(value, { requireCoreArrays = false } = {}) 
   if (!isPlainRecord(value)) return false;
   if (requireCoreArrays && (!Array.isArray(value.stocks) || !Array.isArray(value.crypto))) return false;
   if (!PORTFOLIO_ARRAY_KEYS.every(key => isValidRecordArray(value[key]))) return false;
+  if (!validateLiquidityState(value)) return false;
 
   if (value.aSnaps !== undefined) {
     if (!isPlainRecord(value.aSnaps)) return false;
@@ -3187,6 +3221,7 @@ function deterministicPositionId(asset, assetType, index = 0) {
 }
 
 function positionAverage(asset) {
+  if(asset?.costUnknown)return null;
   const qty = Number(asset?.qty ?? asset?.nominal);
   const openCost = Number(asset?.openCost);
   if (Number.isFinite(qty) && qty > 0 && Number.isFinite(openCost)) {
@@ -3260,6 +3295,7 @@ function migratePortfolioV2ToV3(input, { dryRun = false } = {}) {
 }
 
 function save(silent = true, { scheduleSync = true, timestamp = null, markChanged = true } = {}) {
+  if(liquidityTransactionDepth)return true;
   try {
     const sanitizedState = sanitizePortfolioState(ST);
     if (!validatePortfolioStateShape(sanitizedState)) {
@@ -3274,10 +3310,12 @@ function save(silent = true, { scheduleSync = true, timestamp = null, markChange
     }
     if (scheduleSync) scheduleCloudSync();
     if (!silent) showToast(t('toastSaved'));
+    return true;
   }
   catch(e) {
     console.error('Local save error:', e);
     showToast(t('toastSaved') + ' — error', 'err');
+    return false;
   }
 }
 
@@ -3376,6 +3414,7 @@ function loadState() {
 // ═══════════════════════════════════════════
 let toastTimer;
 function showToast(msg, type = 'ok', dur = 2000) {
+  if(liquidityTransactionDepth){liquidityDeferredToast=[msg,type,dur];return;}
   const t = $('toast'), ico = $('toastIco'), m = $('toastMsg');
   m.textContent = msg;
   t.className = 'toast ' + (type === 'err' ? 'err' : type === 'warn' ? 'warn' : '');
@@ -3428,7 +3467,7 @@ function importData(e) {
       // Fill in any missing keys with safe defaults so a partial-but-valid backup doesn't break rendering
       preserveCedearPreMigrationBackup(parsed);
       const importedState = sanitizePortfolioState({
-        stocks: [], crypto: [], otros: [], cedearExpenses: [], cedearValuations: [], hist: [], income: [], apyPositions: [],
+        stocks: [], crypto: [], otros: [], cedearExpenses: [], cedearValuations: [], hist: [], income: [], apyPositions: [], liquidity: [], liquidityFx: [],
         alerts: [], snaps: [], aSnaps: {}, selAsset: null,
         trading: { positions:[], journal:[], watchlist:[], checklist:[], rules:[], psychEntries:[],
                    riskLimits:{monthlyGoal:'',dailyLoss:'',monthlyLoss:'',maxOpsDay:''},
@@ -3469,6 +3508,7 @@ async function clearAll() {
     }
   }
   localStorage.removeItem(SKEY);
+  localStorage.removeItem(LIQUIDITY_BACKUP_KEY);
   localStorage.setItem(V3_MIGRATION_DONE_KEY,'true');
   localStorage.removeItem('mrp_last_local_change');
   localStorage.removeItem('mrp_last_sync');
@@ -4158,7 +4198,8 @@ async function updatePrices({ automatic = false } = {}) {
 // ═══════════════════════════════════════════
 // ASSET CRUD
 // ═══════════════════════════════════════════
-function addAsset(type) {
+function addAsset(type) { return addWithLiquidity(type,()=>addAssetCore(type)); }
+function addAssetCore(type) {
   const p = type === 'stock' ? 's' : 'c';
   const sym = $(p+'S').value.trim().toUpperCase();
   const name = $(p+'N').value.trim();
@@ -4278,13 +4319,14 @@ function appendPositionHistory(asset, scope, type, operation, before) {
     assetType:scope, date:operation.date, type, sym:asset.sym, qty:operation.qty,
     price:operation.price, executionPrice:operation.price, grossAmount, comm:commission, commission,
     feeStatus, totalCost:type === 'COMPRA' && feeStatus !== 'not_recorded' ? grossAmount + commission : null,
+    currency:scope==='bono'?(asset.currency||'USD'):'USD',
     netProceeds:type === 'VENTA' && feeStatus !== 'not_recorded' ? grossAmount - commission : null,
     operationSource:operation.operationSource || 'manual', reconciliationStatus:operation.reconciliationStatus || 'manual',
     brokerTradeId:operation.brokerTradeId || '', brokerOrderId:operation.brokerOrderId || '',
     executionTimestamp:operation.executionTimestamp || null, externalSource:operation.externalSource || '',
     notes:operation.notes || '', custodian:positionCustodian(asset, scope), qtyBefore:Number(before.qty)||0, qtyAfter,
     avgBefore:Number(before.avgBuy)||0, avgAfter, openCostBefore:Number(before.openCost)||0,
-    openCostAfter:Number(asset.openCost)||0, realizedPnl:Number(operation.realizedPnl)||0
+    openCostAfter:asset.costUnknown?null:Number(asset.openCost)||0, realizedPnl:operation.realizedPnl===null?null:Number(operation.realizedPnl)||0
   };
   ST.hist.unshift(entry);
   return entry;
@@ -4305,8 +4347,8 @@ function applyPositionOperation(asset, scope, type, operation) {
     const nextQty = currentQty + qty;
     const nextCost = currentOpenCost + grossCost + comm;
     asset[quantityField] = nextQty;
-    asset.openCost = nextCost;
-    asset.avgBuy = scope === 'bono' ? nextCost / nextQty * 100 : nextCost / nextQty;
+    asset.openCost = asset.costUnknown?null:nextCost;
+    asset.avgBuy = asset.costUnknown?null:scope === 'bono' ? nextCost / nextQty * 100 : nextCost / nextQty;
     asset.costFeeStatus = asset.costFeeStatus === 'fees_incomplete' || feeStatus === 'not_recorded' || positionHasUnrecordedFee(asset) ? 'fees_incomplete' : 'fees_recorded';
     if (scope === 'bono') asset.capUSD = nextCost;
     asset.status = 'active';
@@ -4318,11 +4360,11 @@ function applyPositionOperation(asset, scope, type, operation) {
     const nextQty = Math.max(0, currentQty - qty);
     const nextCost = nextQty === 0 ? 0 : Math.max(0, currentOpenCost - removedCost);
     asset[quantityField] = nextQty;
-    asset.openCost = nextCost;
-    asset.avgBuy = nextQty === 0 ? average : (scope === 'bono' ? nextCost / nextQty * 100 : nextCost / nextQty);
+    asset.openCost = asset.costUnknown&&nextQty>0?null:nextCost;
+    asset.avgBuy = asset.costUnknown?null:nextQty === 0 ? average : (scope === 'bono' ? nextCost / nextQty * 100 : nextCost / nextQty);
     if (scope === 'bono') asset.capUSD = nextCost;
     asset.status = nextQty === 0 ? 'closed' : 'active';
-    operation.realizedPnl = proceeds - removedCost;
+    operation.realizedPnl = asset.costUnknown?null:proceeds - removedCost;
   }
   appendPositionHistory(asset, scope, type, operation, before);
   return asset;
@@ -4351,6 +4393,9 @@ function openPositionOperation(scope, positionId, type) {
   $('positionOperationTitle').innerHTML = `<i class="ti ${type==='COMPRA'?'ti-shopping-cart-plus':'ti-cash'}" style="color:${type==='COMPRA'?'var(--cg2)':'var(--ca2)'}"></i> ${type==='COMPRA'?'Comprar':'Vender'} ${escapeHTML(asset.sym)}`;
   $('positionOperationSub').textContent = type === 'VENTA' ? `Disponible: ${Number(asset.qty ?? asset.nominal).toLocaleString('es-AR',{maximumFractionDigits:8})}` : 'La posición y el Historial se actualizarán juntos.';
   $('positionOperationOverlay').classList.add('open');
+  const cashSelect=document.getElementById('positionOperationLiquidity');if(cashSelect){cashSelect.value='';delete cashSelect.dataset.explicit;}
+  const cashAmount=document.getElementById('positionOperationLiquidityAmount');if(cashAmount){cashAmount.value='';delete cashAmount.dataset.manual;}
+  mountLiquidityFunding();
 }
 
 function closePositionOperation() { $('positionOperationOverlay').classList.remove('open'); }
@@ -4362,9 +4407,13 @@ function savePositionOperation() {
     const date=$('positionOperationDate').value;
     if (!date) throw new Error('Indicá la fecha de la operación');
     const operation={qty:Number($('positionOperationQty').value),price:Number($('positionOperationPrice').value),...readOptionalCommission('positionOperationCommission'),date,notes:$('positionOperationNotes').value.trim(),currency:$('positionOperationCurrency').value,operationSource:'manual'};
-    if(scope==='cedeaar') applyCedearSale(positionId,operation); else applyPositionOperation(asset,scope,type,operation);
-    save(); closePositionOperation(); renderAll(); showToast(`${type==='COMPRA'?'Compra':'Venta'} de ${asset.sym} registrada`);
-  } catch (error) { showToast(error.message || 'No se pudo registrar la operación','err',5000); }
+    const funding=readLiquidityFunding('positionOperation');
+    commitLiquidityMutation(()=>{
+      if(scope==='cedeaar') applyCedearSale(positionId,operation); else applyPositionOperation(findPosition(positionId,scope),scope,type,operation);
+      applyLiquidityFunding(ST.hist[0],funding);
+    });
+    closePositionOperation(); showToast(`${type==='COMPRA'?'Compra':'Venta'} de ${asset.sym} registrada`);
+  } catch (error) { if(error.saved)closePositionOperation();showToast(error.message || 'No se pudo registrar la operación','err',5000); }
 }
 
 $('positionOperationOverlay')?.addEventListener('click', event => { if (event.target === $('positionOperationOverlay')) closePositionOperation(); });
@@ -4390,7 +4439,8 @@ function applyCedearSale(positionId, operation) {
   });
   const proceeds=decSub(decMul(requested,price),commission);
   const realizedPnl=comparable?Number(decSub(proceeds,costRemoved)):null;
-  ST.hist.unshift({id:uid(),operationId:saleGroupId,operationStatus:'confirmed',positionId,assetType:'cedeaar',date:operation.date,type:'VENTA',sym:group.sym,qty:Number(requested),price:Number(price),comm:Number(commission),currency:operation.currency,custodian:group.broker||'sin-especificar',notes:operation.notes||'',realizedPnl});
+  const feeStatus=normalizedFeeStatus(operation.feeStatus,Number(commission));
+  ST.hist.unshift({id:uid(),operationId:saleGroupId,operationStatus:'confirmed',positionId,assetType:'cedeaar',date:operation.date,type:'VENTA',sym:group.sym,qty:Number(requested),price:Number(price),comm:Number(commission),commission:Number(commission),feeStatus,grossAmount:Number(decMul(requested,price)),netProceeds:feeStatus==='not_recorded'?null:Number(proceeds),currency:operation.currency,custodian:group.broker||'sin-especificar',notes:operation.notes||'',realizedPnl});
 }
 
 const formatARS = value => {
@@ -4938,9 +4988,9 @@ function selectAsset(a) {
 // CALC HELPERS
 // ═══════════════════════════════════════════
 function calc(a) {
-  const cap = Number.isFinite(Number(a.openCost)) ? Number(a.openCost) : a.qty * a.buy;
+  const cap = a.costUnknown?null:Number.isFinite(Number(a.openCost)) ? Number(a.openCost) : a.qty * a.buy;
   const cur = a.cur != null ? a.qty * a.cur : null;
-  const pnl = cur != null ? cur - cap : null;
+  const pnl = cur != null && cap!=null ? cur - cap : null;
   const pp  = (pnl != null && cap > 0) ? pnl / cap : null;
   const d   = days(a.date, today());
   return { cap, cur, pnl, pp, d };
@@ -4978,7 +5028,7 @@ function isValuationAvailable(item) {
     !['pending','conversion_pending'].includes(item.status);
 }
 function directUSDValuation(asset, assetClass) {
-  const quantity=Number(asset?.qty), cost=Number.isFinite(Number(asset?.openCost)) ? Number(asset.openCost) : Number(asset?.qty) * Number(asset?.buy);
+  const quantity=Number(asset?.qty), cost=asset?.costUnknown?NaN:Number.isFinite(Number(asset?.openCost)) ? Number(asset.openCost) : Number(asset?.qty) * Number(asset?.buy);
   const status=priceStatusFor(asset);
   const quoteCurrency=String(asset?.quoteCurrency || 'USD').toUpperCase();
   const currentRaw=Number(asset?.cur);
@@ -4993,8 +5043,363 @@ function directUSDValuation(asset, assetClass) {
     retrievedAt:asset.priceRetrievedAt||null, source:asset.priceSource||'', marketState:asset.priceMarketState||''
   };
 }
+// Liquidity balances are current state; legacy history never reconstructs them.
+const LIQUIDITY_AVAILABILITY = Object.freeze({immediate:'Disponible inmediata', remunerated:'Remunerada · rescate rápido', invested:'Invertida · no disponible'});
+const LIQUIDITY_STABLECOINS = new Set(['USDT','USDC','DAI','FDUSD','TUSD','USDD','PYUSD','EURC','EURS']);
+const LIQUIDITY_BACKUP_KEY = 'mrp_before_liquidity_v1';
+let liquidityTransactionDepth=0, liquidityDeferredToast=null;
+function liquidityCurrency(value){return String(value||'').trim().toUpperCase();}
+function liquidityAccounts(){return ST.liquidity||[];}
+function findLiquidity(id){return liquidityAccounts().find(account=>account.liquidityId===id)||null;}
+function liquidityLabel(account){return account?`${account.custodian}${account.product?' · '+account.product:''} · ${account.currency}`:'—';}
+function liquidityAccountKey(account){return [normalizedPositionPart(account.custodian),account.currency,normalizedPositionPart(account.product),account.availability].join('|');}
+function liquidityIsAvailable(account){return ['immediate','remunerated'].includes(account?.availability);}
+function liquidityMoney(value,currency){const normalized=dec(value),digits=Math.min(8,Math.max(['USD','EUR','ARS'].includes(currency)?2:0,(normalized?.split('.')[1]||'').length));return `${formatDec(value,{digits})} ${escapeHTML(currency)}`;}
+function validateLiquidityState(state){
+  const ids=new Set(),keys=new Set();
+  for(const account of state.liquidity||[]){
+    if(typeof account.liquidityId!=='string'||!/^liq_[A-Za-z0-9_-]+$/.test(account.liquidityId)||ids.has(account.liquidityId))return false;
+    if(typeof account.custodian!=='string'||!account.custodian.trim()||typeof account.currency!=='string'||! /^[A-Z0-9._-]{2,20}$/.test(account.currency))return false;
+    if(!Object.hasOwn(LIQUIDITY_AVAILABILITY,account.availability)||!['fiat','stablecoin','investment'].includes(account.assetKind))return false;
+    if(account.assetKind==='investment'&&liquidityIsAvailable(account))return false;
+    if(typeof account.balanceDecimal!=='string'||account.balanceDecimal.length>80||dec(account.balanceDecimal)==null||decCmp(account.balanceDecimal,'0')<0||!Number.isFinite(Number(account.balanceDecimal))||!validLiquidityDate(account.date))return false;
+    if(LIQUIDITY_STABLECOINS.has(account.currency)&&account.assetKind==='fiat')return false;
+    if(account.basisKnown&&(dec(account.basisUSDDecimal)==null||decCmp(account.basisUSDDecimal,'0')<0))return false;
+    const key=liquidityAccountKey(account);if(keys.has(key))return false;keys.add(key);ids.add(account.liquidityId);
+  }
+  const currencies=new Set();
+  for(const quote of state.liquidityFx||[]){
+    if(!/^[A-Z0-9._-]{2,20}$/.test(quote.currency)||currencies.has(quote.currency)||typeof quote.rateUSDDecimal!=='string'||quote.rateUSDDecimal.length>80||!decPositive(quote.rateUSDDecimal)||!Number.isFinite(Number(quote.rateUSDDecimal))||!String(quote.source||'').trim()||!Number.isFinite(Date.parse(quote.valuedAt)))return false;
+    currencies.add(quote.currency);
+  }
+  for(const entry of state.hist||[]){
+    for(const key of ['liquidityId','fromLiquidityId','toLiquidityId'])if(entry[key]&&!ids.has(entry[key]))return false;
+    if(entry.assetType==='liquidity'){
+      if(!entry.liquidityId||!['SALDO_INICIAL','APORTE','RETIRO','COMISION','TRANSFERENCIA','RECLASIFICACION'].includes(entry.type)||dec(entry.amountDecimal)==null||decCmp(entry.amountDecimal,'0')<0||!validLiquidityDate(entry.date)||! /^[A-Z0-9._-]{2,20}$/.test(entry.currency))return false;
+      if(entry.realizedPnl!=null&&Number(entry.realizedPnl)!==0)return false;
+    }
+    if(entry.liquidityId&&['COMPRA','VENTA'].includes(entry.type)&&(!decPositive(entry.liquidityAmountDecimal)||entry.liquidityCurrency!==(state.liquidity||[]).find(a=>a.liquidityId===entry.liquidityId)?.currency))return false;
+    for(const key of ['balanceBeforeDecimal','balanceAfterDecimal','feeDecimal'])if(entry[key]!=null&&(dec(entry[key])==null||decCmp(entry[key],'0')<0))return false;
+  }
+  return true;
+}
+function commitLiquidityMutation(action){
+  if(liquidityTransactionDepth)throw new Error('Hay una operación en curso');
+  const before=ST,stored=localStorage.getItem(SKEY),changed=localStorage.getItem('mrp_last_local_change');
+  ST=JSON.parse(JSON.stringify(before));liquidityTransactionDepth=1;liquidityDeferredToast=null;
+  let result,feedback;
+  try{
+    result=action();liquidityTransactionDepth=0;
+    if(JSON.stringify(before)===JSON.stringify(ST)){const feedback=liquidityDeferredToast;ST=before;if(feedback)showToast(...feedback);return result;}
+    if(!validatePortfolioStateShape(ST))throw new Error('La operación no cumple las reglas de integridad');
+    if(!localStorage.getItem(LIQUIDITY_BACKUP_KEY))localStorage.setItem(LIQUIDITY_BACKUP_KEY,JSON.stringify(before));
+    if(!save(true,{scheduleSync:false}))throw new Error('No se pudo guardar. La operación fue revertida.');
+    feedback=liquidityDeferredToast;liquidityDeferredToast=null;
+  }catch(error){
+    liquidityTransactionDepth=0;liquidityDeferredToast=null;ST=before;
+    try{if(localStorage.getItem(SKEY)!==stored)stored==null?localStorage.removeItem(SKEY):localStorage.setItem(SKEY,stored);if(localStorage.getItem('mrp_last_local_change')!==changed)changed==null?localStorage.removeItem('mrp_last_local_change'):localStorage.setItem('mrp_last_local_change',changed);}catch{window._mrpInvalidLocalState=true;}
+    renderAll();throw error;
+  }
+  try{scheduleCloudSync();renderAll();if(feedback)showToast(...feedback);}
+  catch(cause){const error=new Error('La operación está guardada, pero falló la actualización de pantalla. No la repitas; recargá la app.');error.saved=true;error.cause=cause;throw error;}
+  return result;
+}
+function appendLiquidityHistory(type,details){
+  const entry={id:uid(),operationId:uid(),operationStatus:'confirmed',assetType:'liquidity',date:today(),type,realizedPnl:null,...details};
+  ST.hist.unshift(entry);return entry;
+}
+function createLiquidityAccount(input,{reclassification=false}={}){
+  const account={liquidityId:'liq_'+uid(),custodian:String(input.custodian||'').trim(),currency:liquidityCurrency(input.currency),assetKind:input.assetKind||'fiat',availability:input.availability||'immediate',product:String(input.product||'').trim(),notes:String(input.notes||'').trim(),balanceDecimal:dec(input.balanceDecimal??'0'),date:input.date||today(),basisKnown:false,basisUSDDecimal:'0'};
+  if(LIQUIDITY_STABLECOINS.has(account.currency)&&account.assetKind==='fiat')account.assetKind='stablecoin';
+  if(!validateLiquidityState({liquidity:[account]}))throw new Error('Indicá entidad, moneda, disponibilidad, fecha y saldo no negativo');
+  if(liquidityAccounts().some(existing=>liquidityAccountKey(existing)===liquidityAccountKey(account)))throw new Error('Ese saldo ya existe. Registrá un aporte o una transferencia.');
+  if(!reclassification&&account.assetKind==='stablecoin'&&decPositive(account.balanceDecimal)&&(ST.crypto||[]).some(asset=>asset.sym===account.currency&&Number(asset.qty)>0&&normalizedPositionPart(positionCustodian(asset,'crypto'))===normalizedPositionPart(account.custodian)))throw new Error('Ese activo ya está en Cripto. Usá Pasar a Liquidez para reclasificarlo sin duplicarlo.');
+  (ST.liquidity||= []).push(account);ST.liquidityStartedAt ||=new Date().toISOString();
+  if(!reclassification)appendLiquidityHistory('SALDO_INICIAL',{liquidityId:account.liquidityId,toLiquidityId:account.liquidityId,date:account.date,sym:account.currency,currency:account.currency,custodian:account.custodian,amountDecimal:account.balanceDecimal,balanceBeforeDecimal:'0',balanceAfterDecimal:account.balanceDecimal,notes:account.notes});
+  return account;
+}
+function changeLiquidityBalance(account,amount){
+  const next=decAdd(account.balanceDecimal,amount);if(next==null||decCmp(next,'0')<0)throw new Error(`Saldo insuficiente en ${liquidityLabel(account)}`);
+  const previous=account.balanceDecimal;
+  if(decCmp(amount,'0')<0&&account.basisKnown){const ratio=decPositive(previous)?decDiv(next,previous,18):'0';account.basisUSDDecimal=decMul(account.basisUSDDecimal,ratio);}
+  if(decPositive(amount))account.basisKnown=false;
+  account.balanceDecimal=next;return previous;
+}
+function applyLiquidityMovement(input){
+  const source=findLiquidity(input.liquidityId),target=findLiquidity(input.toLiquidityId);
+  const amount=dec(input.amountDecimal),fee=dec(input.feeDecimal??'0');
+  if(!source||!['APORTE','RETIRO','COMISION','TRANSFERENCIA'].includes(input.type)||!decPositive(amount)||fee==null||decCmp(fee,'0')<0||!validLiquidityDate(input.date))throw new Error('Movimiento no válido');
+  if(input.date<source.date)throw new Error('La fecha es anterior al saldo inicial de esta cuenta');
+  if(input.type!=='TRANSFERENCIA'&&decPositive(fee))throw new Error('Registrá la comisión como movimiento separado');
+  const before=source.balanceDecimal;
+  if(input.type==='APORTE')changeLiquidityBalance(source,amount);
+  else if(input.type==='TRANSFERENCIA'){
+    if(!target||target===source||input.date<target.date)throw new Error('Elegí otra cuenta de destino con saldo inicial anterior a la transferencia');
+    const received=source.currency===target.currency?amount:dec(input.destinationAmountDecimal);
+    if(!decPositive(received))throw new Error('Indicá el importe real recibido en la moneda de destino');
+    const known=source.basisKnown,basis=known?decMul(source.basisUSDDecimal,decDiv(amount,before,18)):'0',targetBefore=target.balanceDecimal,targetBasis=target.basisUSDDecimal;
+    const targetKnown=target.basisKnown;
+    changeLiquidityBalance(source,decSub('0',decAdd(amount,fee)));changeLiquidityBalance(target,received);
+    if(known&&(!decPositive(targetBefore)||targetKnown)){target.basisKnown=true;target.basisUSDDecimal=decAdd(targetBasis,basis);}
+    appendLiquidityHistory('TRANSFERENCIA',{liquidityId:source.liquidityId,fromLiquidityId:source.liquidityId,toLiquidityId:target.liquidityId,sym:source.currency,currency:source.currency,fromCurrency:source.currency,toCurrency:target.currency,amountDecimal:amount,destinationAmountDecimal:received,feeDecimal:fee,date:input.date,custodian:source.custodian,notes:input.notes||'',balanceBeforeDecimal:before,balanceAfterDecimal:source.balanceDecimal});return;
+  }else changeLiquidityBalance(source,decSub('0',amount));
+  appendLiquidityHistory(input.type,{liquidityId:source.liquidityId,fromLiquidityId:input.type==='APORTE'?'':source.liquidityId,toLiquidityId:input.type==='APORTE'?source.liquidityId:'',sym:source.currency,currency:source.currency,amountDecimal:amount,feeDecimal:input.type==='COMISION'?amount:'0',date:input.date,custodian:source.custodian,notes:input.notes||'',balanceBeforeDecimal:before,balanceAfterDecimal:source.balanceDecimal});
+}
+function liquidityFxFor(currency){
+  if(currency==='USD')return {currency,rateUSDDecimal:'1',source:'Moneda base USD',valuedAt:null,status:'base'};
+  const quote=(ST.liquidityFx||[]).find(item=>item.currency===currency);if(!quote)return null;
+  const age=Date.now()-Date.parse(quote.valuedAt);
+  return {...quote,status:age>96*60*60*1000||age< -5*60*1000?'stale':'manual'};
+}
+function liquidityAccountValuation(account){
+  const quote=liquidityFxFor(account.currency),valid=quote&&quote.status!=='stale';
+  const value=valid?Number(decMul(account.balanceDecimal,quote.rateUSDDecimal)):decPositive(account.balanceDecimal)?null:0;
+  return {account,quote,currentUSD:value!=null&&Number.isFinite(value)?value:null};
+}
+function liquiditySummary(){
+  const all=liquidityAccounts().map(liquidityAccountValuation);
+  const group=availability=>{
+    const items=all.filter(item=>item.account.availability===availability&&decPositive(item.account.balanceDecimal));
+    const valued=items.filter(item=>item.currentUSD!=null),pending=items.filter(item=>item.currentUSD==null);
+    return {items,pending,value:valued.reduce((sum,item)=>sum+item.currentUSD,0),complete:!pending.length};
+  };
+  const immediate=group('immediate'),remunerated=group('remunerated'),invested=group('invested');
+  return {all,immediate,remunerated,invested,available:{value:immediate.value+remunerated.value,pending:[...immediate.pending,...remunerated.pending],complete:immediate.complete&&remunerated.complete}};
+}
+function liquidityInvestedValuations(){
+  return liquiditySummary().invested.items.map(({account,quote,currentUSD})=>({id:account.liquidityId,sym:account.currency,name:account.product||account.currency,assetClass:'Productos no disponibles',sourceAsset:{...account,broker:account.custodian},currentUSD,costUSD:account.basisKnown?Number(account.basisUSDDecimal):null,pnlUSD:currentUSD!=null&&account.basisKnown?currentUSD-Number(account.basisUSDDecimal):null,status:currentUSD==null?'conversion_pending':'delayed',source:quote?.source||'',sourceTimestamp:quote?.valuedAt||null}));
+}
+function applyLiquidityFunding(entry,funding){
+  if(!funding?.liquidityId)return;
+  if(entry.liquidityId)throw new Error('Esta operación ya está vinculada a un saldo');
+  const account=findLiquidity(funding.liquidityId),amount=dec(funding.amountDecimal);
+  if(!account||!liquidityIsAvailable(account)||!decPositive(amount)||!['COMPRA','VENTA'].includes(entry.type))throw new Error('Elegí un saldo disponible e indicá el importe real');
+  if(!validLiquidityDate(entry.date))throw new Error('La fecha de una operación de Liquidez debe ser válida y no futura');
+  const expected=liquidityTradeTotal(entry),currency=liquidityCurrency(entry.currency||'USD').replace(/^USD_.*/,'USD');
+  if(expected!=null&&currency===account.currency&&Math.abs(Number(amount)-Number(expected))>0.00000001)throw new Error('El importe del saldo debe coincidir con el total de la operación, incluida la comisión');
+  if(entry.date<account.date)throw new Error('La operación es anterior al saldo inicial; usá Sin afectar Liquidez');
+  const before=changeLiquidityBalance(account,entry.type==='COMPRA'?decSub('0',amount):amount);
+  Object.assign(entry,{liquidityId:account.liquidityId,liquidityAmountDecimal:amount,liquidityCurrency:account.currency,balanceBeforeDecimal:before,balanceAfterDecimal:account.balanceDecimal});
+}
+function reclassifyCryptoToLiquidity(positionId,input){
+  const asset=findPosition(positionId,'crypto'),qty=dec(input.quantityDecimal);
+  const assetQuantity=liquidityPositionDecimal(asset?.qty);
+  if(!asset||!(LIQUIDITY_STABLECOINS.has(asset.sym)||input.assetKind==='stablecoin'||findLiquidity(input.liquidityId)?.assetKind==='stablecoin')||!decPositive(qty)||!decPositive(assetQuantity)||decCmp(qty,assetQuantity)>0)throw new Error('Indicá una cantidad válida de stablecoins');
+  let account=findLiquidity(input.liquidityId);
+  const custodian=positionCustodian(asset,'crypto');
+  if(!account)account=createLiquidityAccount({custodian,currency:asset.sym,assetKind:'stablecoin',availability:input.availability||'immediate',product:input.product||'',balanceDecimal:'0',date:input.date},{reclassification:true});
+  if(account.currency!==asset.sym||normalizedPositionPart(account.custodian)!==normalizedPositionPart(custodian))throw new Error('La reclasificación conserva moneda y custodio');
+  if(account.assetKind!=='stablecoin'||!validLiquidityDate(input.date)||input.date<account.date)throw new Error('Elegí un saldo de stablecoins y una fecha posterior a su inicio');
+  const originalQty=assetQuantity,before=account.balanceDecimal,originalCost=directUSDValuation(asset,'Cripto').costUSD,basisKnown=originalCost!=null;
+  const movedBasis=basisKnown?decMul(liquidityPositionDecimal(originalCost),decDiv(qty,originalQty,18)):'0',oldBasis=account.basisUSDDecimal,oldKnown=account.basisKnown;
+  changeLiquidityBalance(account,qty);account.basisKnown=basisKnown&&(!decPositive(before)||oldKnown);account.basisUSDDecimal=account.basisKnown?decAdd(oldBasis,movedBasis):'0';
+  asset.qty=Number(decSub(originalQty,qty));if(basisKnown)asset.openCost=Number(decSub(liquidityPositionDecimal(originalCost),movedBasis));
+  asset.status=asset.qty===0?'closed':'active';asset.avgBuy=asset.qty>0&&!asset.costUnknown?asset.openCost/asset.qty:asset.avgBuy;
+  account.sourcePositionId ||=asset.positionId;
+  if(!(ST.liquidityFx||[]).some(quote=>quote.currency===asset.sym)&&asset.cur>0&&(asset.quoteCurrency||'USD')==='USD'&&asset.priceSource&&!/USDT/i.test(asset.priceSource)&&Number.isFinite(Date.parse(asset.priceSourceTimestamp||asset.priceUpdatedAt))){
+    (ST.liquidityFx||=[]).push({currency:asset.sym,rateUSDDecimal:dec(asset.cur),source:asset.priceSource,valuedAt:asset.priceSourceTimestamp||asset.priceUpdatedAt});
+  }
+  appendLiquidityHistory('RECLASIFICACION',{positionId:asset.positionId,liquidityId:account.liquidityId,toLiquidityId:account.liquidityId,sym:asset.sym,currency:asset.sym,amountDecimal:qty,basisKnown,basisUSDDecimal:basisKnown?movedBasis:null,balanceBeforeDecimal:before,balanceAfterDecimal:account.balanceDecimal,date:input.date||today(),custodian,notes:'Cripto → '+LIQUIDITY_AVAILABILITY[account.availability]});
+  return account;
+}
+function reclassifyLiquidityToCrypto(liquidityId,input){
+  const account=findLiquidity(liquidityId),qty=dec(input.quantityDecimal);
+  if(!account||account.assetKind!=='stablecoin'||!decPositive(qty)||decCmp(qty,account.balanceDecimal)>0)throw new Error('Indicá una cantidad válida de stablecoins');
+  if(!validLiquidityDate(input.date)||input.date<account.date)throw new Error('La fecha es anterior al saldo inicial');
+  const before=account.balanceDecimal,known=account.basisKnown,movedBasis=known?decMul(account.basisUSDDecimal,decDiv(qty,before,18)):'0';
+  let asset=(ST.crypto||[]).find(item=>item.sym===account.currency&&normalizedPositionPart(positionCustodian(item,'crypto'))===normalizedPositionPart(account.custodian));
+  if(!asset){const id=uid();asset={id,positionId:'pos_crypto_'+id,assetType:'crypto',sym:account.currency,name:account.currency,qty:0,buy:null,date:input.date||today(),openCost:0,wallet:account.custodian,custody:'exchange',status:'closed',cur:null};ST.crypto.push(asset);}
+  const oldQty=Number(asset.qty)||0,oldKnown=asset.costUnknown!==true&&Number.isFinite(Number(asset.openCost));
+  asset.qty=oldQty+Number(qty);asset.costUnknown=!known||(oldQty>0&&!oldKnown);
+  asset.openCost=asset.costUnknown?null:(Number(asset.openCost)||0)+Number(movedBasis);asset.avgBuy=asset.costUnknown?null:asset.openCost/asset.qty;asset.status='active';
+  const quote=liquidityFxFor(account.currency);if(quote&&quote.status!=='stale'){asset.cur=Number(quote.rateUSDDecimal);asset.quoteCurrency='USD';asset.priceSource=quote.source;asset.priceSourceTimestamp=quote.valuedAt;asset.priceUpdatedAt=quote.valuedAt;asset.priceStatus='delayed';}
+  changeLiquidityBalance(account,decSub('0',qty));
+  appendLiquidityHistory('RECLASIFICACION',{positionId:asset.positionId,liquidityId:account.liquidityId,fromLiquidityId:account.liquidityId,sym:account.currency,currency:account.currency,amountDecimal:qty,basisKnown:known,basisUSDDecimal:known?movedBasis:null,date:input.date||today(),custodian:account.custodian,balanceBeforeDecimal:before,balanceAfterDecimal:account.balanceDecimal,notes:LIQUIDITY_AVAILABILITY[account.availability]+' → Cripto'});
+  return asset;
+}
+
+function liquidityField(id,label,control){return `<div class="modal-field"><label for="${id}">${escapeHTML(label)}</label>${control}</div>`;}
+function liquidityInput(id,value='',attributes=''){return `<input id="${id}" value="${escapeHTML(String(value))}" ${attributes}>`;}
+function liquiditySelect(id,options,value=''){return `<select id="${id}">${options.map(([key,label])=>`<option value="${escapeHTML(key)}"${key===value?' selected':''}>${escapeHTML(label)}</option>`).join('')}</select>`;}
+function closeLiquidityModal(){document.getElementById('liquidityOverlay')?.remove();}
+function showLiquidityModal(title,content,handler){
+  closeLiquidityModal();const overlay=document.createElement('div');overlay.id='liquidityOverlay';overlay.className='modal-overlay open';
+  overlay.setAttribute('role','dialog');overlay.setAttribute('aria-modal','true');overlay.setAttribute('aria-labelledby','liquidityModalTitle');
+  overlay.innerHTML=`<div class="modal liquidity-modal"><h3 id="liquidityModalTitle">${escapeHTML(title)}</h3><div class="modal-grid">${content}</div><div class="modal-actions"><button class="btn-cancel" onclick="closeLiquidityModal()">Cancelar</button><button class="btn-save" onclick="${handler}()">Guardar</button></div></div>`;
+  overlay.addEventListener('click',event=>{if(event.target===overlay)closeLiquidityModal();});
+  overlay.addEventListener('keydown',event=>{
+    if(event.key==='Escape')closeLiquidityModal();
+    if(event.key==='Tab'){const controls=[...overlay.querySelectorAll('input:not([readonly]),select,textarea,button')].filter(el=>!el.closest('[hidden]'));const first=controls[0],last=controls.at(-1);if(event.shiftKey&&document.activeElement===first){event.preventDefault();last?.focus();}else if(!event.shiftKey&&document.activeElement===last){event.preventDefault();first?.focus();}}
+  });
+  document.body.appendChild(overlay);overlay.querySelector('input:not([readonly]),select')?.focus();
+}
+function liquidityRunUI(action){try{commitLiquidityMutation(action);closeLiquidityModal();showToast('Movimiento guardado');}catch(error){if(error.saved)closeLiquidityModal();showToast(error.message,'err',6000);}}
+function openLiquidityAccount(id=''){
+  const account=findLiquidity(id),a=account||{custodian:'',currency:'USD',balanceDecimal:'0',date:today(),assetKind:'fiat',availability:'immediate',product:'',notes:''};
+  showLiquidityModal(account?'Detalle del saldo':'Nuevo saldo inicial',
+    liquidityInput('liqAccountId',id,'type="hidden"')+
+    liquidityField('liqEntity','Entidad / custodio',liquidityInput('liqEntity',a.custodian,account?'readonly':''))+
+    liquidityField('liqCurrency','Moneda / activo líquido',liquidityInput('liqCurrency',a.currency,account?'readonly':''))+
+    liquidityField('liqBalance',account?'Saldo actual':'Saldo inicial',liquidityInput('liqBalance',a.balanceDecimal,account?'readonly':'inputmode="decimal"'))+
+    liquidityField('liqDate','Fecha del saldo inicial',liquidityInput('liqDate',a.date,`type="date" ${account?'readonly':''}`))+
+    liquidityField('liqKind','Tipo',liquiditySelect('liqKind',[['fiat','Efectivo'],['stablecoin','Stablecoin'],['investment','Producto con riesgo / plazo']],a.assetKind))+
+    liquidityField('liqAvailability','Disponibilidad',liquiditySelect('liqAvailability',Object.entries(LIQUIDITY_AVAILABILITY),a.availability))+
+    liquidityField('liqProduct','Cuenta / producto (opcional)',liquidityInput('liqProduct',a.product))+
+    liquidityField('liqNotes','Observaciones (opcional)',liquidityInput('liqNotes',a.notes)), 'saveLiquidityAccount');
+  if(account)$('liqKind').disabled=true;
+  $('liqCurrency').addEventListener('input',()=>{if(LIQUIDITY_STABLECOINS.has(liquidityCurrency($('liqCurrency').value)))$('liqKind').value='stablecoin';});
+  $('liqKind').addEventListener('change',()=>{if($('liqKind').value==='investment')$('liqAvailability').value='invested';});
+}
+function saveLiquidityAccount(){liquidityRunUI(()=>{
+  const input={custodian:$('liqEntity').value,currency:$('liqCurrency').value,balanceDecimal:$('liqBalance').value,date:$('liqDate').value,assetKind:$('liqKind').value,availability:$('liqAvailability').value,product:$('liqProduct').value,notes:$('liqNotes').value};
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(input.date))throw new Error('Indicá una fecha válida');
+  const account=findLiquidity($('liqAccountId').value);
+  if(!account){createLiquidityAccount(input);return;}
+  if(account.availability!==input.availability){appendLiquidityHistory('RECLASIFICACION',{liquidityId:account.liquidityId,sym:account.currency,currency:account.currency,amountDecimal:account.balanceDecimal,date:today(),custodian:account.custodian,notes:LIQUIDITY_AVAILABILITY[account.availability]+' → '+LIQUIDITY_AVAILABILITY[input.availability]});account.availability=input.availability;}
+  account.product=input.product.trim();account.notes=input.notes.trim();
+});}
+function openLiquidityMovement(id){
+  const account=findLiquidity(id);if(!account)return;
+  showLiquidityModal(liquidityLabel(account),liquidityInput('liqMovementId',id,'type="hidden"')+
+    liquidityField('liqMovementType','Movimiento',liquiditySelect('liqMovementType',[['APORTE','Aporte'],['RETIRO','Retiro'],['TRANSFERENCIA','Transferencia propia'],['COMISION','Comisión']],'APORTE'))+
+    liquidityField('liqAmount',`Importe · ${account.currency}`,liquidityInput('liqAmount','','inputmode="decimal"'))+
+    `<div id="liqTransferFields" class="modal-field full" hidden>`+
+    liquidityField('liqDestination','Destino',liquiditySelect('liqDestination',[['','Seleccioná un saldo'],...liquidityAccounts().filter(a=>a.liquidityId!==id).map(a=>[a.liquidityId,liquidityLabel(a)])]))+
+    liquidityField('liqReceived','Importe real recibido (otra moneda)',liquidityInput('liqReceived','','inputmode="decimal"'))+
+    liquidityField('liqTransferFee',`Comisión · ${account.currency}`,liquidityInput('liqTransferFee','0','inputmode="decimal"'))+`</div>`+
+    liquidityField('liqMovementDate','Fecha',liquidityInput('liqMovementDate',today(),'type="date"'))+
+    liquidityField('liqMovementNotes','Observaciones',liquidityInput('liqMovementNotes')),'saveLiquidityMovement');
+  $('liqMovementType').addEventListener('change',()=>{$('liqTransferFields').hidden=$('liqMovementType').value!=='TRANSFERENCIA';});
+  $('liqDestination').addEventListener('change',()=>{const target=findLiquidity($('liqDestination').value);$('liqReceived').disabled=target?.currency===account.currency;});
+}
+function saveLiquidityMovement(){liquidityRunUI(()=>applyLiquidityMovement({liquidityId:$('liqMovementId').value,type:$('liqMovementType').value,toLiquidityId:$('liqDestination').value,amountDecimal:$('liqAmount').value,destinationAmountDecimal:$('liqReceived').value,feeDecimal:$('liqMovementType').value==='TRANSFERENCIA'?$('liqTransferFee').value:'0',date:$('liqMovementDate').value,notes:$('liqMovementNotes').value}));}
+function openLiquidityFx(){
+  const currencies=[...new Set(liquidityAccounts().map(a=>a.currency))].filter(c=>c!=='USD');
+  if(!currencies.length){showToast('USD es la moneda base. No requiere conversión.','warn');return;}
+  showLiquidityModal('Cotización en USD',liquidityField('liqFxCurrency','Moneda',liquiditySelect('liqFxCurrency',currencies.map(c=>[c,c]),currencies[0]))+
+    liquidityField('liqFxRate','USD por 1 unidad',liquidityInput('liqFxRate','','inputmode="decimal"'))+
+    liquidityField('liqFxSource','Fuente',liquidityInput('liqFxSource'))+
+    liquidityField('liqFxTime','Fecha y hora de la fuente',liquidityInput('liqFxTime','','type="datetime-local"')),'saveLiquidityFx');
+}
+function saveLiquidityFx(){liquidityRunUI(()=>{
+  const currency=$('liqFxCurrency').value,rate=dec($('liqFxRate').value),source=$('liqFxSource').value.trim(),stamp=Date.parse($('liqFxTime').value);
+  if(currency==='USD'||!decPositive(rate)||!source||!Number.isFinite(stamp)||stamp>Date.now()+300000)throw new Error('Indicá cotización positiva, fuente y fecha no futura');
+  const quote={currency,rateUSDDecimal:rate,source,valuedAt:new Date(stamp).toISOString()};
+  ST.liquidityFx=(ST.liquidityFx||[]).filter(q=>q.currency!==currency);ST.liquidityFx.push(quote);
+});}
+function openLiquidityReclassification(direction,id){
+  const toCash=direction==='toLiquidity',asset=toCash?findPosition(id,'crypto'):findLiquidity(id);if(!asset)return;
+  const currency=toCash?asset.sym:asset.currency,custodian=toCash?positionCustodian(asset,'crypto'):asset.custodian;
+  const destinations=liquidityAccounts().filter(a=>a.currency===currency&&a.assetKind==='stablecoin'&&normalizedPositionPart(a.custodian)===normalizedPositionPart(custodian));
+  showLiquidityModal(toCash?'Pasar a Liquidez':'Pasar a Cripto',liquidityInput('liqReclassDirection',direction,'type="hidden"')+liquidityInput('liqReclassId',id,'type="hidden"')+
+    liquidityField('liqReclassQty',`Cantidad · ${currency}`,liquidityInput('liqReclassQty',toCash?asset.qty:asset.balanceDecimal,'inputmode="decimal"'))+
+    (toCash?liquidityField('liqReclassTarget','Saldo de destino',liquiditySelect('liqReclassTarget',[...destinations.map(a=>[a.liquidityId,liquidityLabel(a)]),['','Nuevo saldo']],destinations[0]?.liquidityId||''))+
+    liquidityField('liqReclassAvailability','Disponibilidad del nuevo saldo',liquiditySelect('liqReclassAvailability',Object.entries(LIQUIDITY_AVAILABILITY),'immediate'))+
+    liquidityField('liqReclassProduct','Producto (opcional)',liquidityInput('liqReclassProduct')):'')+
+    liquidityField('liqReclassDate','Fecha',liquidityInput('liqReclassDate',today(),'type="date"')),'saveLiquidityReclassification');
+}
+function saveLiquidityReclassification(){liquidityRunUI(()=>{
+  const input={quantityDecimal:$('liqReclassQty').value,date:$('liqReclassDate').value};
+  if($('liqReclassDirection').value==='toLiquidity')reclassifyCryptoToLiquidity($('liqReclassId').value,{...input,liquidityId:$('liqReclassTarget').value,availability:$('liqReclassAvailability').value,product:$('liqReclassProduct').value});
+  else reclassifyLiquidityToCrypto($('liqReclassId').value,input);
+});}
+function financialSummary(investments=portfolioSummary()){
+  const cash=liquiditySummary(),priced=investments.valued.length+cash.all.filter(i=>liquidityIsAvailable(i.account)&&i.currentUSD!=null&&decPositive(i.account.balanceDecimal)).length;
+  const pending=investments.pending.length+cash.available.pending.length;
+  return {investments,cash,pending,totalUSD:!priced&&pending?null:(investments.totalUSD||0)+cash.available.value};
+}
+function liquidityTotalMarkup(label,value,pending=0,anyKnown=true){return `<div class="liquidity-total"><span>${escapeHTML(label)}</span><strong>${pending&&!anyKnown?'N/D':fmt(value)}</strong><small>${pending?`${pending} pendiente${pending>1?'s':''} · total parcial`:'USD valorados'}</small></div>`;}
+function renderFinancialLiquidity(summary){
+  const f=financialSummary(summary),cash=f.cash;
+  $('dashLiquidityTotals').innerHTML=liquidityTotalMarkup('Activos invertidos · valor actual',summary.totalUSD,summary.pending.length,summary.valued.length>0)+
+    liquidityTotalMarkup('Liquidez inmediata',cash.immediate.value,cash.immediate.pending.length,cash.immediate.items.some(i=>i.currentUSD!=null))+
+    liquidityTotalMarkup('Liquidez remunerada',cash.remunerated.value,cash.remunerated.pending.length,cash.remunerated.items.some(i=>i.currentUSD!=null))+
+    liquidityTotalMarkup('Liquidez disponible total',cash.available.value,cash.available.pending.length,cash.available.complete||cash.available.value>0)+
+    liquidityTotalMarkup('Patrimonio financiero total',f.totalUSD,f.pending,f.totalUSD!=null);
+  $('dHeroTotal').textContent=f.totalUSD==null?'N/D':fmt(f.totalUSD);
+  $('dHeroTotalSub').textContent=f.pending?`USD valorados · ${f.pending} pendiente${f.pending>1?'s':''}`:'USD valorados';
+  const label=$('dHeroTotal')?.previousElementSibling;if(label)label.textContent='Patrimonio financiero total';
+}
+function renderLiquidity(){
+  if(!$('liquidityTb'))return;
+  const cash=liquiditySummary();
+  $('liquidityTotals').innerHTML=liquidityTotalMarkup('Disponible inmediata',cash.immediate.value,cash.immediate.pending.length,cash.immediate.items.some(i=>i.currentUSD!=null))+
+    liquidityTotalMarkup('Remunerada · rescate rápido',cash.remunerated.value,cash.remunerated.pending.length,cash.remunerated.items.some(i=>i.currentUSD!=null))+
+    liquidityTotalMarkup('Liquidez disponible total',cash.available.value,cash.available.pending.length,cash.available.complete||cash.available.value>0);
+  $('liquidityTb').innerHTML=cash.all.map(({account:a,quote,currentUSD})=>`<tr><td><strong>${escapeHTML(a.custodian)}</strong><div class="muted">${escapeHTML(a.product||'')}</div></td><td class="sym">${escapeHTML(a.currency)}</td><td class="num">${liquidityMoney(a.balanceDecimal,a.currency)}</td><td>${escapeHTML(LIQUIDITY_AVAILABILITY[a.availability])}</td><td class="num">${currentUSD==null?'N/D':fmt(currentUSD)}</td><td class="liquidity-source">${quote?escapeHTML(quote.source)+(quote.valuedAt?`<br>${escapeHTML(madridDateTime(quote.valuedAt))}<br>1 ${escapeHTML(a.currency)} = ${formatDec(quote.rateUSDDecimal,{digits:8})} USD`:''): 'Conversión pendiente'}${quote?.status==='stale'?'<br>Cotización antigua · pendiente':''}</td><td class="note-cell" title="${escapeHTML(a.notes||'')}">${escapeHTML(a.notes||'—')}</td><td class="liquidity-actions"><button class="btn-buy" title="Registrar movimiento" aria-label="Registrar movimiento" onclick="openLiquidityMovement(${inlineArg(a.liquidityId)})"><i class="ti ti-arrows-exchange"></i></button><button class="btn-edit" title="Detalle del saldo" aria-label="Detalle del saldo" onclick="openLiquidityAccount(${inlineArg(a.liquidityId)})"><i class="ti ti-pencil"></i></button>${a.assetKind==='stablecoin'?`<button class="btn-view" title="Pasar a Cripto" aria-label="Pasar a Cripto" onclick="openLiquidityReclassification(&quot;toCrypto&quot;,${inlineArg(a.liquidityId)})"><i class="ti ti-switch-horizontal"></i></button>`:''}</td></tr>`).join('')||'<tr><td colspan="8" class="empty">Sin saldos controlados</td></tr>';
+  $('liquidityFxTb').innerHTML=[...new Set(liquidityAccounts().map(a=>a.currency))].map(currency=>{const q=liquidityFxFor(currency);return `<tr><td>${escapeHTML(currency)}</td><td class="num">${q?formatDec(q.rateUSDDecimal,{digits:8}):'N/D'}</td><td>${escapeHTML(q?.source||'—')}</td><td>${escapeHTML(q?.valuedAt?madridDateTime(q.valuedAt):q?'Moneda base':'—')}</td><td>${!q?'Pendiente':q.status==='stale'?'Antigua · pendiente':'Disponible'}</td></tr>`;}).join('');
+  $('liquidityFxStatus').textContent='Sin cotización o con más de 96 horas, el equivalente queda pendiente.';
+  $('liquidityHistoryTb').innerHTML=(ST.hist||[]).filter(h=>h.liquidityId).slice(0,30).map(h=>`<tr><td>${escapeHTML(h.date)}</td><td>${escapeHTML(h.type)}</td><td>${h.fromLiquidityId||!['SALDO_INICIAL','APORTE'].includes(h.type)?escapeHTML(liquidityLabel(findLiquidity(h.fromLiquidityId||h.liquidityId))):'—'}</td><td>${h.toLiquidityId?escapeHTML(liquidityLabel(findLiquidity(h.toLiquidityId))):'—'}</td><td class="num">${liquidityMoney(h.liquidityAmountDecimal||h.amountDecimal||'0',h.liquidityCurrency||h.currency)}${h.destinationAmountDecimal?` → ${liquidityMoney(h.destinationAmountDecimal,h.toCurrency)}`:''}</td><td class="num">${liquidityHistoryFee(h)}</td></tr>`).join('')||'<tr><td colspan="6" class="empty">Sin movimientos de liquidez</td></tr>';
+  mountLiquidityFunding();
+}
+const LIQUIDITY_FORM_FIELDS={stock:['s','sS','sBroker'],crypto:['c','cS','cW'],etf:['etf','etfSym','etfBroker'],cedeaar:['ced','cedSym','cedBroker'],token:['tok','tokSym','tokExchange'],bono:['bon','bonSym','bonBroker']};
+function fundingCurrency(scope){return scope==='cedeaar'?liquidityCurrency($('cedCurrency').value).replace(/^USD_.*/,'USD'):scope==='bono'?liquidityCurrency($('bonCurrency').value):'USD';}
+function mountFundingControl(prefix,anchor,custodian,currency){
+  if(!document.querySelector)return;
+  let select=document.getElementById(prefix+'Liquidity');
+  if(!select){const container=document.createElement('div');container.className='modal-field liquidity-funding';container.innerHTML=`<label for="${prefix}Liquidity">Saldo afectado</label><select id="${prefix}Liquidity"></select><label for="${prefix}LiquidityAmount">Importe real en la moneda del saldo · incluye comisión</label><input id="${prefix}LiquidityAmount" inputmode="decimal" placeholder="Importe debitado / acreditado">`;anchor.appendChild(container);select=document.getElementById(prefix+'Liquidity');select.addEventListener('change',()=>{select.dataset.explicit='1';$(prefix+'LiquidityAmount').value='';updateFundingAmount(prefix);});}
+  const chosen=select.value,available=liquidityAccounts().filter(liquidityIsAvailable);
+  select.innerHTML='<option value="">Sin afectar Liquidez</option>'+available.map(a=>`<option value="${escapeHTML(a.liquidityId)}">${escapeHTML(liquidityLabel(a))} · ${escapeHTML(LIQUIDITY_AVAILABILITY[a.availability])}</option>`).join('');
+  if(select.dataset.explicit==='1')select.value=available.some(a=>a.liquidityId===chosen)?chosen:'';
+  else {const entities=available.filter(a=>custodian&&normalizedPositionPart(a.custodian)===normalizedPositionPart(custodian)),matches=entities.filter(a=>a.currency===currency);select.value=matches.length===1?matches[0].liquidityId:entities.length===1?entities[0].liquidityId:'';}
+  if(chosen!==select.value)$(prefix+'LiquidityAmount').value='';
+  updateFundingAmount(prefix);
+}
+function mountLiquidityFunding(){
+  if(!document.querySelector)return;
+  for(const [scope,[prefix,symbol,entity]] of Object.entries(LIQUIDITY_FORM_FIELDS)){
+    const form=$(symbol)?.closest('.form-row');if(!form)continue;
+    mountFundingControl(prefix,form,$(entity)?.value||'',fundingCurrency(scope));
+    if(!form.dataset.liquidityBound){form.dataset.liquidityBound='1';form.addEventListener('input',()=>mountFundingControl(prefix,form,$(entity)?.value||'',fundingCurrency(scope)));form.addEventListener('change',event=>{if(event.target.id===prefix+'Liquidity')return;mountFundingControl(prefix,form,$(entity)?.value||'',fundingCurrency(scope));});}
+  }
+  const grid=$('positionOperationQty')?.closest('.modal-grid');if(grid){
+    const scope=$('positionOperationScope').value,asset=findPosition($('positionOperationId').value,scope),custodian=scope==='cedeaar'?asset?.broker:positionCustodian(asset||{},scope);
+    mountFundingControl('positionOperation',grid,custodian,scope==='cedeaar'?liquidityCurrency($('positionOperationCurrency').value).replace(/^USD_.*/,'USD'):scope==='bono'?asset?.currency||'USD':'USD');
+    if(!grid.dataset.liquidityBound){grid.dataset.liquidityBound='1';grid.addEventListener('input',()=>updateFundingAmount('positionOperation'));grid.addEventListener('change',()=>updateFundingAmount('positionOperation'));}
+  }
+}
+function validLiquidityDate(value){return typeof value==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(value)&&Number.isFinite(Date.parse(value))&&new Date(value+'T00:00:00Z').toISOString().slice(0,10)===value&&value<=today();}
+function liquidityPositionDecimal(value){return dec(value)||(Number.isFinite(value)?dec(value.toLocaleString('en-US',{useGrouping:false,maximumFractionDigits:20})):null);}
+function liquidityTradeTotal(entry){
+  const stored=entry.type==='COMPRA'?entry.totalCost:entry.netProceeds;
+  if(stored!=null)return dec(stored);
+  if(entry.assetType==='cedeaar'&&entry.type==='COMPRA')return decAdd(decMul(dec(entry.qty),dec(entry.price)),dec(entry.comm||0));
+  if(entry.feeStatus==='not_recorded')return null;
+  return entry.feeStatus?dec(entry.type==='COMPRA'?Number(entry.grossAmount)+Number(entry.commission||0):Number(entry.grossAmount)-Number(entry.commission||0)):null;
+}
+function liquidityHistoryFee(entry){
+  const fee=entry.feeDecimal??entry.commission??entry.comm;
+  if(fee==null)return '—';
+  if(['COMPRA','VENTA'].includes(entry.type)&&normalizedFeeStatus(entry.feeStatus,fee)==='not_recorded')return 'N/D';
+  return liquidityMoney(fee,liquidityCurrency(entry.currency||'USD').replace(/^USD_.*/,'USD'));
+}
+function updateFundingAmount(prefix){
+  const select=document.getElementById(prefix+'Liquidity'),input=document.getElementById(prefix+'LiquidityAmount');if(!select||!input)return;
+  input.hidden=!select.value;input.previousElementSibling.hidden=!select.value;const account=findLiquidity(select.value);if(!account)return;
+  input.placeholder=`Importe real · ${account.currency}`;
+  let qty,price,fee,currency='USD',divisor='1',type='COMPRA';
+  if(prefix==='positionOperation'){qty=$('positionOperationQty').value;price=$('positionOperationPrice').value;fee=$('positionOperationCommission').value;type=$('positionOperationType').value;const scope=$('positionOperationScope').value;if(scope==='bono')divisor='100';if(scope==='cedeaar')currency=$('positionOperationCurrency').value.replace(/^USD_.*/,'USD');}
+  else if(prefix==='s'||prefix==='c'){qty=$(prefix+'Q').value;price=$(prefix+'P').value;fee=$(prefix+'Comm').value;}
+  else if(prefix==='etf'||prefix==='tok'){qty=$(prefix+'Qty').value;price=$(prefix+'Buy').value;fee=$(prefix+'Comm').value;}
+  else if(prefix==='ced'){qty=$('cedQty').value;price=$('cedUnitPrice').value;currency=$('cedCurrency').value.replace(/^USD_.*/,'USD');fee=null;}
+  else if(prefix==='bon'){qty=$('bonNominal').value;price=$('bonBuy').value;fee=$('bonComm').value;currency=$('bonCurrency').value;divisor='100';}
+  let total=null;
+  if(prefix==='ced')total=dec($('cedTotalCost').value);
+  else if(decPositive(qty)&&decPositive(price)&&String(fee??'').trim()!==''&&dec(fee)!=null&&decCmp(fee,'0')>=0){const gross=decDiv(decMul(dec(qty),dec(price)),divisor,12);total=type==='COMPRA'?decAdd(gross,dec(fee)):decSub(gross,dec(fee));}
+  const automatic=currency===account.currency&&total!=null;
+  input.readOnly=automatic;if(automatic)input.value=total;else if(input.dataset.automatic==='1')input.value='';input.dataset.automatic=automatic?'1':'0';
+}
+function readLiquidityFunding(prefix){const id=document.getElementById(prefix+'Liquidity')?.value||'';return {liquidityId:id,amountDecimal:document.getElementById(prefix+'LiquidityAmount')?.value||''};}
+function addWithLiquidity(scope,action){
+  const prefix=LIQUIDITY_FORM_FIELDS[scope]?.[0],funding=readLiquidityFunding(prefix),form=document.getElementById(LIQUIDITY_FORM_FIELDS[scope]?.[1])?.closest?.('.section');
+  const inputs=form?[...form.querySelectorAll('input,select,textarea')].map(el=>[el,el.value]):[];
+  try{const previous=ST.hist[0]?.id,result=commitLiquidityMutation(()=>{action();if(ST.hist[0]?.id!==previous&&ST.hist[0]?.type==='COMPRA')applyLiquidityFunding(ST.hist[0],funding);});if(ST.hist[0]?.id!==previous){const select=document.getElementById(prefix+'Liquidity'),amount=document.getElementById(prefix+'LiquidityAmount');if(select){select.value='';delete select.dataset.explicit;}if(amount)amount.value='';mountLiquidityFunding();}return result;}
+  catch(error){if(!error.saved)inputs.forEach(([el,value])=>el.value=value);showToast(error.message,'err',6000);}
+}
+
 function portfolioValuations() {
   const values=[];
+  values.push(...liquidityInvestedValuations());
   (ST.stocks||[]).filter(asset=>asset.status!=='closed'&&Number(asset.qty)>0).forEach(asset=>values.push(directUSDValuation(asset,'Acciones')));
   (ST.crypto||[]).filter(asset=>asset.status!=='closed'&&Number(asset.qty)>0).forEach(asset=>values.push(directUSDValuation(asset,'Cripto')));
   (ST.otros||[]).filter(asset=>asset.type==='etf'&&asset.status!=='closed'&&Number(asset.qty)>0).forEach(asset=>values.push(directUSDValuation(asset,'ETFs')));
@@ -5083,6 +5488,7 @@ function consolidatedExposure(items) {
   return [...groups.values()];
 }
 function openAssetClass(assetClass) {
+  if(assetClass==='Productos no disponibles')return showTab('liquidity');
   if(assetClass==='Acciones')return showTab('stocks');
   if(assetClass==='Cripto')return showTab('crypto');
   const sub={CEDEARs:'cedeares',ETFs:'etf',Tokenizadas:'token',Bonos:'bonos'}[assetClass];
@@ -5119,7 +5525,7 @@ function renderDashboardDetails(summary) {
 function calcDCA(assetOrPositionId) {
   const asset = typeof assetOrPositionId === 'object' ? assetOrPositionId : Object.values(standardPositionCollections()).flat().find(item=>item.positionId===assetOrPositionId);
   if (!asset) return null;
-  const totalQty=Number(asset.qty ?? asset.nominal)||0, totalInv=Number(asset.openCost)||0;
+  const totalQty=Number(asset.qty ?? asset.nominal)||0, totalInv=asset.costUnknown?null:Number(asset.openCost)||0;
   const count=(ST.hist||[]).filter(h=>h.positionId===asset.positionId&&h.type==='COMPRA'&&h.operationStatus!=='reversed').length || (totalQty>0?1:0);
   return { totalQty, totalInv, avgPrice:positionAverage(asset), count };
 }
@@ -5171,7 +5577,7 @@ function renderKPIs() {
   const classLabels={Acciones:'Stocks',Cripto:'Crypto',ETFs:'ETFs',CEDEARs:'CEDEARs',Tokenizadas:'Tokenized assets',Bonos:'Bonds'};
   const scope=assetClass?(en?classLabels[assetClass]:assetClass):(en?'Complete portfolio':'Portfolio completo');
   const strip=$('kpiStrip');
-  strip.style.display=$('tab-dash')?.classList.contains('active')?'none':'';
+  strip.style.display=$('tab-dash')?.classList.contains('active')||$('tab-liquidity')?.classList.contains('active')?'none':'';
   strip.setAttribute('aria-label',(en?'Metrics: ':'Métricas: ')+scope);
   const incomplete=summary.items.filter(item=>!isValuationAvailable(item)||!Number.isFinite(item.costUSD)||!Number.isFinite(item.pnlUSD)).length;
   const pendingLabel=incomplete?` · N/D: ${incomplete}`:'';
@@ -5271,6 +5677,7 @@ function renderDash() {
   const heroTotal = $('dHeroTotal');
   if (heroTotal) { heroTotal.textContent = fmt(tot); heroTotal.style.background='linear-gradient(135deg,var(--cv3),var(--ct2))'; heroTotal.style.webkitBackgroundClip='text'; heroTotal.style.webkitTextFillColor='transparent'; heroTotal.style.backgroundClip='text'; }
   const heroTotalSub=$('dHeroTotalSub');if(heroTotalSub)heroTotalSub.textContent=`${en?'Valued USD':'USD valorados'}${summary.pending.length?` · ${summary.pending.length} N/D`:''}`;
+  renderFinancialLiquidity(summary);
   const pnl2=summary.pnlUSD,pp2=summary.roiUSD;
   const heroPnl = $('dHeroPnl');
   const heroPnlPct = $('dHeroPnlPct');
@@ -5383,6 +5790,7 @@ function renderTbl(assets, tbodyId, type) {
         <button class="btn-sell" onclick="openPositionOperation(${inlineArg(type)},${inlineArg(a.positionId)},&quot;VENTA&quot;)" title="Vender"><i class="ti ti-minus"></i></button>
         <button class="btn-view" onclick="openAssetDetails(${inlineArg(type)},${inlineArg(a.id)})" title="Más información"><i class="ti ti-eye"></i></button>
         <button class="btn-edit" onclick="openEdit(${inlineArg(type)},${inlineArg(a.id)})" title="Editar"><i class="ti ti-pencil"></i></button>
+        ${type==='crypto'&&(LIQUIDITY_STABLECOINS.has(a.sym)||liquidityAccounts().some(account=>account.currency===a.sym&&account.assetKind==='stablecoin'))?`<button class="btn-view" onclick="openLiquidityReclassification(&quot;toLiquidity&quot;,${inlineArg(a.positionId)})" title="Pasar a Liquidez" aria-label="Pasar a Liquidez"><i class="ti ti-wallet"></i></button>`:''}
       </td>`;
     tb.appendChild(tr);
   });
@@ -5603,7 +6011,12 @@ function renderIncome() {
 function renderHist() {
   const tb = $('hTb'); tb.innerHTML = '';
   if (!ST.hist.length) { tb.innerHTML = `<tr><td colspan="9" class="empty"><i class="ti ti-history"></i><p>${t('emptyHist')}</p></td></tr>`; return; }
-  ST.hist.forEach(h => {
+  const scope=$('historyScope')?.value||'all';
+  ST.hist.filter(h=>scope==='all'||(scope==='liquidity'?Boolean(h.liquidityId):h.assetType!=='liquidity')).forEach(h => {
+    if(h.assetType==='liquidity'){
+      const tr=document.createElement('tr'),account=findLiquidity(h.liquidityId);
+      tr.innerHTML=`<td>${escapeHTML(h.date)}</td><td><span class="pill pill-t">${escapeHTML(h.type)}</span></td><td class="sym">${escapeHTML(h.sym)}${h.notes?`<button class="btn-view" title="Detalle" onclick="openHistoryNote(${inlineArg(h.operationId||h.id)})"><i class="ti ti-note"></i></button>`:''}</td><td class="num">${formatDec(h.amountDecimal||'0',{digits:8})}</td><td>—</td><td class="num">${h.feeDecimal?liquidityMoney(h.feeDecimal,h.currency):'—'}</td><td class="num">${liquidityMoney(h.amountDecimal||'0',h.currency)}${h.destinationAmountDecimal?` → ${liquidityMoney(h.destinationAmountDecimal,h.toCurrency)}`:''}</td><td>${escapeHTML(liquidityLabel(account))}${h.toLiquidityId&&h.toLiquidityId!==h.liquidityId?` → ${escapeHTML(liquidityLabel(findLiquidity(h.toLiquidityId)))}`:''}</td><td><i class="ti ti-lock" title="Generado automáticamente"></i></td>`;tb.appendChild(tr);return;
+    }
     const commission=Number(h.commission ?? h.comm ?? 0);
     const grossAmount=Number.isFinite(Number(h.grossAmount)) ? Number(h.grossAmount) : Number(h.qty)*Number(h.executionPrice ?? h.price);
     const hasStoredCost=h.totalCost != null && h.totalCost !== '' && Number.isFinite(Number(h.totalCost));
@@ -5611,13 +6024,14 @@ function renderHist() {
     const feeUnknown=h.feeStatus === 'not_recorded' || (!h.feeStatus && commission === 0);
     const total=hasStoredCost ? Number(h.totalCost) : hasStoredProceeds ? Number(h.netProceeds) : feeUnknown ? null : (h.type === 'COMPRA' ? grossAmount+commission : grossAmount-commission);
     const tr = document.createElement('tr');
-    const formatHistoryMoney=value=>h.currency?formatDec(value,{digits:2,currency:currencyLabel(h.currency)}):fmt(value);
+    const formatHistoryMoney=value=>h.currency?formatDec(value,{digits:2,currency:escapeHTML(h.currency.startsWith('USD_')?currencyLabel(h.currency):h.currency)}):fmt(value);
     const feeText=feeUnknown ? '<span title="Comisión no registrada">N/D</span>' : formatHistoryMoney(commission);
     const totalText=total == null ? '<span title="Total pendiente: falta comisión registrada">N/D</span>' : formatHistoryMoney(total);
     const operationNoteButton = String(h.notes ?? '').trim()
       ? `<button class="btn-view" style="margin-left:6px" onclick="openHistoryNote(${inlineArg(h.operationId || h.id)})" title="Ver nota de la operación" aria-label="Ver nota de la operación"><i class="ti ti-note"></i></button>`
       : '';
     tr.innerHTML = `<td class="muted">${escapeHTML(h.date)}</td><td><span class="pill ${h.type==='COMPRA'?'pill-g':'pill-r'}">${escapeHTML(h.type)}</span></td><td class="sym" style="white-space:nowrap">${escapeHTML(h.sym)}${operationNoteButton}</td><td class="num">${h.qty}</td><td class="num">${formatHistoryMoney(h.executionPrice ?? h.price)}</td><td class="num muted">${feeText}</td><td class="num" style="font-weight:700">${totalText}</td><td class="muted">${escapeHTML(h.custodian||h.notes||'—')}</td><td>${h.legacy?'<span class="pill pill-t" title="Registro anterior conservado sin modificar posiciones">V2</span>':'<i class="ti ti-lock" title="Generado automáticamente"></i>'}</td>`;
+    if(h.liquidityId){const cell=tr.children[7];if(cell)cell.innerHTML+=`<div class="muted">Liquidez: ${escapeHTML(liquidityLabel(findLiquidity(h.liquidityId)))} · ${liquidityMoney(h.liquidityAmountDecimal,h.liquidityCurrency)}</div>`;}
     tb.appendChild(tr);
   });
 }
@@ -5689,7 +6103,7 @@ function renderAEvol() {
 // ═══════════════════════════════════════════
 // TAB ROUTER
 // ═══════════════════════════════════════════
-const TABS = ['dash','stocks','crypto','otros','dca','risk','income','hist','evol','news','tv','trading','cfg'];
+const TABS = ['dash','stocks','crypto','otros','liquidity','dca','risk','income','hist','evol','news','tv','trading','cfg'];
 function showTab(n) {
   document.querySelectorAll('.tab').forEach((t,i) => t.classList.toggle('active', TABS[i]===n));
   document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
@@ -5705,6 +6119,7 @@ function showTab(n) {
   }
   if (n==='tv') renderTV();
   if (n==='news') fetchNews();
+  if (n==='liquidity') renderLiquidity();
   if (n==='otros') renderOtros();
   if (n==='trading') initTradingDesk();
   renderKPIs();
@@ -5868,6 +6283,7 @@ const I18N = {
     tabTV: 'TradingView',
     tabNews: 'Noticias',
     tabOtros: 'Otros',
+    tabLiquidity: 'Liquidez',
     tabTrading: 'Trading Desk',
     // KPIs
     kpiTotal: 'Valor total',
@@ -6071,6 +6487,7 @@ const I18N = {
     tabTV: 'TradingView',
     tabNews: 'News',
     tabOtros: 'Others',
+    tabLiquidity: 'Liquidity',
     tabTrading: 'Trading Desk',
     // KPIs
     kpiTotal: 'Total value',
@@ -6279,7 +6696,7 @@ function applyLang() {
   $('btnTxt').textContent = t('btnUpdate');
 
   // TABS
-  const tabKeys = ['tabDash','tabStocks','tabCrypto','tabOtros','tabDCA','tabRisk','tabIncome','tabHist','tabEvol','tabNews','tabTV','tabTrading','tabCfg'];
+  const tabKeys = ['tabDash','tabStocks','tabCrypto','tabOtros','tabLiquidity','tabDCA','tabRisk','tabIncome','tabHist','tabEvol','tabNews','tabTV','tabTrading','tabCfg'];
   document.querySelectorAll('.tab span').forEach((el, i) => { if (tabKeys[i]) el.textContent = t(tabKeys[i]); });
 
   // KPIs
@@ -7358,7 +7775,8 @@ function clearOtroForm(type) {
   }
 }
 
-function addOtro(type) {
+function addOtro(type) { return addWithLiquidity(type,()=>addOtroCore(type)); }
+function addOtroCore(type) {
   let obj = { id: uid(), type, addedDate: today() };
   let initialCommission = { comm:0, feeStatus:'not_recorded' };
   if (type === 'etf') {
@@ -7453,7 +7871,7 @@ function addOtro(type) {
     appendPositionHistory(obj,type,'COMPRA',{qty:initialQty,price:initialPrice,...initialCommission,date:obj.date,notes:'Carga inicial',operationSource:'manual'},{qty:0,openCost:0,avgBuy:0});
   } else {
     obj.positionId=`pos_cedear_${normalizedPositionPart(obj.sym)}_${normalizedPositionPart(obj.broker)}`;obj.assetType='cedeaar';
-    ST.hist.unshift({id:uid(),operationId:uid(),operationStatus:'confirmed',positionId:obj.positionId,assetType:'cedeaar',date:obj.date,type:'COMPRA',sym:obj.sym,qty:Number(obj.quantityDecimal),price:Number(obj.unitPriceDecimal),comm:Math.max(0,Number(obj.totalCostDecimal)-Number(obj.grossAmountDecimal)),currency:obj.purchaseCurrency,custodian:obj.broker||'sin-especificar',notes:'Compra CEDEAR · lote '+(obj.ticketNumber||obj.id)});
+    ST.hist.unshift({id:uid(),operationId:uid(),operationStatus:'confirmed',positionId:obj.positionId,assetType:'cedeaar',date:obj.date,type:'COMPRA',sym:obj.sym,qty:Number(obj.quantityDecimal),price:Number(obj.unitPriceDecimal),comm:Math.max(0,Number(obj.totalCostDecimal)-Number(obj.grossAmountDecimal)),totalCost:Number(obj.totalCostDecimal),currency:obj.purchaseCurrency,custodian:obj.broker||'sin-especificar',notes:'Compra CEDEAR · lote '+(obj.ticketNumber||obj.id)});
   }
   ST.otros.unshift(obj);
   clearOtroForm(type);
@@ -7476,6 +7894,7 @@ function showOtrosTab(tab) {
 }
 
 function renderOtros() {
+  if(liquidityTransactionDepth)return;
   const otros = ST.otros||[];
   // ETFs
   const etfs = otros.filter(o=>o.type==='etf'&&o.status!=='closed'&&Number(o.qty)>0);
@@ -7845,6 +8264,8 @@ function renderBenchmarks() {
 // RENDER ALL
 // ═══════════════════════════════════════════
 function renderAll() {
+  if(liquidityTransactionDepth)return;
+  renderLiquidity();
   renderKPIs();
   renderTbl(ST.stocks.filter(asset=>asset.status!=='closed'&&Number(asset.qty)>0), 'sTb', 'stock');
   renderTbl(ST.crypto.filter(asset=>asset.status!=='closed'&&Number(asset.qty)>0), 'cTb', 'crypto');
