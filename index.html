@@ -1662,7 +1662,7 @@ input::placeholder,textarea::placeholder,select::placeholder{color:var(--tx4);op
   </div>
   <section class="profit-review" aria-labelledby="profitReviewTitle">
     <div class="profit-review-head"><h3 id="profitReviewTitle"><i class="ti ti-coins" style="color:var(--cg2)"></i> Gestión de beneficios</h3><span id="profitReviewCount" class="muted"></span></div>
-    <details class="profit-settings" id="profitReviewSettings"><summary>Umbrales de revisión</summary>
+    <details class="profit-settings" id="profitReviewSettings"><summary>Umbrales de revisión <span id="profitReviewThresholds" class="muted"></span></summary>
       <div class="profit-settings-grid">
         <div><label for="profitGainThreshold">Ganancia relevante (%)</label><input id="profitGainThreshold" type="number" min="0.01" step="any" placeholder="Sin definir"></div>
         <div><label for="profitWeightThreshold">Concentración (% de activos invertidos)</label><input id="profitWeightThreshold" type="number" min="0.01" max="100" step="any" placeholder="Sin definir"></div>
@@ -2961,7 +2961,7 @@ let ST = {
   apyPositions: [],
   liquidity: [],
   liquidityFx: [],
-  profitReview: { gainThresholdPct:null, concentrationThresholdPct:null, gainEnabled:true, concentrationEnabled:true, targetEnabled:true, partialEnabled:true },
+  profitReview: { gainThresholdPct:30, concentrationThresholdPct:15, gainEnabled:true, concentrationEnabled:true, targetEnabled:true, partialEnabled:true },
   alerts: [],
   otros: [],
   cedearExpenses: [],
@@ -5946,7 +5946,7 @@ function renderDCA() {
 // RENDER RISK
 // ═══════════════════════════════════════════
 function profitReviewSettings(state=ST) {
-  return {gainThresholdPct:null,concentrationThresholdPct:null,gainEnabled:true,concentrationEnabled:true,targetEnabled:true,partialEnabled:true,...state.profitReview};
+  return {gainThresholdPct:30,concentrationThresholdPct:15,gainEnabled:true,concentrationEnabled:true,targetEnabled:true,partialEnabled:true,...state.profitReview};
 }
 function validateProfitReviewSettings(settings) {
   if(settings===undefined)return true;
@@ -6022,6 +6022,7 @@ function openProfitReviewDetails(positionId) {
 function renderProfitReview(summary=portfolioSummary()) {
   if(!$('profitReviewTb'))return;
   const settings=profitReviewSettings(),data=profitReviewData(summary,settings),panel=$('profitReviewSettings');
+  $('profitReviewThresholds').textContent=`· Ganancia: ${settings.gainThresholdPct==null?'sin definir':settings.gainThresholdPct+' %'} · Concentración: ${settings.concentrationThresholdPct==null?'sin definir':settings.concentrationThresholdPct+' % de activos invertidos'}`;
   if(!panel.open||!panel.dataset.dirty){
     $('profitGainThreshold').value=settings.gainThresholdPct??'';$('profitWeightThreshold').value=settings.concentrationThresholdPct??'';
     for(const [key,id] of [['gainEnabled','profitGainEnabled'],['concentrationEnabled','profitConcentrationEnabled'],['targetEnabled','profitTargetEnabled'],['partialEnabled','profitPartialEnabled']])$(id).checked=settings[key];

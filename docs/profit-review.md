@@ -1,9 +1,13 @@
 # Gestion de beneficios: etapa 1
 
-Implementacion local para revision. Version 2026-10-06.3.
+Version 2026-10-06.3.
 
-Los umbrales generales de ganancia y concentracion empiezan sin definir. No hay
-porcentajes definitivos ni provisionales. Target usa exclusivamente `tg` de la
+Los umbrales iniciales aprobados son 30 % de ganancia y 15 % de concentracion
+por posicion sobre los activos invertidos. Son criterios de revision, no
+recomendaciones de venta. Se muestran incluso con el panel plegado y el usuario
+puede modificarlos. Las preferencias guardadas, incluidos valores vacios, se
+conservan; los valores iniciales se aplican solo si faltan esas preferencias.
+Target usa exclusivamente `tg` de la
 posicion de Acciones, expresado en USD y con cotizacion comparable vigente.
 
 Las reglas reciben `portfolioSummary()` y sus valoraciones. Rentabilidad = G/P

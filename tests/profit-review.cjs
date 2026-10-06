@@ -7,11 +7,15 @@ vm.runInContext(outer.app+String.raw`
 let checks=0,syncs=0;
 const check=(condition,message)=>{assert(condition,message);checks++;};
 const original=JSON.parse(JSON.stringify(ST));
+check(profitReviewSettings({}).gainThresholdPct===30&&profitReviewSettings({}).concentrationThresholdPct===15,'Approved initial thresholds apply to existing V3 states without settings');
+check(original.profitReview.gainThresholdPct===30&&original.profitReview.concentrationThresholdPct===15,'New states use approved 30 and 15 percent defaults');
+check(profitReviewSettings({profitReview:{gainThresholdPct:45,concentrationThresholdPct:20}}).gainThresholdPct===45,'User settings override initial defaults');
 const settings={...profitReviewSettings(),gainThresholdPct:50,concentrationThresholdPct:50};
 const asset=(id,wallet,cur)=>({id,positionId:'pos_'+id,sym:'BTC',name:'Bitcoin',wallet,custody:'exchange',qty:10,buy:100,avgBuy:100,openCost:1000,status:'active',cur,quoteCurrency:'USD',priceStatus:'realtime',priceSource:'Synthetic',priceSourceTimestamp:new Date().toISOString(),date:'2026-01-01',costFeeStatus:'fees_recorded'});
-const reset=()=>{ST=JSON.parse(JSON.stringify(original));ST.crypto=[asset('one','Binance',150),asset('two','Exodus',50)];ST.stocks=[];ST.otros=[];ST.hist=[];ST.liquidity=[];ST.profitReview={...profitReviewSettings(original)};};
+const reset=()=>{ST=JSON.parse(JSON.stringify(original));ST.crypto=[asset('one','Binance',150),asset('two','Exodus',50)];ST.stocks=[];ST.otros=[];ST.hist=[];ST.liquidity=[];ST.profitReview={...profitReviewSettings(original),gainThresholdPct:null,concentrationThresholdPct:null};};
 reset();const before=JSON.stringify(ST),metrics=JSON.stringify(portfolioSummary());
-check(profitReviewData().rows.length===0,'Thresholds have no implicit defaults');
+check(profitReviewData().rows.length===0,'Explicitly cleared thresholds remain disabled');
+check(profitReviewData(portfolioSummary(),profitReviewSettings({})).rows[0].partial,'Approved initial thresholds produce review alerts from current data');
 let data=profitReviewData(portfolioSummary(),settings),row=data.rows[0];
 check(data.rows.length===1&&row.positionId==='pos_one','Custodians remain separate and losing position is excluded');
 check(row.roi===50&&row.weight===75&&row.instrumentWeight===100,'ROI, position weight and consolidated exposure share valuations');

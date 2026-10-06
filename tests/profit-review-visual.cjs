@@ -12,6 +12,11 @@ let checks=0;const check=(condition,message)=>{assert(condition,message);checks+
     const context=await browser.newContext({viewport:{width:1440,height:1000}});
     await context.route('**/*',route=>new URL(route.request().url()).origin===origin?route.continue():route.abort());
     const page=await context.newPage(),errors=[];page.on('pageerror',error=>errors.push(error.message));await page.goto(origin);
+    await page.evaluate(()=>showTab('risk'));
+    check(await page.locator('#profitReviewThresholds').isVisible()&&await page.locator('#profitReviewThresholds').textContent().then(text=>text.includes('30 %')&&text.includes('15 % de activos invertidos')),'Initial thresholds remain visible with settings collapsed');
+    await page.locator('#profitReviewSettings summary').click();
+    check(await page.locator('#profitGainThreshold').inputValue()==='30'&&await page.locator('#profitWeightThreshold').inputValue()==='15','Approved initial thresholds populate editable controls');
+    await page.locator('#profitReviewSettings summary').click();
     await page.evaluate(()=>{
       const asset=(id,sym,custodian,qty,cur)=>({id,positionId:'pos_'+id,sym,name:sym,wallet:custodian,broker:custodian,custody:'exchange',qty,buy:100,avgBuy:100,openCost:qty*100,status:'active',cur,quoteCurrency:'USD',priceStatus:'realtime',priceSource:'Synthetic',priceSourceTimestamp:new Date().toISOString(),date:'2026-01-01',costFeeStatus:'fees_recorded'});
       ST.crypto=[asset('btc_binance','BTC','Binance',10,150),asset('btc_exodus','BTC','Exodus',10,50)];
@@ -23,9 +28,10 @@ let checks=0;const check=(condition,message)=>{assert(condition,message);checks+
     check(await page.locator('#profitReviewTb').textContent().then(text=>text.includes('AAPL')&&text.includes('Target alcanzado')&&!text.includes('Ganancia relevante')),'Target works with undefined thresholds');
     check(await page.locator('#profitReviewState').textContent().then(text=>text.includes('umbral pendiente')),'Unconfigured thresholds are explicit');
     await page.locator('#profitReviewSettings summary').click();
-    check(await page.locator('#profitGainThreshold').inputValue()===''&&await page.locator('#profitWeightThreshold').inputValue()==='','No default percentages');
+    check(await page.locator('#profitGainThreshold').inputValue()===''&&await page.locator('#profitWeightThreshold').inputValue()==='','Explicit blank settings are respected');
     await page.locator('#profitGainThreshold').fill('50');await page.locator('#profitWeightThreshold').fill('40');
     await page.locator('#profitReviewSettings button').click();
+    check(await page.locator('#profitReviewThresholds').textContent().then(text=>text.includes('50 %')&&text.includes('40 % de activos invertidos')),'Visible criteria update after user configuration');
     check(await page.locator('#profitReviewTb tr').count()===2,'Two distinct positions require review');
     check(await page.locator('#profitReviewTb').textContent().then(text=>text.includes('Binance')&&!text.includes('Exodus')),'Losing same-symbol custodian remains separate');
     check(await page.locator('#profitReviewTb').textContent().then(text=>text.includes('Ganancia + concentración')&&text.includes('Revisar toma parcial de beneficios')),'Reasons and partial review visible');
