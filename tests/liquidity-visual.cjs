@@ -24,7 +24,13 @@ let checks=0;const check=(condition,message)=>{assert(condition,message);checks+
     await page.goto(origin);await page.evaluate(f=>{ST={...ST,...f};renderAll();LANG='es';applyLang();showTab('liquidity');},fixtures);
     const preserved=await page.evaluate(()=>JSON.stringify([ST.otros,ST.cedearExpenses,ST.cedearValuations,ST.snaps,ST.aSnaps]));
     await page.locator('#tab-liquidity .btn-add').click();
-    await page.locator('#liqEntity').fill('Binance');await page.locator('#liqBalance').fill('1000');
+    check(await page.locator('#liqEntity').evaluate(el=>el.tagName==='SELECT'),'Custodian uses a native dropdown');
+    check(await page.locator('#liqCurrency').evaluate(el=>['USD','EUR','ARS','USDT','USDC'].every(value=>[...el.options].some(option=>option.value===value))),'Common currencies available without typing');
+    await page.locator('#liqCurrency').selectOption('USDT');
+    check(await page.locator('#liqKind').inputValue()==='stablecoin','Stablecoin selection sets the correct type');
+    await page.locator('#liqCurrency').selectOption('USD');
+    check(await page.locator('#liqKind').inputValue()==='fiat','Returning to fiat resets the stablecoin type');
+    await page.locator('#liqEntity').selectOption('Binance');await page.locator('#liqBalance').fill('1000');
     await page.locator('#liquidityOverlay .btn-save').click();
     check(await page.locator('#liquidityTb tr').count()===1,'Initial balance visible');
     const id=await page.evaluate(()=>ST.liquidity[0].liquidityId);
@@ -47,7 +53,7 @@ let checks=0;const check=(condition,message)=>{assert(condition,message);checks+
     await page.locator('#positionOperationSave').click();
     check(await page.evaluate(()=>ST.liquidity[0].balanceDecimal==='918'&&ST.crypto[0].qty===3),'Outside funding leaves cash unchanged');
     await page.evaluate(()=>{showTab('liquidity');openLiquidityAccount();});
-    await page.locator('#liqEntity').fill('Banco');await page.locator('#liqCurrency').fill('EUR');await page.locator('#liqBalance').fill('200');
+    await page.locator('#liqEntity').selectOption('Banco');await page.locator('#liqCurrency').selectOption('EUR');await page.locator('#liqBalance').fill('200');
     await page.locator('#liquidityOverlay .btn-save').click();
     check(await page.locator('#liquidityTb').textContent().then(t=>t.includes('N/D')),'Missing conversion visible as N/D');
     await page.evaluate(()=>openLiquidityFx());await page.locator('#liqFxRate').fill('1.10');await page.locator('#liqFxSource').fill('Fuente sintética');
@@ -84,6 +90,17 @@ let checks=0;const check=(condition,message)=>{assert(condition,message);checks+
     await page.waitForTimeout(350);await page.screenshot({path:'/private/tmp/mrp-liquidity-mobile.png',fullPage:true});
     await page.locator('#tab-liquidity .btn-add').click();
     check(await page.locator('#liqEntity').isVisible()&&await page.locator('#liquidityOverlay .btn-save').isVisible(),'Mobile modal is usable');
+    await page.locator('#liqEntity').selectOption('__other__');await page.locator('#liqEntityCustom').fill('Mi banco');
+    await page.locator('#liqCurrency').selectOption('__other__');await page.locator('#liqCurrencyCustom').fill('CHF');
+    check(await page.evaluate(()=>liquidityChoiceValue('liqEntity')==='Mi banco'&&liquidityChoiceValue('liqCurrency')==='CHF'),'Other choices retain custom names and currencies');
+    check(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),'Custom mobile fields do not overflow');
+    await page.locator('#liquidityOverlay .btn-save').click();
+    const customId=await page.evaluate(()=>ST.liquidity.find(a=>a.custodian==='Mi banco'&&a.currency==='CHF')?.liquidityId);
+    check(!!customId,'Custom account saved with its original currency');
+    await page.evaluate(id=>openLiquidityAccount(id),customId);
+    check(await page.locator('#liqEntity').getAttribute('readonly')!==null&&await page.locator('#liqCurrency').inputValue()==='CHF','Existing account identity remains read-only');
+    await page.locator('#liquidityOverlay .btn-cancel').click();await page.evaluate(()=>openLiquidityAccount());
+    check(await page.locator('#liqEntity option[value="Mi banco"]').count()===1&&await page.locator('#liqCurrency option[value="CHF"]').count()===1,'Previously used custom values appear in dropdowns');
     await page.waitForTimeout(350);await page.screenshot({path:'/private/tmp/mrp-liquidity-modal-mobile.png',fullPage:true});
     await page.locator('#liquidityOverlay .btn-cancel').click();await page.evaluate(()=>showTab('dash'));
     check(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),'Dashboard mobile has no page overflow');
@@ -91,6 +108,8 @@ let checks=0;const check=(condition,message)=>{assert(condition,message);checks+
     await page.evaluate(()=>{ST.liquidity[0].custodian='<img src=x onerror="window.liquidityXss=1">';renderLiquidity();renderHist();});
     check(await page.locator('#liquidityTb img,#liquidityHistoryTb img,#hTb img').count()===0,'Untrusted names safely rendered');
     check(await page.evaluate(()=>window.liquidityXss)===undefined,'No injected scripts');
+    await page.evaluate(()=>openLiquidityAccount());
+    check(await page.locator('#liquidityOverlay img').count()===0,'Untrusted dropdown values remain escaped');
     assert.deepEqual(errors,[]);console.log(`OK Liquidez UI: ${checks} comprobaciones desktop/móvil; sin red externa.`);
   }finally{if(browser)await browser.close();await new Promise(resolve=>server.close(resolve));}
 })().catch(error=>{console.error(error);process.exitCode=1;});

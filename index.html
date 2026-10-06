@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="mrp-release" content="2026-10-06.1">
+<meta name="mrp-release" content="2026-10-06.2">
 <title>MRP Portfolio</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -999,7 +999,7 @@ input::placeholder,textarea::placeholder,select::placeholder{color:var(--tx4);op
     <div>
       <div class="logo-name">MRP Portfolio</div>
       <div class="logo-sub" id="logoSub">Investment Tracker</div>
-      <div class="logo-version" title="Versión de la aplicación">v2026-10-06.1</div>
+      <div class="logo-version" title="Versión de la aplicación">v2026-10-06.2</div>
     </div>
   </div>
   <div class="topbar-right">
@@ -2871,7 +2871,7 @@ const PALETTE = ['#7c3aed','#0891b2','#10b981','#f59e0b','#f43f5e','#ec4899','#8
 // STATE
 // ═══════════════════════════════════════════
 const SCHEMA_VERSION = 'position-v3';
-const APP_RELEASE = '2026-10-06.1';
+const APP_RELEASE = '2026-10-06.2';
 const PUBLIC_APP_URL = 'https://criptoscrazy.github.io/mrp-portfolio-finance/';
 const SKEY = 'mrp_portfolio_v3';
 const LEGACY_SKEY = 'mrp_portfolio_v2';
@@ -5221,6 +5221,15 @@ function reclassifyLiquidityToCrypto(liquidityId,input){
 function liquidityField(id,label,control){return `<div class="modal-field"><label for="${id}">${escapeHTML(label)}</label>${control}</div>`;}
 function liquidityInput(id,value='',attributes=''){return `<input id="${id}" value="${escapeHTML(String(value))}" ${attributes}>`;}
 function liquiditySelect(id,options,value=''){return `<select id="${id}">${options.map(([key,label])=>`<option value="${escapeHTML(key)}"${key===value?' selected':''}>${escapeHTML(label)}</option>`).join('')}</select>`;}
+function liquidityChoice(id,options,value,otherLabel){
+  return liquiditySelect(id,[...options,['__other__',otherLabel]],value)+liquidityInput(id+'Custom','','hidden disabled style="margin-top:8px" aria-label="'+escapeHTML(otherLabel)+'"');
+}
+function liquidityChoiceValue(id){return $(id).tagName==='SELECT'&&$(id).value==='__other__'?$(id+'Custom').value:$(id).value;}
+function bindLiquidityChoice(id,onChange=()=>{}){
+  const select=$(id),custom=$(id+'Custom');
+  select.addEventListener('change',()=>{const other=select.value==='__other__';custom.hidden=!other;custom.disabled=!other;if(other)custom.focus();onChange();});
+  custom.addEventListener('input',onChange);
+}
 function closeLiquidityModal(){document.getElementById('liquidityOverlay')?.remove();}
 function showLiquidityModal(title,content,handler){
   closeLiquidityModal();const overlay=document.createElement('div');overlay.id='liquidityOverlay';overlay.className='modal-overlay open';
@@ -5229,29 +5238,39 @@ function showLiquidityModal(title,content,handler){
   overlay.addEventListener('click',event=>{if(event.target===overlay)closeLiquidityModal();});
   overlay.addEventListener('keydown',event=>{
     if(event.key==='Escape')closeLiquidityModal();
-    if(event.key==='Tab'){const controls=[...overlay.querySelectorAll('input:not([readonly]),select,textarea,button')].filter(el=>!el.closest('[hidden]'));const first=controls[0],last=controls.at(-1);if(event.shiftKey&&document.activeElement===first){event.preventDefault();last?.focus();}else if(!event.shiftKey&&document.activeElement===last){event.preventDefault();first?.focus();}}
+    if(event.key==='Tab'){const controls=[...overlay.querySelectorAll('input:not([readonly]):not([type="hidden"]):not([disabled]),select:not([disabled]),textarea,button')].filter(el=>!el.closest('[hidden]'));const first=controls[0],last=controls.at(-1);if(event.shiftKey&&document.activeElement===first){event.preventDefault();last?.focus();}else if(!event.shiftKey&&document.activeElement===last){event.preventDefault();first?.focus();}}
   });
-  document.body.appendChild(overlay);overlay.querySelector('input:not([readonly]),select')?.focus();
+  document.body.appendChild(overlay);[...overlay.querySelectorAll('input:not([readonly]):not([type="hidden"]):not([disabled]),select:not([disabled])')].find(el=>!el.closest('[hidden]'))?.focus();
 }
 function liquidityRunUI(action){try{commitLiquidityMutation(action);closeLiquidityModal();showToast('Movimiento guardado');}catch(error){if(error.saved)closeLiquidityModal();showToast(error.message,'err',6000);}}
 function openLiquidityAccount(id=''){
   const account=findLiquidity(id),a=account||{custodian:'',currency:'USD',balanceDecimal:'0',date:today(),assetKind:'fiat',availability:'immediate',product:'',notes:''};
+  const entities=[...new Set([
+    ...[...document.querySelectorAll('#platformsList option')].map(option=>option.value),
+    'Banco','Wallet',...liquidityAccounts().map(item=>item.custodian),
+    ...(ST.stocks||[]).map(item=>item.broker),...(ST.crypto||[]).map(item=>item.wallet),
+    ...(ST.otros||[]).map(item=>item.broker||item.exchange)
+  ].filter(Boolean))].sort((x,y)=>x.localeCompare(y,'es'));
+  const currencies=[...new Set(['USD','EUR','ARS','USDT','USDC','GBP','BRL',...LIQUIDITY_STABLECOINS,...liquidityAccounts().map(item=>item.currency)])];
   showLiquidityModal(account?'Detalle del saldo':'Nuevo saldo inicial',
     liquidityInput('liqAccountId',id,'type="hidden"')+
-    liquidityField('liqEntity','Entidad / custodio',liquidityInput('liqEntity',a.custodian,account?'readonly':''))+
-    liquidityField('liqCurrency','Moneda / activo líquido',liquidityInput('liqCurrency',a.currency,account?'readonly':''))+
+    liquidityField('liqEntity','Entidad / custodio',account?liquidityInput('liqEntity',a.custodian,'readonly'):liquidityChoice('liqEntity',[['','Seleccionar entidad…'],...entities.map(value=>[value,value])],a.custodian,'Otra entidad…'))+
+    liquidityField('liqCurrency','Moneda / activo líquido',account?liquidityInput('liqCurrency',a.currency,'readonly'):liquidityChoice('liqCurrency',currencies.map(value=>[value,value]),a.currency,'Otra moneda…'))+
     liquidityField('liqBalance',account?'Saldo actual':'Saldo inicial',liquidityInput('liqBalance',a.balanceDecimal,account?'readonly':'inputmode="decimal"'))+
     liquidityField('liqDate','Fecha del saldo inicial',liquidityInput('liqDate',a.date,`type="date" ${account?'readonly':''}`))+
     liquidityField('liqKind','Tipo',liquiditySelect('liqKind',[['fiat','Efectivo'],['stablecoin','Stablecoin'],['investment','Producto con riesgo / plazo']],a.assetKind))+
     liquidityField('liqAvailability','Disponibilidad',liquiditySelect('liqAvailability',Object.entries(LIQUIDITY_AVAILABILITY),a.availability))+
-    liquidityField('liqProduct','Cuenta / producto (opcional)',liquidityInput('liqProduct',a.product))+
+    liquidityField('liqProduct','Cuenta / producto (opcional)',liquidityInput('liqProduct',a.product,'placeholder="Spot, Earn flexible, cuenta personal…"'))+
     liquidityField('liqNotes','Observaciones (opcional)',liquidityInput('liqNotes',a.notes)), 'saveLiquidityAccount');
   if(account)$('liqKind').disabled=true;
-  $('liqCurrency').addEventListener('input',()=>{if(LIQUIDITY_STABLECOINS.has(liquidityCurrency($('liqCurrency').value)))$('liqKind').value='stablecoin';});
+  if(!account){
+    bindLiquidityChoice('liqEntity');
+    bindLiquidityChoice('liqCurrency',()=>{const currency=liquidityCurrency(liquidityChoiceValue('liqCurrency'));if(LIQUIDITY_STABLECOINS.has(currency)&&$('liqKind').value!=='investment')$('liqKind').value='stablecoin';else if(['USD','EUR','ARS','GBP','BRL'].includes(currency)&&$('liqKind').value==='stablecoin')$('liqKind').value='fiat';});
+  }
   $('liqKind').addEventListener('change',()=>{if($('liqKind').value==='investment')$('liqAvailability').value='invested';});
 }
 function saveLiquidityAccount(){liquidityRunUI(()=>{
-  const input={custodian:$('liqEntity').value,currency:$('liqCurrency').value,balanceDecimal:$('liqBalance').value,date:$('liqDate').value,assetKind:$('liqKind').value,availability:$('liqAvailability').value,product:$('liqProduct').value,notes:$('liqNotes').value};
+  const input={custodian:liquidityChoiceValue('liqEntity'),currency:liquidityChoiceValue('liqCurrency'),balanceDecimal:$('liqBalance').value,date:$('liqDate').value,assetKind:$('liqKind').value,availability:$('liqAvailability').value,product:$('liqProduct').value,notes:$('liqNotes').value};
   if(!/^\d{4}-\d{2}-\d{2}$/.test(input.date))throw new Error('Indicá una fecha válida');
   const account=findLiquidity($('liqAccountId').value);
   if(!account){createLiquidityAccount(input);return;}
