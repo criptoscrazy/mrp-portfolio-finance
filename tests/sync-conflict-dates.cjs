@@ -1,0 +1,32 @@
+// Synthetic timestamps only; no cloud connection or real portfolio access.
+const fs=require('node:fs'),vm=require('node:vm'),path=require('node:path');
+const harness=fs.readFileSync(path.join(__dirname,'regression.cjs'),'utf8').split('const tests = String.raw`')[0];
+const outer={require,__dirname,console,URL,AbortController};
+vm.runInNewContext(harness+'\nthis.context=context;this.app=appSource.slice(0,initIndex);',outer);
+vm.runInContext(outer.app+String.raw`
+let checks=0;
+const check=(condition,message)=>{assert(condition,message);checks++;};
+const local={stocks:[{id:'synthetic-local'}],crypto:[]};
+const cloud={stocks:[{id:'synthetic-cloud'}],crypto:[]};
+const stateBefore=JSON.stringify(ST),localBefore=JSON.stringify(local),cloudBefore=JSON.stringify(cloud);
+localStorage.setItem(SKEY,'synthetic-existing-copy');
+localStorage.setItem('mrp_last_local_change','2026-10-08T09:41:18.000Z');
+showConflictModal(local,cloud,'2026-10-06T18:57:30.000Z');
+check($('conflictLocalInfo').textContent.includes('8/10/26, 11:41:18 (Madrid)'),'Local timestamp uses Madrid time including seconds');
+check($('conflictCloudInfo').textContent.includes('6/10/26, 20:57:30 (Madrid)'),'Cloud timestamp uses the same format and timezone');
+check(conflictChoice===null&&$('btnConflictConfirm').disabled,'The newest timestamp does not automatically select a copy');
+check(JSON.stringify(ST)===stateBefore&&JSON.stringify(local)===localBefore&&JSON.stringify(cloud)===cloudBefore,'Displaying dates never changes either portfolio');
+check(localStorage.getItem(SKEY)==='synthetic-existing-copy'&&localStorage.getItem('mrp_last_local_change')==='2026-10-08T09:41:18.000Z','Displaying dates preserves stored data and modification time');
+selectConflictOption('local');
+localStorage.removeItem('mrp_last_local_change');
+showConflictModal(local,cloud,null);
+check($('conflictLocalInfo').textContent.endsWith('Fecha desconocida')&&$('conflictCloudInfo').textContent.endsWith('Fecha desconocida'),'Missing dates are explicit, not invented');
+check(conflictChoice===null&&$('btnConflictConfirm').disabled,'Reopening the dialog clears the previous selection');
+localStorage.setItem('mrp_last_local_change','not-a-date');
+showConflictModal(local,cloud,'not-a-date');
+check($('conflictLocalInfo').textContent.endsWith('Fecha desconocida')&&$('conflictCloudInfo').textContent.endsWith('Fecha desconocida'),'Invalid timestamps do not render Invalid Date');
+localStorage.setItem('mrp_last_local_change','2026-10-08T09:41:18.000Z');
+check(save(true,{scheduleSync:false,markChanged:false}),'Existing quote-only persistence succeeds');
+check(localStorage.getItem('mrp_last_local_change')==='2026-10-08T09:41:18.000Z','Market quote refresh does not advance the portfolio modification time');
+console.log('OK fechas de conflicto: '+checks+' comprobaciones; sin datos reales ni red.');
+`,outer.context);
