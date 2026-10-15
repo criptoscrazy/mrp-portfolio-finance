@@ -374,7 +374,7 @@ const tests = String.raw`
   assert($('cedTb').innerHTML.includes('24.000,00'), 'La tabla CEDEAR debe mostrar el precio actual ARS');
   assert($('cedTb').innerHTML.includes('9.042,97'), 'La tabla CEDEAR debe mostrar el costo MEP consolidado');
   assert($('cedTb').innerHTML.includes('16.440,00'), 'La tabla CEDEAR debe destacar el valor actual USD');
-  assert($('cedTb').innerHTML.includes('Ver lotes'), 'La tabla CEDEAR debe abrir compras/lotes');
+  assert($('cedTb').innerHTML.includes('Ver compras / lotes'), 'La tabla CEDEAR debe abrir compras/lotes mediante un botón etiquetado');
 
   openAssetDetails('otro', 'a1');
   assert($('detailModalOverlay').classList.contains('open'), 'Debe abrir el detalle de solo lectura');
