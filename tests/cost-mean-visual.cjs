@@ -3,7 +3,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const http = require('node:http');
 const path = require('node:path');
-const { chromium, browserExecutable } = require('./browser-runtime.cjs');
+const {chromium,browserExecutable,artifactPath}=require('./browser-runtime.cjs');
 
 const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
 const quoteTime = '2026-10-03T10:00:00Z';
@@ -62,7 +62,7 @@ const fixtures = {
     assert.equal(await page.locator('#dcaTb tr[data-position-id="btc-binance"]').count(),1);
     assert.equal(await page.locator('#dcaTb tr[data-position-id="btc-exodus"]').count(),1);
     assert(await page.evaluate(()=>JSON.stringify(ST)===window.__beforeCostMean));
-    const screenshots={desktop:'/private/tmp/mrp-cost-mean-desktop.png',mobile:'/private/tmp/mrp-cost-mean-mobile.png'};
+    const screenshots={desktop:artifactPath('mrp-cost-mean-desktop.png'),mobile:artifactPath('mrp-cost-mean-mobile.png')};
     await page.screenshot({path:screenshots.desktop,fullPage:true});
 
     await page.setViewportSize({width:390,height:844});

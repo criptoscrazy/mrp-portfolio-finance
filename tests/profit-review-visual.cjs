@@ -1,6 +1,6 @@
 // Isolated browser checks with synthetic holdings and no external requests.
 const assert=require('node:assert/strict'),fs=require('node:fs'),http=require('node:http'),path=require('node:path');
-const {chromium,browserExecutable}=require('./browser-runtime.cjs');
+const {chromium,browserExecutable,artifactPath}=require('./browser-runtime.cjs');
 const html=fs.readFileSync(path.join(__dirname,'..','index.html'),'utf8');
 let checks=0;const check=(condition,message)=>{assert(condition,message);checks++;};
 (async()=>{
@@ -52,14 +52,14 @@ let checks=0;const check=(condition,message)=>{assert(condition,message);checks+
     await page.locator('#profitReviewTb .btn-view').first().click();
     const details=await page.locator('#detailGrid').textContent();
     check(details.includes('Beneficio realizado')&&details.includes('98')&&details.includes('Liquidez liberada')&&details.includes('298')&&details.includes('80'),'Profit, released cash and remaining proportion are distinct');
-    await page.evaluate(()=>closeDetailModal());await page.waitForTimeout(350);await page.locator('.profit-review').screenshot({path:'/private/tmp/mrp-profit-review-desktop.png'});
+    await page.evaluate(()=>closeDetailModal());await page.waitForTimeout(350);await page.locator('.profit-review').screenshot({path:artifactPath('mrp-profit-review-desktop.png')});
     await page.setViewportSize({width:390,height:844});
     check(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),'Risk mobile has no page overflow');
     check(await page.locator('.profit-review .tbl-wrap').evaluate(el=>el.scrollWidth<=el.clientWidth+1),'Review items need no horizontal scroll on mobile');
     check(await page.locator('#profitReviewTb tr').first().evaluate(el=>getComputedStyle(el).display==='grid'),'Mobile rows expose all metrics in compact items');
     await page.locator('#profitReviewSettings summary').click();
     check(await page.locator('#profitGainThreshold').isVisible()&&await page.locator('#profitWeightThreshold').isVisible(),'Mobile settings remain readable');
-    await page.waitForTimeout(350);await page.locator('.profit-review').screenshot({path:'/private/tmp/mrp-profit-review-mobile.png'});
+    await page.waitForTimeout(350);await page.locator('.profit-review').screenshot({path:artifactPath('mrp-profit-review-mobile.png')});
     check(await page.locator('.logo-version').evaluate(el=>getComputedStyle(el).fontSize==='11px'),'Version label is 11px in the security release');
     await page.evaluate(()=>{ST.crypto[0].wallet='<img src=x onerror="window.profitXss=1">';renderRisk();});
     check(await page.locator('#profitReviewTb img').count()===0&&await page.evaluate(()=>window.profitXss===undefined),'Untrusted custodians stay inert');

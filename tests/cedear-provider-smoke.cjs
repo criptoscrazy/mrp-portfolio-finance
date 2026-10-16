@@ -1,7 +1,7 @@
 // Public symbols with synthetic holdings in a fresh browser. Cloud is blocked.
 const assert=require('node:assert/strict'),path=require('node:path');
 const {pathToFileURL}=require('node:url');
-const {chromium,browserExecutable}=require('./browser-runtime.cjs');
+const {chromium,browserExecutable,artifactPath}=require('./browser-runtime.cjs');
 const publicMode=process.env.MRP_PUBLIC==='1';
 const expectedRelease=require('node:fs').readFileSync(path.resolve(__dirname,'..','index.html'),'utf8').match(/<meta name="mrp-release" content="([^"]+)"/)[1];
 (async()=>{
@@ -39,7 +39,7 @@ const expectedRelease=require('node:fs').readFileSync(path.resolve(__dirname,'..
     assert(result.weightReliable,'Concentration remains unreliable after quotes');
     assert.deepEqual(result.persisted,result.prices.map(quote=>quote.price));
     await page.waitForTimeout(350);
-    await page.screenshot({path:'/private/tmp/mrp-cedear-provider-'+(publicMode?'public':'local')+'.png',fullPage:true});
+    await page.screenshot({path:artifactPath('mrp-cedear-provider-')+(publicMode?'public':'local')+'.png',fullPage:true});
     console.log(JSON.stringify({ok:true,mode:publicMode?'public':'local',...result}));
   }finally{await browser.close();}
 })().catch(error=>{console.error(error);process.exitCode=1;});

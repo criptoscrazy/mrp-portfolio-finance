@@ -1,11 +1,11 @@
 const fs = require('fs');
 const path = require('path');
 const { pathToFileURL } = require('url');
-const { chromium, browserExecutable } = require('./browser-runtime.cjs');
+const {chromium,browserExecutable,artifactPath}=require('./browser-runtime.cjs');
 
 const appPath = path.resolve(__dirname, '..', 'index.html');
-const screenshotPath = '/private/tmp/mrp-portfolio-cedear-visual.png';
-const mobileScreenshotPath = '/private/tmp/mrp-portfolio-cedear-mobile.png';
+const screenshotPath = artifactPath('mrp-portfolio-cedear-visual.png');
+const mobileScreenshotPath = artifactPath('mrp-portfolio-cedear-mobile.png');
 
 const lot = (id, sym, date, quantity, unit, total, ticket, ratio = '10') => ({
   id, type: 'cedeaar', sym, name: sym === 'AAPL' ? 'Apple Inc.' : sym,
@@ -68,7 +68,7 @@ const lot = (id, sym, date, quantity, unit, total, ticket, ratio = '10') => ({
       layout=await verify();
       if(!layout.fits||!layout.buttonsFit)throw new Error('Sticky controls lost during scroll: '+JSON.stringify({width,theme,...layout}));
       layoutChecks.push({width,theme,...layout});
-      await page.screenshot({path:'/private/tmp/mrp-cedear-'+width+'-'+theme+'.png',fullPage:true});
+      await page.screenshot({path:artifactPath('mrp-cedear-')+width+'-'+theme+'.png',fullPage:true});
       await page.evaluate(()=>{document.querySelector('.cedear-table').parentElement.scrollLeft=0;});
     }
   }

@@ -1,6 +1,6 @@
 // Isolated UI verification; external services and user sessions are excluded.
 const assert=require('node:assert/strict'),fs=require('node:fs'),http=require('node:http'),path=require('node:path');
-const {chromium,browserExecutable}=require('./browser-runtime.cjs');
+const {chromium,browserExecutable,artifactPath}=require('./browser-runtime.cjs');
 const html=fs.readFileSync(path.join(__dirname,'..','index.html'),'utf8');
 (async()=>{
   const server=http.createServer((req,res)=>{res.writeHead(req.url==='/'?200:204,{'Content-Type':'text/html; charset=utf-8'});res.end(req.url==='/'?html:'');});
@@ -18,14 +18,14 @@ const html=fs.readFileSync(path.join(__dirname,'..','index.html'),'utf8');
     assert.match(await page.locator('#conflictLocalInfo').textContent(),/8\/10\/26, 11:41:18 \(Madrid\)/);
     assert.match(await page.locator('#conflictCloudInfo').textContent(),/6\/10\/26, 20:57:30 \(Madrid\)/);
     assert(await page.locator('#btnConflictConfirm').isDisabled());
-    await page.locator('#conflictModalOverlay .modal').screenshot({path:'/private/tmp/mrp-sync-dates-desktop.png'});
+    await page.locator('#conflictModalOverlay .modal').screenshot({path:artifactPath('mrp-sync-dates-desktop.png')});
     await page.setViewportSize({width:390,height:844});
     for(const id of ['conflictLocalInfo','conflictCloudInfo']){
       assert(await page.locator('#'+id).isVisible());
       assert(await page.locator('#'+id).evaluate(el=>el.scrollWidth<=el.clientWidth+1));
     }
     assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));
-    await page.locator('#conflictModalOverlay .modal').screenshot({path:'/private/tmp/mrp-sync-dates-mobile.png'});
+    await page.locator('#conflictModalOverlay .modal').screenshot({path:artifactPath('mrp-sync-dates-mobile.png')});
     await page.evaluate(()=>{localStorage.removeItem('mrp_last_local_change');showConflictModal({stocks:[],crypto:[]},{stocks:[],crypto:[]},null);});
     assert.match(await page.locator('#conflictLocalInfo').textContent(),/Fecha desconocida$/);
     assert.match(await page.locator('#conflictCloudInfo').textContent(),/Fecha desconocida$/);

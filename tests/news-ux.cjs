@@ -2,7 +2,7 @@
 const assert=require('node:assert/strict');
 const fs=require('node:fs');
 const http=require('node:http');
-const {chromium,browserExecutable}=require('./browser-runtime.cjs');
+const {chromium,browserExecutable,artifactPath}=require('./browser-runtime.cjs');
 const html=fs.readFileSync(require('node:path').join(__dirname,'../index.html'),'utf8');
 (async()=>{
   const server=http.createServer((req,res)=>res.end(html));
@@ -45,8 +45,8 @@ const html=fs.readFileSync(require('node:path').join(__dirname,'../index.html'),
       assert.deepEqual(await page.locator('.tab').evaluateAll(t=>t.slice(-5).map(n=>n.getAttribute('onclick'))),["showTab('evol')","showTab('news')","showTab('tv')","showTab('trading')","showTab('cfg')"]);
     }
     await page.evaluate(()=>{LANG='es';applyLang();filterNews('all');});
-    await page.screenshot({path:'/private/tmp/mrp-news-desktop.png',fullPage:true});
-    await page.setViewportSize({width:390,height:844});await page.screenshot({path:'/private/tmp/mrp-news-mobile.png',fullPage:true});
+    await page.screenshot({path:artifactPath('mrp-news-desktop.png'),fullPage:true});
+    await page.setViewportSize({width:390,height:844});await page.screenshot({path:artifactPath('mrp-news-mobile.png'),fullPage:true});
     assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),'No mobile page overflow');
     fail=true;await page.evaluate(()=>{allNewsItems=[];return fetchNews();});
     assert.equal(await page.locator('.news-skeleton').count(),0);
