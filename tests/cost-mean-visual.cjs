@@ -3,7 +3,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const http = require('node:http');
 const path = require('node:path');
-const { chromium } = require('/Users/marcos/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright-core');
+const { chromium, browserExecutable } = require('./browser-runtime.cjs');
 
 const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
 const quoteTime = '2026-10-03T10:00:00Z';
@@ -37,7 +37,7 @@ const fixtures = {
   const origin=`http://127.0.0.1:${server.address().port}`;
   let browser;
   try {
-    browser=await chromium.launch({headless:true,executablePath:'/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'});
+    browser=await chromium.launch({headless:true,executablePath:browserExecutable()});
     const context=await browser.newContext({viewport:{width:1440,height:1000}});
     await context.route('**/*',route=>new URL(route.request().url()).origin===origin?route.continue():route.abort());
     await context.addInitScript(()=>Object.defineProperty(navigator,'onLine',{get:()=>false}));

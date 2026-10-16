@@ -4,7 +4,7 @@ const fs = require('node:fs');
 const http = require('node:http');
 const path = require('node:path');
 const vm = require('node:vm');
-const {chromium} = require('/Users/marcos/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright-core');
+const {chromium,browserExecutable} = require('./browser-runtime.cjs');
 const root = path.join(__dirname, '..');
 const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
 const test = fs.readFileSync(path.join(__dirname, 'cost-mean-visual.cjs'), 'utf8');
@@ -23,10 +23,10 @@ const chartAsset=process.env.MRP_TEST_CHART_ASSET;
   const origin=`http://127.0.0.1:${server.address().port}`;
   let browser;
   try {
-    browser=await chromium.launch({headless:true,executablePath:'/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'});
+    browser=await chromium.launch({headless:true,executablePath:browserExecutable()});
     const context=await browser.newContext({viewport:{width:1440,height:1000}});
     await context.route('**/*',route=>{
-      if(chartAsset&&route.request().url().includes('/Chart.js/4.4.1/'))return route.fulfill({contentType:'text/javascript',body:fs.readFileSync(chartAsset)});
+      if(chartAsset&&route.request().url().includes('/Chart.js/4.4.1/'))return route.fulfill({contentType:'text/javascript',headers:{'Access-Control-Allow-Origin':'*'},body:fs.readFileSync(chartAsset)});
       return new URL(route.request().url()).origin===origin?route.continue():route.abort();
     });
     await context.addInitScript(()=>Object.defineProperty(navigator,'onLine',{get:()=>false}));

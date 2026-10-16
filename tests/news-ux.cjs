@@ -2,7 +2,7 @@
 const assert=require('node:assert/strict');
 const fs=require('node:fs');
 const http=require('node:http');
-const {chromium}=require('/Users/marcos/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright-core');
+const {chromium,browserExecutable}=require('./browser-runtime.cjs');
 const html=fs.readFileSync(require('node:path').join(__dirname,'../index.html'),'utf8');
 (async()=>{
   const server=http.createServer((req,res)=>res.end(html));
@@ -10,7 +10,7 @@ const html=fs.readFileSync(require('node:path').join(__dirname,'../index.html'),
   const origin=`http://127.0.0.1:${server.address().port}`;
   let browser;
   try{
-    browser=await chromium.launch({headless:true,executablePath:'/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'});
+    browser=await chromium.launch({headless:true,executablePath:browserExecutable()});
     const context=await browser.newContext({viewport:{width:1440,height:1000}});
     let fail=false,requests=[];
     await context.route('**/*',async route=>{

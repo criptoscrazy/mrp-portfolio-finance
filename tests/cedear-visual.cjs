@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const { pathToFileURL } = require('url');
-const { chromium } = require('/Users/marcos/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright-core');
+const { chromium, browserExecutable } = require('./browser-runtime.cjs');
 
 const appPath = path.resolve(__dirname, '..', 'index.html');
 const screenshotPath = '/private/tmp/mrp-portfolio-cedear-visual.png';
@@ -18,7 +18,7 @@ const lot = (id, sym, date, quantity, unit, total, ticket, ratio = '10') => ({
 (async () => {
   const browser = await chromium.launch({
     headless: true,
-    executablePath: '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
+    executablePath: browserExecutable(),
     args: ['--allow-file-access-from-files']
   });
   const page = await browser.newPage({ viewport: { width: 1440, height: 1100 }, deviceScaleFactor: 1 });

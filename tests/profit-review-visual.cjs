@@ -1,6 +1,6 @@
 // Isolated browser checks with synthetic holdings and no external requests.
 const assert=require('node:assert/strict'),fs=require('node:fs'),http=require('node:http'),path=require('node:path');
-const {chromium}=require('/Users/marcos/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright-core');
+const {chromium,browserExecutable}=require('./browser-runtime.cjs');
 const html=fs.readFileSync(path.join(__dirname,'..','index.html'),'utf8');
 let checks=0;const check=(condition,message)=>{assert(condition,message);checks++;};
 (async()=>{
@@ -8,7 +8,7 @@ let checks=0;const check=(condition,message)=>{assert(condition,message);checks+
   await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
   const origin=`http://127.0.0.1:${server.address().port}`;let browser;
   try{
-    browser=await chromium.launch({headless:true,executablePath:'/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'});
+    browser=await chromium.launch({headless:true,executablePath:browserExecutable()});
     const context=await browser.newContext({viewport:{width:1440,height:1000}});
     await context.route('**/*',route=>new URL(route.request().url()).origin===origin?route.continue():route.abort());
     const page=await context.newPage(),errors=[];page.on('pageerror',error=>errors.push(error.message));await page.goto(origin);
@@ -60,7 +60,7 @@ let checks=0;const check=(condition,message)=>{assert(condition,message);checks+
     await page.locator('#profitReviewSettings summary').click();
     check(await page.locator('#profitGainThreshold').isVisible()&&await page.locator('#profitWeightThreshold').isVisible(),'Mobile settings remain readable');
     await page.waitForTimeout(350);await page.locator('.profit-review').screenshot({path:'/private/tmp/mrp-profit-review-mobile.png'});
-    check(await page.locator('.logo-version').evaluate(el=>getComputedStyle(el).fontSize==='9px'),'Version label increased by one pixel');
+    check(await page.locator('.logo-version').evaluate(el=>getComputedStyle(el).fontSize==='11px'),'Version label is 11px in the security release');
     await page.evaluate(()=>{ST.crypto[0].wallet='<img src=x onerror="window.profitXss=1">';renderRisk();});
     check(await page.locator('#profitReviewTb img').count()===0&&await page.evaluate(()=>window.profitXss===undefined),'Untrusted custodians stay inert');
     await page.locator('#profitReviewSettings button').click();await page.reload();

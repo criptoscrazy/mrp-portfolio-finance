@@ -4,7 +4,7 @@ const fs=require('node:fs');
 const http=require('node:http');
 const path=require('node:path');
 const vm=require('node:vm');
-const {chromium}=require('/Users/marcos/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright-core');
+const {chromium,browserExecutable}=require('./browser-runtime.cjs');
 const html=fs.readFileSync(path.join(__dirname,'..','index.html'),'utf8');
 const fixtureSource=fs.readFileSync(path.join(__dirname,'cost-mean-visual.cjs'),'utf8');
 const ctx={};vm.runInNewContext(fixtureSource.slice(fixtureSource.indexOf('const quoteTime ='),fixtureSource.indexOf('(async () =>'))+'\nthis.fixtures=fixtures;',ctx);
@@ -17,7 +17,7 @@ let checks=0;const check=(condition,message)=>{assert(condition,message);checks+
   await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
   const origin=`http://127.0.0.1:${server.address().port}`;let browser;
   try{
-    browser=await chromium.launch({headless:true,executablePath:'/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'});
+    browser=await chromium.launch({headless:true,executablePath:browserExecutable()});
     const context=await browser.newContext({viewport:{width:1440,height:1000}});
     await context.route('**/*',route=>new URL(route.request().url()).origin===origin?route.continue():route.abort());
     const page=await context.newPage(),errors=[];page.on('pageerror',error=>errors.push(error.message));

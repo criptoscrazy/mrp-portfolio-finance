@@ -1,13 +1,13 @@
 // Isolated UI verification; external services and user sessions are excluded.
 const assert=require('node:assert/strict'),fs=require('node:fs'),http=require('node:http'),path=require('node:path');
-const {chromium}=require('/Users/marcos/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright-core');
+const {chromium,browserExecutable}=require('./browser-runtime.cjs');
 const html=fs.readFileSync(path.join(__dirname,'..','index.html'),'utf8');
 (async()=>{
   const server=http.createServer((req,res)=>{res.writeHead(req.url==='/'?200:204,{'Content-Type':'text/html; charset=utf-8'});res.end(req.url==='/'?html:'');});
   await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
   const origin=`http://127.0.0.1:${server.address().port}`;let browser;
   try{
-    browser=await chromium.launch({headless:true,executablePath:'/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'});
+    browser=await chromium.launch({headless:true,executablePath:browserExecutable()});
     const context=await browser.newContext({viewport:{width:1440,height:1000},timezoneId:'America/New_York'});
     await context.route('**/*',route=>new URL(route.request().url()).origin===origin?route.continue():route.abort());
     const page=await context.newPage(),errors=[];page.on('pageerror',error=>errors.push(error.message));await page.goto(origin);

@@ -3,13 +3,15 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="mrp-release" content="2026-10-08.2">
+<!-- Legacy inline handlers remain allowed; external script origins and static bytes are restricted. -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'self'; object-src 'none'; form-action 'self'; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://s3.tradingview.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net; font-src 'self' data: https://fonts.gstatic.com https://cdn.jsdelivr.net; img-src 'self' data: https:; connect-src 'self' https://dddojedzyrcjqasyomso.supabase.co wss://dddojedzyrcjqasyomso.supabase.co https://query1.finance.yahoo.com https://query2.finance.yahoo.com https://api.coingecko.com https://min-api.cryptocompare.com https://data-api.binance.vision https://api.allorigins.win https://r.jina.ai https://dolarapi.com https://dolarazo.com.ar; frame-src https://www.tradingview.com https://s.tradingview.com https://*.tradingview-widget.com; worker-src 'self'">
+<meta name="mrp-release" content="2026-10-16.1">
 <title>MRP Portfolio</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.44.0/tabler-icons.min.css">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.44.0/tabler-icons.min.css" integrity="sha384-mY6asDzXlnHeimHHXw8cavPeArhEcAfnCibDFiaDPex3Fudo+edh/hnT7siZz8bg" crossorigin="anonymous">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js" integrity="sha384-dug+JxfBvklEQdJ4AYuBBAIScUz0bVN73xpy273gcAwHjb3qI0fXmuYNaNfdyYJG" crossorigin="anonymous"></script>
 <style>
 /* ═══════════════════════════════════════════
    TOKENS — DARK
@@ -143,7 +145,7 @@ button{cursor:pointer}
 }
 .logo-name{font-size:15px;font-weight:700;letter-spacing:-.03em;color:var(--tx1)}
 .logo-sub{font-size:9px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--tx3);margin-top:1px}
-.logo-version{font-size:10px;font-weight:600;letter-spacing:0;color:var(--tx4);margin-top:2px;font-variant-numeric:tabular-nums}
+.logo-version{font-size:11px;font-weight:600;letter-spacing:0;color:var(--tx4);margin-top:2px;font-variant-numeric:tabular-nums}
 .topbar-center{display:flex;align-items:center;gap:6px}
 .topbar-right{display:flex;align-items:center;gap:10px}
 .upd-time{font-size:10px;color:var(--tx3);text-align:right}
@@ -1032,7 +1034,7 @@ input::placeholder,textarea::placeholder,select::placeholder{color:var(--tx4);op
   .mkt-bar{display:none}
 }
 </style>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2" integrity="sha384-WgXwGL6fUsYJWNaKJgVbrJKGRQwc1vieh2oy4kw9nXqpNDz3tdSsqEYUgeHD/NuF" crossorigin="anonymous"></script>
 </head>
 <body>
 
@@ -1043,7 +1045,7 @@ input::placeholder,textarea::placeholder,select::placeholder{color:var(--tx4);op
     <div>
       <div class="logo-name">MRP Portfolio</div>
       <div class="logo-sub" id="logoSub">Investment Tracker</div>
-      <div class="logo-version" title="Versión de la aplicación">v2026-10-08.2</div>
+      <div class="logo-version" title="Versión de la aplicación">v2026-10-16.1</div>
     </div>
   </div>
   <div class="topbar-right">
@@ -2933,13 +2935,14 @@ const PALETTE = ['#7c3aed','#0891b2','#10b981','#f59e0b','#f43f5e','#ec4899','#8
 // STATE
 // ═══════════════════════════════════════════
 const SCHEMA_VERSION = 'position-v3';
-const APP_RELEASE = '2026-10-08.2';
+const APP_RELEASE = '2026-10-16.1';
 const PUBLIC_APP_URL = 'https://criptoscrazy.github.io/mrp-portfolio-finance/';
 const SKEY = 'mrp_portfolio_v3';
 const LEGACY_SKEY = 'mrp_portfolio_v2';
 const V3_MIGRATION_BACKUP_KEY = 'mrp_portfolio_v2_pre_position_v3';
 const V3_MIGRATION_DONE_KEY = 'mrp_position_v3_migrated';
 const PORTFOLIO_TABLE = 'portfolio_data_v3';
+let loadedPortfolioOwner=null;
 let releaseCheckInFlight = false;
 
 function releaseFromHtml(html) {
@@ -3051,6 +3054,46 @@ function isPlainRecord(value) {
   return proto === Object.prototype || proto === null;
 }
 
+function validCalendarDate(value) {
+  if(typeof value!=='string'||!/^\d{4}-\d{2}-\d{2}(?:T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2}))?$/.test(value))return false;
+  const day=value.slice(0,10),date=new Date(day+'T00:00:00Z');
+  return Number.isFinite(date.getTime())&&date.toISOString().slice(0,10)===day&&Number.isFinite(Date.parse(value));
+}
+function validPortfolioSemantics(state) {
+  const numericDomain=['qty','nominal','buy','buyPct','openCost','avgBuy','capital','price','entry','comm','commission'];
+  const collections=[...(PORTFOLIO_ARRAY_KEYS.map(key=>[key,state[key]||[]])),...TRADING_ARRAY_KEYS.map(key=>['trading.'+key,state.trading?.[key]||[]])];
+  const positionIds=new Set();
+  for(const [collection,records] of collections){
+    const ids=new Set();
+    for(const record of records){
+      if(record.id!=null){if(!String(record.id)||ids.has(String(record.id)))return false;ids.add(String(record.id));}
+      for(const key of ['date','addedDate','expiry'])if(record[key]!=null&&record[key]!==''&&!validCalendarDate(record[key]))return false;
+      for(const key of numericDomain)if(record[key]!=null&&record[key]!==''&&Number(record[key])<0)return false;
+      if(['stocks','crypto','otros'].includes(collection)){
+        for(const key of ['quantityDecimal','totalCostDecimal','unitPriceDecimal','ratioDecimal'])if(record[key]!=null&&(dec(record[key])==null||decCmp(record[key],'0')<0))return false;
+        if(record.type==='cedeaar'&&record.ratioDecimal!=null&&!decPositive(record.ratioDecimal))return false;
+        if(record.positionId&&record.type!=='cedeaar'){if(positionIds.has(record.positionId))return false;positionIds.add(record.positionId);}
+      }
+      if(record.qtyBefore!=null&&Number(record.qtyBefore)<0||record.qtyAfter!=null&&Number(record.qtyAfter)<0)return false;
+    }
+  }
+  const assets=[...(state.stocks||[]),...(state.crypto||[]),...(state.otros||[])];
+  const positions=new Set(assets.map(a=>a.positionId).filter(Boolean));
+  const lots=new Set((state.otros||[]).filter(a=>a.type==='cedeaar').map(a=>a.id));
+  for(const expense of state.cedearExpenses||[])if(expense.lotId&&!lots.has(expense.lotId))return false;
+  for(const sale of state.cedearSales||[])if(sale.lotId&&!lots.has(sale.lotId))return false;
+  if(state.schemaVersion===SCHEMA_VERSION&&assets.every(a=>a.positionId)){
+    for(const operation of state.hist||[])if(operation.positionId&&!operation.legacy&&operation.operationStatus==='confirmed'&&operation.assetType!=='liquidity'&&!positions.has(operation.positionId))return false;
+  }
+  for(const asset of assets){
+    if(asset.type==='cedeaar'||asset.costUnknown||asset.openCost==null||asset.avgBuy==null)continue;
+    const qty=Number(asset.nominal??asset.qty),expected=qty*Number(asset.avgBuy)/(asset.type==='bono'?100:1);
+    if(Number.isFinite(expected)&&Math.abs(Number(asset.openCost)-expected)>Math.max(1e-6,Math.abs(expected)*1e-8))return false;
+  }
+  for(const records of Object.values(state.aSnaps||{}))for(const record of records)if(record.date&&!validCalendarDate(record.date))return false;
+  return true;
+}
+
 function isValidStateRecord(record) {
   if (!isPlainRecord(record)) return false;
   return Object.entries(record).every(([key, value]) => {
@@ -3098,7 +3141,7 @@ function validatePortfolioStateShape(value, { requireCoreArrays = false } = {}) 
   }
 
   if (value.selAsset != null && !isValidStateRecord(value.selAsset)) return false;
-  return true;
+  return validPortfolioSemantics(value);
 }
 
 // Treat every persisted/imported string as untrusted. Most views below use
@@ -3358,29 +3401,52 @@ function migratePortfolioV2ToV3(input, { dryRun = false } = {}) {
   return { state, report };
 }
 
-function save(silent = true, { scheduleSync = true, timestamp = null, markChanged = true } = {}) {
-  if(liquidityTransactionDepth)return true;
-  try {
-    const sanitizedState = sanitizePortfolioState(ST);
-    if (!validatePortfolioStateShape(sanitizedState)) {
-      throw new Error('Portfolio state failed structural validation');
-    }
-    ST = sanitizedState;
-    localStorage.setItem(SKEY, JSON.stringify(ST));
-    // Market quotes are derived/cache data. Persisting them locally must not make
-    // the sync engine believe that the user edited the portfolio.
-    if (markChanged) {
-      localStorage.setItem('mrp_last_local_change', timestamp || new Date().toISOString());
-    }
-    if (scheduleSync) scheduleCloudSync();
-    if (!silent) showToast(t('toastSaved'));
+function writeStorageAtomically(updates) {
+  const previous=new Map(Object.keys(updates).map(key=>[key,localStorage.getItem(key)]));
+  try {for(const [key,value] of Object.entries(updates))value==null?localStorage.removeItem(key):localStorage.setItem(key,value);}
+  catch(error){
+    try{for(const [key,value] of previous)if(localStorage.getItem(key)!==value)value==null?localStorage.removeItem(key):localStorage.setItem(key,value);}
+    catch(rollbackError){window._mrpInvalidLocalState=true;console.error('Storage recovery requires a backup',rollbackError);}
+    throw error;
+  }
+}
+function save(silent = true, {scheduleSync=true,timestamp=null,markChanged=true,storageUpdates={},allowRecovery=false} = {}) {
+  if(liquidityTransactionDepth){
+    if(!validatePortfolioStateShape(ST))throw new Error('La cartera contiene cantidades, fechas o registros inválidos.');
+    ST=sanitizePortfolioState(ST);
+    if(!validatePortfolioStateShape(ST))throw new Error('La cartera no supera la validación.');
     return true;
   }
-  catch(e) {
-    console.error('Local save error:', e);
-    showToast(t('toastSaved') + ' — error', 'err');
-    return false;
+  try {
+    assertOwnerStorageCurrent();
+    if(window._mrpInvalidLocalState&&!allowRecovery)throw new Error('Restaurá un backup válido antes de guardar cambios.');
+    if(!validatePortfolioStateShape(ST))throw new Error('La cartera contiene cantidades, fechas o registros inválidos.');
+    const next=sanitizePortfolioState(ST);
+    if(!validatePortfolioStateShape(next))throw new Error('La cartera no supera la validación.');
+    const updates={...storageUpdates,[SKEY]:JSON.stringify(next)};
+    if(markChanged)updates.mrp_last_local_change=timestamp||new Date().toISOString();
+    writeStorageAtomically(updates);
+    ST=next;
+    if(scheduleSync)scheduleCloudSync();
+    if(!silent)showToast(t('toastSaved'));
+    return true;
+  }catch(error){console.error('Local save error:',error);showToast(error.message||'No se pudo guardar.','err',5000);return false;}
+}
+function replacePortfolioState(next,{timestamp=null,scheduleSync=false,metadata={}}={}) {
+  if(!validatePortfolioStateShape(next))throw new Error('La cartera recibida contiene datos inválidos.');
+  const before=ST;
+  ST=upgradeCedearState(sanitizePortfolioState({...emptyPortfolioState(),...next}));
+  if(!save(true,{scheduleSync:false,timestamp,storageUpdates:{[V3_MIGRATION_DONE_KEY]:'true',...metadata},allowRecovery:true})){
+    ST=before;throw new Error('No se pudo guardar. Tus datos anteriores se conservaron.');
   }
+  window._mrpInvalidLocalState=false;
+  if(metadata[PORTFOLIO_OWNER_KEY])loadedPortfolioOwner=metadata[PORTFOLIO_OWNER_KEY];
+  if(scheduleSync)scheduleCloudSync();
+}
+function acceptCloudPortfolio(data,updatedAt) {
+  const metadata=syncUser?{mrp_cloud_revision:JSON.stringify({userId:syncUser.id,updatedAt:updatedAt||null})}:{};
+  replacePortfolioState(data,{timestamp:updatedAt,metadata});
+  cloudSyncPending=false;
 }
 
 function needsCedearMigration(state) {
@@ -3436,6 +3502,7 @@ function exportCedearMigrationBackup() {
 }
 
 function loadState() {
+  loadedPortfolioOwner=localStorage.getItem(PORTFOLIO_OWNER_KEY)||'local';
   try {
     const raw = localStorage.getItem(SKEY);
     if (raw) {
@@ -3542,9 +3609,7 @@ function importData(e) {
         ? {state:upgradeCedearState(importedState),report:{alreadyMigrated:true,errors:[]}}
         : migratePortfolioV2ToV3(importedState);
       if(migration.report.errors?.length)throw new Error(migration.report.errors.join('. '));
-      ST = migration.state;
-      localStorage.setItem(V3_MIGRATION_DONE_KEY,'true');
-      save(true);
+      replacePortfolioState(migration.state,{scheduleSync:true});
       renderAll();
       showToast(t('toastImported'));
     } catch(err) {
@@ -3614,13 +3679,14 @@ let csvPendingOps = [];
 let csvFilterSym = 'all';
 
 function showImportPreview(ops, filename) {
+  document.getElementById('csvModal')?.remove();
   const symbols = [...new Set(ops.map(o => o.sym))].sort();
   const modal = document.createElement('div');
   modal.id = 'csvModal';
   modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:900;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px)';
   
   const symOpts = ['all', ...symbols].map(s => 
-    `<option value="${s}">${s === 'all' ? (LANG === 'en' ? 'All symbols' : 'Todos los símbolos') : s}</option>`
+    `<option value="${escapeHTML(s)}">${s === 'all' ? (LANG === 'en' ? 'All symbols' : 'Todos los símbolos') : escapeHTML(s)}</option>`
   ).join('');
 
   modal.innerHTML = `
@@ -3631,7 +3697,7 @@ function showImportPreview(ops, filename) {
             <i class="ti ti-file-import" style="color:var(--cv3)"></i>
             ${LANG === 'en' ? 'Import preview' : 'Vista previa de importación'}
           </div>
-          <div style="font-size:10px;color:var(--tx3);margin-top:3px">${filename} · ${ops.length} ${LANG === 'en' ? 'operations found' : 'operaciones encontradas'}</div>
+          <div style="font-size:10px;color:var(--tx3);margin-top:3px">${escapeHTML(filename)} · ${ops.length} ${LANG === 'en' ? 'operations found' : 'operaciones encontradas'}</div>
         </div>
         <button onclick="document.getElementById('csvModal').remove()" style="background:transparent;border:none;color:var(--tx3);font-size:20px;cursor:pointer"><i class="ti ti-x"></i></button>
       </div>
@@ -3692,15 +3758,16 @@ function csvFilterChange() {
   const tb = $('csvPreviewTb');
   if (!tb) return;
   tb.innerHTML = filtered.slice(0, 100).map(o => {
-    const isDup = !!ST.hist.find(h => h.sym === o.sym && Math.abs(h.qty - o.qty) < 0.000001 && h.date === o.date);
+    const status = csvImportStatus(o).status;
+    const isDup = status === 'duplicate';
     const statusPill = isDup
       ? `<span class="pill pill-y">${LANG === 'en' ? 'Duplicate' : 'Duplicado'}</span>`
-      : `<span class="pill pill-g">${LANG === 'en' ? 'New' : 'Nuevo'}</span>`;
+      : status === 'review' ? `<span class="pill pill-y">${LANG === 'en' ? 'Needs review' : 'Requiere revisión'}</span>` : `<span class="pill pill-g">${LANG === 'en' ? 'New' : 'Nuevo'}</span>`;
     return `<tr style="${isDup ? 'opacity:.5' : ''}">
-      <td style="padding:7px 10px;border-bottom:1px solid var(--br);color:var(--tx2);font-size:10px">${o.date}</td>
-      <td style="padding:7px 10px;border-bottom:1px solid var(--br)"><span class="pill ${o.type === 'COMPRA' ? 'pill-g' : 'pill-r'}">${o.type}</span></td>
-      <td style="padding:7px 10px;border-bottom:1px solid var(--br);font-weight:700;color:var(--cv3)">${o.sym}</td>
-      <td style="padding:7px 10px;border-bottom:1px solid var(--br);font-variant-numeric:tabular-nums">${o.qty}</td>
+      <td style="padding:7px 10px;border-bottom:1px solid var(--br);color:var(--tx2);font-size:10px">${escapeHTML(o.date)}</td>
+      <td style="padding:7px 10px;border-bottom:1px solid var(--br)"><span class="pill ${o.type === 'COMPRA' ? 'pill-g' : 'pill-r'}">${escapeHTML(o.type)}</span></td>
+      <td style="padding:7px 10px;border-bottom:1px solid var(--br);font-weight:700;color:var(--cv3)">${escapeHTML(o.sym)}</td>
+      <td style="padding:7px 10px;border-bottom:1px solid var(--br);font-variant-numeric:tabular-nums">${escapeHTML(o.qty)}</td>
       <td style="padding:7px 10px;border-bottom:1px solid var(--br);font-variant-numeric:tabular-nums">${o.price ? fmt(o.price) : '—'}</td>
       <td style="padding:7px 10px;border-bottom:1px solid var(--br);color:var(--tx3)">${o.comm ? fmt(o.comm) : '—'}</td>
       <td style="padding:7px 10px;border-bottom:1px solid var(--br)">${statusPill}</td>
@@ -3715,6 +3782,7 @@ function resolveImportedPosition(operation) {
   let candidates=Object.entries(standardPositionCollections()).flatMap(([scope,items])=>
     items.filter(item=>item.sym===operation.sym&&!positionIsClosed(item,scope)).map(asset=>({scope,asset}))
   );
+  if(operation.custodian)candidates=candidates.filter(item=>normalizedPositionPart(positionCustodian(item.asset,item.scope))===normalizedPositionPart(operation.custodian));
   if(String(operation.notes||'').toLowerCase().includes('binance')){
     const binance=candidates.filter(item=>item.scope==='crypto'&&String(item.asset.wallet||'').toLowerCase().includes('binance'));
     if(binance.length)candidates=binance;
@@ -3722,94 +3790,124 @@ function resolveImportedPosition(operation) {
   return candidates.length===1?candidates[0]:null;
 }
 
+function csvOperationKey(operation, target) {
+  return JSON.stringify([operation.type, operation.sym, operation.date, Number(operation.qty), Number(operation.price), Number(operation.comm)||0,
+    target?.asset?.positionId || operation.positionId || '', target?.scope || operation.assetType || '', target ? positionCustodian(target.asset,target.scope) : operation.custodian || '']);
+}
+function csvImportStatus(operation) {
+  const target=resolveImportedPosition(operation);
+  const importId=operation.importId || csvOperationKey(operation,target);
+  if ((ST.hist||[]).some(h=>h.operationSource==='csv' && h.brokerTradeId===importId)) return {status:'duplicate',target,importId};
+  if(!target || !['COMPRA','VENTA'].includes(operation.type) || !validCalendarDate(operation.date) || operation.qty<=0 || operation.price<=0 || !Number.isFinite(operation.qty*operation.price)) return {status:'review',target,importId};
+  const match=(ST.hist||[]).some(h=>!(h.operationSource==='csv' && h.brokerTradeId && h.brokerTradeId.slice(0,h.brokerTradeId.lastIndexOf(':'))===importId.slice(0,importId.lastIndexOf(':'))) && h.positionId===target.asset.positionId && h.type===operation.type && h.sym===operation.sym && h.date===operation.date && Number(h.qty)===Number(operation.qty) && Number(h.executionPrice??h.price)===Number(operation.price) && Number(h.commission??h.comm??0)===Number(operation.comm||0));
+  // A different source may contain the same execution. Never silently discard it or apply it twice.
+  if(match)return {status:'review',target,importId};
+  return {status:'new',target,importId};
+}
 function confirmCSVImport() {
-  const symF = $('csvSymFilter')?.value || 'all';
-  const typeF = $('csvTypeFilter')?.value || 'all';
-  const toImport = csvPendingOps.filter(o =>
-    (symF === 'all' || o.sym === symF) &&
-    (typeF === 'all' || o.type === typeF)
-  );
-  let added = 0, skipped = 0, ambiguous = 0;
-  toImport.forEach(o => {
-    const isDup = !!ST.hist.find(h => h.sym === o.sym && Math.abs(h.qty - o.qty) < 0.000001 && h.date === o.date && Math.abs(Number(h.price)-Number(o.price))<0.000001);
-    if (isDup) { skipped++; return; }
-    const target=resolveImportedPosition(o);
-    if(!target||!Number(o.price)){ambiguous++;return;}
-    try{applyPositionOperation(target.asset,target.scope,o.type,{qty:o.qty,price:o.price,comm:o.comm||0,date:o.date,notes:o.notes||'Importación CSV'});added++;}
-    catch(_){skipped++;}
-  });
-  ST.hist.sort((a, b) => b.date.localeCompare(a.date));
-  save(); renderHist();
-  $('csvModal')?.remove();
-  $('csvPreview').innerHTML = `<div style="font-size:11px;color:var(--cg2);margin-top:8px"><i class="ti ti-check"></i> ${added} importados · ${skipped} duplicados o inválidos · ${ambiguous} sin posición única</div>`;
-  showToast(`${added} operaciones importadas · ${ambiguous} requieren revisión`, added > 0 ? 'ok' : 'warn', 5000);
-}
-
-function processCSV(file) {
-  const isBinanceXLSX = file.name.toLowerCase().includes('.xlsx') || file.name.toLowerCase().includes('.xls') || file.name.toLowerCase().includes('binance');
-  if (isBinanceXLSX || file.type.includes('sheet') || file.name.endsWith('.xlsx')) {
-    showToast(LANG === 'en' ? 'Processing Binance file...' : 'Procesando archivo Binance...', 'ok', 3000);
-    parseBinanceXLSX(file);
-    return;
-  }
-  // Generic CSV
-  const reader = new FileReader();
-  reader.onload = ev => {
-    const text = ev.target.result;
-    const lines = text.split('\n').filter(l => l.trim());
-    if (lines.length < 2) { showToast(LANG === 'en' ? 'Empty or invalid file' : 'Archivo vacío o inválido', 'err'); return; }
-    const raw = lines[0];
-    const sep = raw.includes(';') ? ';' : ',';
-    const headers = raw.split(sep).map(h => h.trim().toLowerCase().replace(/['"]/g,''));
-    const findCol = (...keys) => { for (const k of keys) { const i = headers.findIndex(h => h.includes(k)); if (i >= 0) return i; } return -1; };
-    const colDate  = findCol('date','fecha','time','fecha');
-    const colType  = findCol('type','tipo','side','operation','lado');
-    const colSym   = findCol('coin','symbol','asset','ticker','símbolo','par');
-    const colQty   = findCol('qty','quantity','amount','cantidad','filled','ejecutado');
-    const colPrice = findCol('price','precio','average','unit');
-    const colComm  = findCol('fee','commission','comision','comisión','tarifa');
-    if (colSym < 0 || colQty < 0) { showToast(LANG === 'en' ? 'Could not detect columns' : 'No se detectaron columnas', 'warn', 4000); return; }
-    csvPendingOps = [];
-    lines.slice(1).forEach(line => {
-      const cols = line.split(sep).map(c => c.trim().replace(/['"]/g,''));
-      if (cols.length < 3) return;
-      const rawSym = (cols[colSym] || '').toUpperCase();
-      const sym = extractBaseSym(rawSym.replace(/USDT?$|BUSD$/,'') || rawSym);
-      const { qty } = parseBinanceValue(cols[colQty] || '');
-      const price = colPrice >= 0 ? parseFloat(cols[colPrice] || 0) : 0;
-      const comm  = colComm  >= 0 ? parseFloat(String(cols[colComm]).replace(/[^\d.]/g,'')) : 0;
-      const date  = colDate  >= 0 ? (cols[colDate] || '').split(' ')[0] : today();
-      const rawType = colType >= 0 ? cols[colType].toUpperCase() : 'BUY';
-      const type = (rawType.includes('BUY') || rawType.includes('COMPRA')) ? 'COMPRA' : 'VENTA';
-      if (!sym || !qty || sym.length > 10) return;
-      csvPendingOps.push({ date, type, sym, qty, price, comm, notes: 'CSV import' });
-    });
-    showImportPreview(csvPendingOps, file.name);
-  };
-  reader.readAsText(file);
-}
-
-async function parseBinanceXLSX(file) {
-  // Use SheetJS via CDN
-  if (!window.XLSX) {
-    const script = document.createElement('script');
-    script.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
-    script.onload = () => doParseBinanceXLSX(file);
-    document.head.appendChild(script);
-  } else {
-    doParseBinanceXLSX(file);
-  }
-}
-
-function doParseBinanceXLSX(file) {
-  const reader = new FileReader();
-  reader.onload = ev => {
+  const symF=$('csvSymFilter')?.value||'all',typeF=$('csvTypeFilter')?.value||'all';
+  const selected=csvPendingOps.filter(o=>(symF==='all'||o.sym===symF)&&(typeF==='all'||o.type===typeF));
+  let added=0,skipped=0,ambiguous=0;
+  // Distinct rows remain distinct, including identical legitimate executions in one file.
+  selected.forEach((o,index)=>{
+    if(!o.importId)o={...o,importId:'preview:'+csvOperationKey(o,resolveImportedPosition(o))+':'+index};
+    const decision=csvImportStatus(o);
+    if(decision.status==='duplicate'){skipped++;return;}
+    if(decision.status==='review'){ambiguous++;return;}
     try {
-      const data = new Uint8Array(ev.target.result);
-      const wb = XLSX.read(data, { type:'array' });
-      const ws = wb.Sheets[wb.SheetNames[0]];
-      const rows = XLSX.utils.sheet_to_json(ws, { header:1, defval:null });
-      
+      applyPositionOperation(decision.target.asset,decision.target.scope,o.type,{qty:o.qty,price:o.price,comm:o.comm||0,feeStatus:o.feeStatus,date:o.date,notes:o.notes||'Importación CSV',operationSource:'csv',brokerTradeId:decision.importId,externalSource:o.externalSource||'CSV'});
+      added++;
+    } catch(error) { ambiguous++; }
+  });
+  ST.hist.sort((a,b)=>b.date.localeCompare(a.date));
+  save();renderAll();
+  $('csvModal')?.remove();
+  $('csvPreview').textContent=`${added} importados · ${skipped} ya importados · ${ambiguous} requieren revisión`;
+  showToast(`${added} operaciones importadas · ${ambiguous} requieren revisión`,ambiguous?'warn':'ok',5000);
+}
+
+function parseCSVRows(text,separator) {
+  const rows=[];let row=[],field='',quoted=false;
+  for(let i=0;i<text.length;i++){
+    const c=text[i];
+    if(c==='"'){if(quoted&&text[i+1]==='"'){field+='"';i++;}else if(quoted||field==='')quoted=!quoted;else throw new Error('Comillas CSV inválidas.');}
+    else if(c===separator&&!quoted){row.push(field);field='';}
+    else if((c==='\n'||c==='\r')&&!quoted){if(c==='\r'&&text[i+1]==='\n')i++;row.push(field);if(row.some(v=>v.trim()))rows.push(row);row=[];field='';}
+    else field+=c;
+    if(field.length>5000||row.length>100||rows.length>10001)throw new Error('El CSV supera los límites de tamaño o filas.');
+  }
+  if(quoted)throw new Error('El CSV tiene un campo sin cerrar.');
+  row.push(field);if(row.some(v=>v.trim()))rows.push(row);
+  if(rows.length>10001)throw new Error('El CSV supera las 10.000 operaciones.');
+  return rows;
+}
+function processCSV(file) {
+  if(file.size>5*1024*1024){showToast('El archivo supera el límite de 5 MB.','err');return;}
+  if(/\.xlsx?$/i.test(file.name)||file.type.includes('sheet')){parseBinanceXLSX(file);return;}
+  const reader=new FileReader();
+  reader.onload=async ev=>{
+    try{
+      const text=String(ev.target.result).replace(/^\uFEFF/,'');
+      const firstLine=text.split(/\r?\n/,1)[0];
+      const separator=firstLine.includes(';')?';':',';
+      const rows=parseCSVRows(text,separator),fingerprint=await importFingerprint(new TextEncoder().encode(text));
+      if(rows.length<2)throw new Error('Archivo vacío o inválido.');
+      const headers=rows[0].map(h=>h.trim().toLowerCase());
+      const normalizedHeader=value=>value.replace(/[^a-z0-9áéíóúñ]/g,'');
+      const column=(...keys)=>{
+        for(const key of keys){const index=headers.findIndex(h=>normalizedHeader(h)===normalizedHeader(key));if(index>=0)return index;}
+        for(const key of keys){const normalized=normalizedHeader(key);if(normalized.length<3)continue;const index=headers.findIndex(h=>normalizedHeader(h).includes(normalized));if(index>=0)return index;}
+        return -1;
+      };
+      const dateColumn=column('date','fecha','time'),typeColumn=column('type','tipo','side','operation','lado');
+      const symColumn=column('coin','symbol','asset','ticker','símbolo','par'),qtyColumn=column('qty','quantity','amount','cantidad','filled','ejecutado');
+      const priceColumn=column('price','precio','average','unit'),feeColumn=column('fee','commission','comision','comisión','tarifa');
+      const brokerColumn=column('custodian','broker','exchange','custodio'),idColumn=column('trade id','tradeid','execution id','executionid');
+      if([dateColumn,typeColumn,symColumn,qtyColumn,priceColumn].some(index=>index<0))throw new Error('El CSV necesita fecha, tipo, símbolo, cantidad y precio.');
+      csvPendingOps=[];let rejected=0;
+      rows.slice(1).forEach((cols,index)=>{
+        const cell=col=>String(cols[col]??'').trim();
+        const sym=extractBaseSym(cell(symColumn).toUpperCase());
+        const qty=parseBinanceValue(cell(qtyColumn)).qty,price=Number(cell(priceColumn)),comm=feeColumn>=0&&cell(feeColumn)!==''?Number(cell(feeColumn)):0;
+        const date=dateColumn>=0?cell(dateColumn).split(' ')[0]:today(),rawType=typeColumn>=0?cell(typeColumn).toUpperCase():'BUY';
+        const type=/^(BUY|COMPRA)$/.test(rawType)?'COMPRA':/^(SELL|VENTA)$/.test(rawType)?'VENTA':null;
+        const custodian=brokerColumn>=0?cell(brokerColumn):'';
+        if(!/^[A-Z0-9.^_-]{1,24}$/.test(sym)||!type||!validCalendarDate(date)||!Number.isFinite(qty)||qty<=0||!Number.isFinite(price)||price<=0||!Number.isFinite(comm)||comm<0){rejected++;return;}
+        const externalId=idColumn>=0?cell(idColumn):'';
+        if(externalId.length>120||custodian.length>100){rejected++;return;}
+        const importId=externalId&&custodian?'execution:'+JSON.stringify([custodian,sym,externalId]):fingerprint+':'+(index+2);
+        csvPendingOps.push({date,type,sym,qty,price,comm,custodian,importId,externalSource:'CSV',notes:'CSV import',feeStatus:feeColumn>=0&&cell(feeColumn)!==''?(comm===0?'confirmed_zero':'recorded'):'not_recorded'});
+      });
+      if(!csvPendingOps.length)throw new Error('No se encontraron operaciones válidas. Revisá fecha, tipo, precio y cantidad.');
+      showImportPreview(csvPendingOps,file.name);
+      if(rejected)showToast(`${rejected} filas inválidas no se cargaron en la vista previa.`,'warn',6000);
+    }catch(error){showToast(error.message||'No se pudo leer el CSV.','err',6000);}
+  };
+  reader.onerror=()=>showToast('No se pudo leer el archivo.','err');reader.readAsText(file);
+}
+
+async function importFingerprint(bytes) {
+  const digest=await crypto.subtle.digest('SHA-256',bytes);
+  return Array.from(new Uint8Array(digest),b=>b.toString(16).padStart(2,'0')).join('');
+}
+async function parseBinanceXLSX(file) {
+  if(file.size>5*1024*1024){showToast('El archivo supera el límite de 5 MB.','err');return;}
+  let worker,timer;
+  try {
+    const data=await file.arrayBuffer(),fingerprint=await importFingerprint(data);
+    worker=new Worker(new URL('assets/xlsx-worker.js',location.href));
+    const rows=await new Promise((resolve,reject)=>{
+      timer=setTimeout(()=>reject(new Error('El libro tardó demasiado en procesarse.')),10000);
+      worker.onmessage=event=>event.data.error?reject(new Error(event.data.error)):resolve(event.data.rows);
+      worker.onerror=()=>reject(new Error('No se pudo iniciar el lector aislado. Abrí la aplicación por HTTPS o usá CSV.'));
+      worker.postMessage(data,[data]);
+    });
+    doParseBinanceXLSX(file,rows,fingerprint);
+  } catch(error) {showToast(error.message||'No se pudo leer el libro.','err',6000);}
+  finally {clearTimeout(timer);worker?.terminate();}
+}
+
+function doParseBinanceXLSX(file,rows,fingerprint) {
       // Find header row (contains "Tiempo" or "Time" or "Par")
       let headerRow = -1;
       for (let i = 0; i < Math.min(rows.length, 15); i++) {
@@ -3859,19 +3957,14 @@ function doParseBinanceXLSX(file) {
         const price = parseFloat(rawPrice) || 0;
         const { qty: feeQty } = parseBinanceValue(rawFee);
         const date = rawDate.split(' ')[0]; // "2026-06-09 20:32:02" → "2026-06-09"
-        const type = (rawSide.includes('BUY') || rawSide.includes('COMPRA')) ? 'COMPRA' : 'VENTA';
+        const type=/^(BUY|COMPRA)$/.test(rawSide)?'COMPRA':/^(SELL|VENTA)$/.test(rawSide)?'VENTA':null;
+        if(!type||!validCalendarDate(date)||price<=0)continue;
 
-        csvPendingOps.push({ date, type, sym, qty, price, comm: feeQty || 0, notes: 'Binance' });
+        csvPendingOps.push({ date, type, sym, qty, price, comm: feeQty || 0, importId:fingerprint+':'+(i+1),externalSource:'Binance XLSX',notes:'Binance' });
       }
 
       if (!csvPendingOps.length) { showToast(LANG === 'en' ? 'No operations found' : 'No se encontraron operaciones', 'warn'); return; }
       showImportPreview(csvPendingOps, file.name);
-    } catch(e) {
-      console.error(e);
-      showToast(LANG === 'en' ? 'Error reading file' : 'Error al leer el archivo', 'err');
-    }
-  };
-  reader.readAsArrayBuffer(file);
 }
 
 // ═══════════════════════════════════════════
@@ -3996,6 +4089,7 @@ function setCryptoMarketPrice(asset, price, changePercent, source, updatedAt = D
 }
 
 async function updatePrices({ automatic = false } = {}) {
+  const generation=syncGeneration;
   const btn = $('btnUpd');
   btn.classList.add('loading');
   $('refIco').classList.add('spin');
@@ -4230,9 +4324,11 @@ async function updatePrices({ automatic = false } = {}) {
   btn.classList.remove('loading');
   $('refIco').classList.remove('spin');
   $('btnTxt').textContent = t('btnUpdate');
+  if(generation!==syncGeneration)return;
   // A manual refresh records today's evolution snapshot. Automatic refreshes
   // only update the local quote cache and never create user-data changes.
   if (!automatic) {
+    try{commitLiquidityMutation(()=>{
     const snapshotSummary=portfolioSummary();
     const snapTotal=snapshotSummary.totalUSD;
     // Una serie de evolución no debe mezclar valores actuales con costes
@@ -4256,10 +4352,9 @@ async function updatePrices({ automatic = false } = {}) {
         if(existing)Object.assign(existing,valuation);else ST.cedearValuations.push(valuation);
       }});
     }
+    });}catch(error){showToast(error.message,'err',6000);return;}
   }
-  save(true, automatic
-    ? { scheduleSync: false, markChanged: false }
-    : { scheduleSync: true, markChanged: true });
+  else if(!save(true,{scheduleSync:false,markChanged:false}))return;
   try { renderAll(); } catch(e) { console.error('renderAll error in updatePrices (non-fatal):', e); }
   updateMarketHours();
   const msg = failed > 0
@@ -4609,6 +4704,7 @@ function consolidateCedears(lots=(ST.otros||[]).filter(item=>item.type==='cedeaa
 }
 
 async function refreshCedearCurrentCCL({manual=false} = {}) {
+  const generation=syncGeneration;
   const sources=[
     {
       url:'https://dolarapi.com/v1/dolares/contadoconliqui',
@@ -4629,6 +4725,8 @@ async function refreshCedearCurrentCCL({manual=false} = {}) {
       if(!decPositive(value))continue;
       const apiDate=new Date(parsed.updatedAt);
       const sourceTimestamp=Number.isFinite(apiDate.getTime())?apiDate.toISOString():new Date().toISOString();
+      if(generation!==syncGeneration)return false;
+      const applyQuote=()=>{
       ST.cedearCurrentCclDecimal=value;
       ST.cedearCurrentCclSource=source.label;
       ST.cedearCurrentCclMethod='CCL venta';
@@ -4636,7 +4734,11 @@ async function refreshCedearCurrentCCL({manual=false} = {}) {
       ST.cedearCurrentCclUpdatedAt=sourceTimestamp;
       ST.cedearCurrentCclSourceTimestamp=sourceTimestamp;
       ST.cedearCurrentCclRetrievedAt=new Date().toISOString();
-      if(manual){save();renderOtros();showToast('CCL actualizado automáticamente desde '+source.label);}
+      };
+      if(manual){
+        try{commitLiquidityMutation(applyQuote);showToast('CCL actualizado automáticamente desde '+source.label);}
+        catch(error){showToast(error.message,'err',6000);return false;}
+      }else applyQuote();
       return true;
     }catch(e){}
   }
@@ -5161,6 +5263,8 @@ function validateLiquidityState(state){
 }
 function commitLiquidityMutation(action){
   if(liquidityTransactionDepth)throw new Error('Hay una operación en curso');
+  assertOwnerStorageCurrent();
+  if(window._mrpInvalidLocalState)throw new Error('Restaurá un backup válido antes de guardar cambios.');
   const before=ST,stored=localStorage.getItem(SKEY),changed=localStorage.getItem('mrp_last_local_change');
   ST=JSON.parse(JSON.stringify(before));liquidityTransactionDepth=1;liquidityDeferredToast=null;
   let result,feedback;
@@ -6340,7 +6444,9 @@ const MARKETS = {
 const US_HOLIDAYS = ['2025-01-01','2025-01-20','2025-02-17','2025-04-18','2025-05-26',
   '2025-06-19','2025-07-04','2025-09-01','2025-11-27','2025-12-25',
   '2026-01-01','2026-01-19','2026-02-16','2026-04-03','2026-05-25',
-  '2026-06-19','2026-07-03','2026-09-07','2026-11-26','2026-12-25'];
+  '2026-06-19','2026-07-03','2026-09-07','2026-11-26','2026-12-25',
+  '2027-01-01','2027-01-18','2027-02-15','2027-03-26','2027-05-31',
+  '2027-06-18','2027-07-05','2027-09-06','2027-11-25','2027-12-24'];
 
 function isUSHoliday(date) {
   const str = date.toISOString().split('T')[0];
@@ -7031,7 +7137,7 @@ function openTradeModal(id) {
       $('tStyle').value=pos.style; $('tEntry').value=pos.entry; $('tQty').value=pos.qty;
       $('tSL').value=pos.sl||''; $('tTP').value=pos.tp||'';
       $('tDate').value=pos.date; $('tExchange').value=pos.exchange||'';
-      $('tStatus').value=pos.status||'open'; $('tPnlReal').value=pos.pnlReal||'';
+      $('tStatus').value=pos.status||'open'; $('tPnlReal').value=pos.pnlReal??'';
       $('tSignal').value=pos.signal||''; $('tNotes').value=pos.notes||'';
     }
   } else {
@@ -7048,12 +7154,14 @@ function saveTrade() {
   const qty = parseFloat($('tQty').value);
   if (!sym || !entry || !qty) { showToast('Completá símbolo, entrada y cantidad', 'warn'); return; }
   const id = $('tradeEditId').value;
+  const rawPnl=$('tPnlReal').value.trim();
+  if($('tStatus').value==='closed' && (rawPnl==='' || !Number.isFinite(Number(rawPnl)))){showToast('Indicá el resultado realizado neto de comisiones; cero debe registrarse expresamente.','warn',5000);return;}
   const pos = {
     id: id || uid(), sym, name:$('tName').value.trim()||sym,
     dir:$('tDir').value, style:$('tStyle').value,
     entry, qty, sl:parseFloat($('tSL').value)||null, tp:parseFloat($('tTP').value)||null,
     date:$('tDate').value, exchange:$('tExchange').value.trim(),
-    status:$('tStatus').value, pnlReal:parseFloat($('tPnlReal').value)||null,
+    status:$('tStatus').value, pnlReal:rawPnl===''?null:Number(rawPnl),
     signal:$('tSignal').value.trim(), notes:$('tNotes').value.trim(),
   };
   if (id) ST.trading.positions = ST.trading.positions.map(p => p.id===id ? pos : p);
@@ -7063,14 +7171,11 @@ function saveTrade() {
 }
 
 function closeTrade(id) {
-  const pos = ST.trading.positions.find(p => p.id===id);
-  if (!pos) return;
-  const curP = [...ST.stocks,...ST.crypto].find(a=>a.sym===pos.sym)?.cur;
-  const pnl = curP ? (pos.dir==='long' ? (curP-pos.entry)*pos.qty : (pos.entry-curP)*pos.qty) : 0;
-  pos.status = 'closed';
-  pos.pnlReal = pnl;
-  save(); renderPositions(); renderTDKPIs();
-  showToast(`${pos.sym} cerrada — P&L: ${fmt(pnl)}`);
+  if(!(ST.trading.positions||[]).some(pos=>pos.id===id))return;
+  openTradeModal(id);
+  $('tStatus').value='closed';
+  $('tPnlReal').value='';
+  showToast('Registrá el resultado realizado neto de comisiones antes de cerrar.','warn',5000);
 }
 
 function removePosition(id) {
@@ -7092,7 +7197,7 @@ function renderPositions() {
     tb.innerHTML = positions.map(p => {
       const curA = [...ST.stocks,...ST.crypto].find(a=>a.sym===p.sym);
       const curP = curA?.cur;
-      const pnl = p.status==='closed' ? (p.pnlReal||0) :
+      const pnl = p.status==='closed' ? (p.pnlReal??null) :
         (curP ? (p.dir==='long'?(curP-p.entry)*p.qty:(p.entry-curP)*p.qty) : null);
       const pnlPct = pnl!=null && p.entry>0 ? pnl/(p.entry*p.qty)*100 : null;
       const risk = p.sl ? Math.abs(p.entry-p.sl)*p.qty : null;
@@ -8853,6 +8958,60 @@ let cloudSyncPending = false;
 let cloudSyncTimer = null;
 let cloudSyncPromise = null;
 
+// The active working slot is owner-tagged; parked portfolios and their recovery metadata
+// are isolated by owner. Signing out restores the independent local-only workspace.
+const PORTFOLIO_OWNER_KEY='mrp_portfolio_owner_v1';
+const OWNER_METADATA_KEYS=['mrp_last_local_change','mrp_last_sync','mrp_cloud_revision','mrp_sync_conflict_backup',V3_MIGRATION_BACKUP_KEY,V3_MIGRATION_DONE_KEY,CEDEAR_MIGRATION_BACKUP_KEY,LIQUIDITY_BACKUP_KEY];
+let syncGeneration=0;
+function currentPortfolioOwner(){return loadedPortfolioOwner??(localStorage.getItem(PORTFOLIO_OWNER_KEY)||'local');}
+function blockExternalPortfolioChange(){
+  window._mrpExternalStateChanged=true;showSyncBlockOverlay();
+  const overlay=$('syncBlockOverlay');
+  const label=overlay?.querySelector('div');if(label)label.textContent='Otra pestaña cambió esta cartera. Recargá para continuar sin sobrescribir sus datos.';
+  if(overlay&&!document.getElementById('reloadPortfolioBtn')){const button=document.createElement('button');button.id='reloadPortfolioBtn';button.className='btn-save';button.textContent='Recargar cartera';button.addEventListener('click',()=>location.reload());overlay.appendChild(button);}
+}
+function assertOwnerStorageCurrent(){
+  if(window._mrpExternalStateChanged || currentPortfolioOwner()!==(localStorage.getItem(PORTFOLIO_OWNER_KEY)||'local')){
+    blockExternalPortfolioChange();throw new Error('Otra pestaña cambió esta cartera. Recargá antes de guardar.');
+  }
+}
+window.addEventListener('storage',event=>{
+  if(event.key!==SKEY&&event.key!==PORTFOLIO_OWNER_KEY&&event.key!==null)return;
+  if(event.key===SKEY&&currentPortfolioOwner()===(localStorage.getItem(PORTFOLIO_OWNER_KEY)||'local')){
+    try{if(event.newValue&&portfolioStatesEqual(ST,JSON.parse(event.newValue)))return;}catch{}
+  }
+  blockExternalPortfolioChange();
+});
+function ownerArchiveKey(owner){return SKEY+'_owner_'+encodeURIComponent(owner);}
+function switchPortfolioOwner(owner,{bindLocal=false}={}) {
+  assertOwnerStorageCurrent();
+  const previousOwner=currentPortfolioOwner();
+  if(previousOwner===owner)return true;
+  if(window._mrpInvalidLocalState)throw new Error('Restaurá un backup válido antes de cambiar de cartera.');
+  const archive={state:ST,metadata:Object.fromEntries(OWNER_METADATA_KEYS.map(key=>[key,localStorage.getItem(key)]))};
+  const raw=localStorage.getItem(ownerArchiveKey(owner));
+  const target=bindLocal?archive:raw?JSON.parse(raw):{state:emptyPortfolioState(),metadata:{}};
+  if(!validatePortfolioStateShape(target.state))throw new Error('La copia de esta cuenta necesita revisión.');
+  const metadata={...Object.fromEntries(OWNER_METADATA_KEYS.map(key=>[key,target.metadata?.[key]??null])),
+    [ownerArchiveKey(previousOwner)]:JSON.stringify(archive),[PORTFOLIO_OWNER_KEY]:owner};
+  replacePortfolioState(target.state,{timestamp:target.metadata?.mrp_last_local_change,metadata});
+  syncGeneration++;clearTimeout(cloudSyncTimer);cloudSyncTimer=null;cloudSyncPending=false;
+  pendingConflict=null;conflictChoice=null;$('conflictModalOverlay')?.classList.remove('open');
+  renderAll();return true;
+}
+function ensurePortfolioOwner(userId) {
+  assertOwnerStorageCurrent();
+  if(!userId)return false;
+  const owner=currentPortfolioOwner();
+  if(owner===userId)return true;
+  const bindLocal=owner==='local'&&hasRealData(ST)&&confirm('Esta cartera es local y todavía no está vinculada a ninguna cuenta. ¿Querés vincularla a la cuenta que acabás de conectar? Si cancelás, se conserva separada y se abre la cartera propia de esa cuenta.');
+  return switchPortfolioOwner(userId,{bindLocal});
+}
+function detachPortfolioOwner() {
+  clearTimeout(cloudSyncTimer);cloudSyncTimer=null;cloudSyncPending=false;
+  if(currentPortfolioOwner()!=='local')switchPortfolioOwner('local');
+}
+
 function readCloudRevision() {
   if(!syncUser)return undefined;
   try {
@@ -8871,7 +9030,7 @@ async function readCloudPortfolio() {
 }
 
 function scheduleCloudSync(delay = 800) {
-  if (!sb || !syncUser || pendingConflict) return;
+  if (!sb || !syncUser || pendingConflict || currentPortfolioOwner()!==syncUser.id) return;
   cloudSyncPending = true;
   clearTimeout(cloudSyncTimer);
   cloudSyncTimer = setTimeout(() => {
@@ -8905,6 +9064,7 @@ function initSupabase() {
         onLoggedIn();
       } else if (event === 'SIGNED_OUT') {
         syncUser = null;
+        try{detachPortfolioOwner();}catch(error){showSyncBlockOverlay();showToast(error.message,'err',6000);}
         updateSyncButton('disconnected');
       }
     });
@@ -8914,6 +9074,8 @@ function initSupabase() {
         showSyncBlockOverlay();
         syncUser = data.session.user;
         onLoggedIn();
+      }else if(currentPortfolioOwner()!=='local'){
+        try{detachPortfolioOwner();}catch(error){showSyncBlockOverlay();showToast(error.message,'err',6000);}
       }
     });
   } catch(e) {
@@ -8930,6 +9092,7 @@ function showSyncBlockOverlay() {
   window._syncBlockSafety = setTimeout(hideSyncBlockOverlay, 10000);
 }
 function hideSyncBlockOverlay() {
+  if(window._mrpExternalStateChanged)return;
   const el = $('syncBlockOverlay');
   if (el) el.style.display = 'none';
   clearTimeout(window._syncBlockSafety);
@@ -8990,8 +9153,11 @@ async function signInWithGitHub() {
 
 async function signOutSync() {
   if (!sb) return;
-  await sb.auth.signOut();
+  if(cloudSyncPromise)await cloudSyncPromise;
+  const result=await sb.auth.signOut();
+  if(result?.error){showToast('No se pudo cerrar la sesión.','err');return;}
   syncUser = null;
+  try{detachPortfolioOwner();}catch(error){showSyncBlockOverlay();showToast(error.message,'err',6000);return;}
   closeSyncModal();
   updateSyncButton('disconnected');
   showToast('Sesión cerrada');
@@ -9021,28 +9187,36 @@ function updateSyncButton(state) {
   }
 }
 
-let loginInProgress = false;
+let loginInProgress = false,loginQueued=false;
 async function onLoggedIn() {
-  if (loginInProgress) return;
+  if (loginInProgress){loginQueued=true;return;}
   loginInProgress = true;
   try {
+    if(cloudSyncPromise)await cloudSyncPromise;
+    if(!ensurePortfolioOwner(syncUser.id))return;
     closeSyncModal();
     updateSyncButton('connected');
     showToast(`Conectado como ${syncUser.user_metadata?.user_name || syncUser.email}`, 'ok', 3000);
     await checkForConflictsAndSync();
+  } catch(error){
+    updateSyncButton('error');showSyncBlockOverlay();showToast(error.message||'No se pudo abrir la cartera de esta cuenta.','err',6000);
   } finally {
     loginInProgress = false;
+    if(loginQueued&&syncUser){loginQueued=false;await onLoggedIn();}
   }
 }
 
 // ── CONFLICT DETECTION ──
 async function checkForConflictsAndSync() {
-  if (!sb || !syncUser || syncCheckInFlight) return;
-  syncCheckInFlight = true;
+  if (!sb || !syncUser) return;
+  if(!ensurePortfolioOwner(syncUser.id))return;
+  const generation=syncGeneration,userId=syncUser.id;
+  if(syncCheckInFlight===generation)return;
+  syncCheckInFlight = generation;
   try {
     const previousRevision=readCloudRevision();
     const data=await readCloudPortfolio();
-    rememberCloudRevision(data?.updated_at);
+    if(generation!==syncGeneration||syncUser?.id!==userId)return;
     const hasLocalData = hasRealData(ST);
     const hasCloudData = data && data.data && hasRealData(data.data);
     const localTimestamp = localStorage.getItem('mrp_last_local_change');
@@ -9051,6 +9225,7 @@ async function checkForConflictsAndSync() {
     const cloudTime = cloudTimestamp ? new Date(cloudTimestamp).getTime() : NaN;
 
     if (!hasCloudData && !hasLocalData) {
+      rememberCloudRevision(data?.updated_at);
       // Nothing anywhere yet — nothing to do
       finishSync('ok');
       return;
@@ -9058,14 +9233,14 @@ async function checkForConflictsAndSync() {
     if (hasCloudData && !hasLocalData) {
       // Only cloud has data -> pull it, nothing to lose locally
       preserveCedearPreMigrationBackup(data.data);
-      ST = upgradeCedearState(sanitizePortfolioState({ ...ST, ...data.data }));
-      save(true, { scheduleSync: false, timestamp: cloudTimestamp });
+      acceptCloudPortfolio(data.data,cloudTimestamp);
       renderAll();
       finishSync('ok');
       showToast('Datos descargados de la nube', 'ok');
       return;
     }
     if (hasLocalData && !hasCloudData) {
+      rememberCloudRevision(data?.updated_at);
       // Only local has data -> push it, nothing to lose in cloud
       await pushToCloud();
       return;
@@ -9073,6 +9248,7 @@ async function checkForConflictsAndSync() {
     // Both have data: matching payloads are already synchronized, even if a
     // timestamp is missing after an upgrade or migration.
     if (portfolioStatesEqual(ST, data.data)) {
+      rememberCloudRevision(data?.updated_at);
       localStorage.setItem(
         'mrp_last_local_change',
         Number.isFinite(cloudTime)
@@ -9103,8 +9279,7 @@ async function checkForConflictsAndSync() {
       } else {
         // Cloud has newer changes than this device — pull
         preserveCedearPreMigrationBackup(data.data);
-        ST = upgradeCedearState(sanitizePortfolioState({ ...ST, ...data.data }));
-        save(true, { scheduleSync: false, timestamp: cloudTimestamp });
+        acceptCloudPortfolio(data.data,cloudTimestamp);
         renderAll();
         finishSync('ok');
         showToast('Se descargó una versión más reciente de la nube', 'ok');
@@ -9117,8 +9292,8 @@ async function checkForConflictsAndSync() {
     console.error('Sync check error:', e);
     updateSyncButton('error');
   } finally {
-    syncCheckInFlight = false;
-    hideSyncBlockOverlay();
+    if(syncCheckInFlight===generation)syncCheckInFlight=false;
+    if(generation===syncGeneration)hideSyncBlockOverlay();
   }
 }
 
@@ -9257,10 +9432,7 @@ async function confirmConflictResolution() {
         throw new Error('Selected cloud state has an invalid structure');
       }
       preserveCedearPreMigrationBackup(pendingConflict.cloud);
-      ST = upgradeCedearState(sanitizePortfolioState({ ...ST, ...pendingConflict.cloud }));
-      rememberCloudRevision(pendingConflict.cloudUpdatedAt);
-      cloudSyncPending=false;
-      save(true, { scheduleSync: false, timestamp: pendingConflict.cloudUpdatedAt });
+      acceptCloudPortfolio(pendingConflict.cloud,pendingConflict.cloudUpdatedAt);
       try { renderAll(); } catch(e) { console.error('renderAll error (non-fatal):', e); }
       finishSync('ok');
       completed = true;
@@ -9281,6 +9453,8 @@ async function confirmConflictResolution() {
 // ── PUSH / PULL ──
 async function pushToCloud({resolveConflict=false}={}) {
   if (!sb || !syncUser) return false;
+  if(!ensurePortfolioOwner(syncUser.id))return false;
+  const generation=syncGeneration,userId=syncUser.id;
   if(pendingConflict&&!resolveConflict)return false;
   cloudSyncPending = true;
   clearTimeout(cloudSyncTimer);
@@ -9293,6 +9467,7 @@ async function pushToCloud({resolveConflict=false}={}) {
     try {
       if(readCloudRevision()===undefined){
         const remote=await readCloudPortfolio();
+        if(generation!==syncGeneration||syncUser?.id!==userId)return false;
         rememberCloudRevision(remote?.updated_at);
         if(remote?.data&&hasRealData(remote.data)&&!portfolioStatesEqual(ST,remote.data)){
           showConflictModal(ST,remote.data,remote.updated_at);
@@ -9300,6 +9475,7 @@ async function pushToCloud({resolveConflict=false}={}) {
         }
       }
       while (cloudSyncPending && sb && syncUser) {
+        if(generation!==syncGeneration||syncUser.id!==userId)return false;
         cloudSyncPending = false;
         const snapshot = sanitizePortfolioState(ST);
         if (!validatePortfolioStateShape(snapshot)) {
@@ -9309,9 +9485,10 @@ async function pushToCloud({resolveConflict=false}={}) {
         const revision=readCloudRevision();
         const ts = new Date(Math.max(Date.now(),(Date.parse(revision)||0)+1)).toISOString();
         const write=revision===null
-          ? sb.from(PORTFOLIO_TABLE).insert({user_id:syncUser.id,data:payload,updated_at:ts})
-          : sb.from(PORTFOLIO_TABLE).update({data:payload,updated_at:ts}).eq('user_id',syncUser.id).eq('updated_at',revision);
+          ? sb.from(PORTFOLIO_TABLE).insert({user_id:userId,data:payload,updated_at:ts})
+          : sb.from(PORTFOLIO_TABLE).update({data:payload,updated_at:ts}).eq('user_id',userId).eq('updated_at',revision);
         const {data:written,error}=await write.select('updated_at').maybeSingle();
+        if(generation!==syncGeneration||syncUser?.id!==userId)return false;
         if(error&&error.code!=='23505')throw error;
         if(error||!written){
           cloudSyncPending=true;
@@ -9354,9 +9531,23 @@ async function manualSync() {
 }
 
 function finishSync(status) {
-  localStorage.setItem('mrp_last_sync', new Date().toISOString());
+  try{localStorage.setItem('mrp_last_sync',new Date().toISOString());}catch(error){console.warn('No se pudo guardar la fecha informativa de sincronización.',error);}
   updateSyncButton(status === 'ok' ? 'connected' : 'error');
 }
+
+// Every synchronous user mutation uses the same durable commit boundary as Liquidity.
+function transactionalMutation(action) {
+  return function(...args){
+    if(liquidityTransactionDepth)return action.apply(this,args);
+    try{return commitLiquidityMutation(()=>action.apply(this,args));}
+    catch(error){showToast(error.message||'No se pudo guardar. La operación fue revertida.','err',6000);return false;}
+  };
+}
+[saveEdit,saveOtroEdit,addIncome,removeIncome,addSnap,addASnap,saveTrade,removePosition,addJournalEntry,removeJournalEntry,toggleCheck,addChecklistItem,removeCheckItem,checkAll,saveDailyContext,saveRiskLimits,addWatchlistItem,removeWatchlistItem,savePsychEntry,addRule,removeRule,saveManifesto,addApyPosition,removeApyPosition,addAlert,removeAlert,saveCedearCurrentCCL,confirmCSVImport] = [saveEdit,saveOtroEdit,addIncome,removeIncome,addSnap,addASnap,saveTrade,removePosition,addJournalEntry,removeJournalEntry,toggleCheck,addChecklistItem,removeCheckItem,checkAll,saveDailyContext,saveRiskLimits,addWatchlistItem,removeWatchlistItem,savePsychEntry,addRule,removeRule,saveManifesto,addApyPosition,removeApyPosition,addAlert,removeAlert,saveCedearCurrentCCL,confirmCSVImport].map(transactionalMutation);
+
+// Defaults contain no user records. They are copied, never merged from the previous account.
+const EMPTY_PORTFOLIO_TEMPLATE=JSON.stringify(ST);
+function emptyPortfolioState(){return JSON.parse(EMPTY_PORTFOLIO_TEMPLATE);}
 
 // ═══════════════════════════════════════════
 // INIT

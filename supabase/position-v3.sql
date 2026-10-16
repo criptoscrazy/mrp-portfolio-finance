@@ -8,12 +8,12 @@ create table if not exists public.portfolio_data_v3 (
   data jsonb not null,
   updated_at timestamptz not null default now(),
   constraint portfolio_data_v3_schema_check
-    check (data ->> 'schemaVersion' = 'position-v3')
+    check ((jsonb_typeof(data) = 'object' and data ->> 'schemaVersion' = 'position-v3') is true)
 );
 
 alter table public.portfolio_data_v3 enable row level security;
 
-revoke all on table public.portfolio_data_v3 from anon;
+revoke all on table public.portfolio_data_v3 from anon, authenticated;
 grant select, insert, update, delete on table public.portfolio_data_v3 to authenticated;
 
 drop policy if exists "Users manage only their own portfolio V3" on public.portfolio_data_v3;

@@ -401,3 +401,53 @@ La función `supabase/functions/portfolio-news/index.js` consulta RSS públicos 
 Se despliega como `portfolio-news` con verificación JWT habilitada. CORS permite el origen publicado `https://criptoscrazy.github.io` y el origen `null` del HTML local; no otorga acceso a datos privados. Si fallan las fuentes, la interfaz lo informa y ofrece enlaces de consulta, sin inventar noticias.
 
 Pruebas enfocadas: `node tests/news-ux.cjs` y `node tests/news-edge.cjs`. Para esta última, instalar `fast-xml-parser@5.11.2` en un directorio temporal y definir `MRP_XML_PARSER_PATH` hacia el paquete; no requiere añadir dependencias a la aplicación.
+
+## Correcciones de auditoría - 2026-10-16.1
+
+La versión `2026-10-16.1` corrige H01-H09. El detalle y las limitaciones están en
+[el informe de cierre](docs/audit-corrections-2026-10-16.md).
+
+- La importación CSV exige fecha, tipo, símbolo, cantidad y precio. Admite
+  campos entrecomillados y cabeceras habituales. La vista previa muestra los
+  datos como texto y señala operaciones que requieren revisión.
+- La deduplicación distingue compras de ventas y filas legítimas repetidas.
+  Usa identificadores de ejecución junto con el custodio cuando constan; en
+  otros casos identifica el fichero y su fila. Coincidencias entre fuentes
+  diferentes se dejan para revisión, sin aplicarlas silenciosamente.
+- Excel usa SheetJS CE 0.20.3 oficial dentro de un Worker aislado, con límites
+  de 5 MB, 10.000 operaciones, 100 columnas y 10 segundos. Hay que distribuir
+  `index.html` junto con `assets/`. Para Excel, abrir por HTTPS o localhost;
+  si el navegador bloquea Workers desde `file://`, usar CSV o la aplicación web.
+- Guardados, restauraciones y descargas de nube deben quedar persistidos antes
+  de anunciar éxito. Una fuente local inválida bloquea nuevas escrituras hasta
+  restaurar un backup válido.
+- La primera conexión pregunta si querés vincular la cartera local a esa cuenta.
+  Cancelar conserva la cartera local separada. Salir de la cuenta la archiva
+  localmente y vuelve al espacio local; no envía sus datos a otra cuenta.
+  Una pestaña antigua exige recargar si otra cambió los datos o el propietario.
+  Los archivos locales de cada propietario ocupan espacio del navegador; no
+  sustituyen al backup JSON exportado.
+- Trading Desk exige el resultado realizado neto de comisiones para cerrar una
+  operación. Un resultado cero se confirma escribiendo `0`; no se estima con
+  una cotización de mercado.
+- La CSP limita orígenes y SRI fija los bytes de Chart.js, Supabase e iconos.
+  Los eventos inline heredados siguen permitidos; una CSP sin `unsafe-inline`
+  requiere una migración adicional de esos eventos. El calendario NYSE incluye
+  los festivos de 2027 según el calendario oficial.
+
+### Verificación de desarrollo
+
+```sh
+npm ci --ignore-scripts
+npx playwright install chromium
+npm test
+```
+
+Son pruebas sintéticas con contextos nuevos de navegador, almacenamiento
+simulado/aislado y PostgreSQL en memoria (PGlite). No necesitan credenciales
+ni registros financieros. `tests/cedear-provider-smoke.cjs` comprueba por
+separado un proveedor público y depende de su disponibilidad.
+
+El workflow `portfolio-tests.yml` ejecuta la batería en cambios y PRs, con
+permisos de solo lectura. Todavía no se ha ejecutado en GitHub si la rama
+permanece únicamente local.

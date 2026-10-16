@@ -1,10 +1,11 @@
 // Public symbols with synthetic holdings in a fresh browser. Cloud is blocked.
 const assert=require('node:assert/strict'),path=require('node:path');
 const {pathToFileURL}=require('node:url');
-const {chromium}=require('/Users/marcos/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright-core');
+const {chromium,browserExecutable}=require('./browser-runtime.cjs');
 const publicMode=process.env.MRP_PUBLIC==='1';
+const expectedRelease=require('node:fs').readFileSync(path.resolve(__dirname,'..','index.html'),'utf8').match(/<meta name="mrp-release" content="([^"]+)"/)[1];
 (async()=>{
-  const browser=await chromium.launch({headless:true,executablePath:'/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'});
+  const browser=await chromium.launch({headless:true,executablePath:browserExecutable()});
   try{
     const page=await browser.newPage({viewport:{width:1440,height:1100}});
     await page.addInitScript(()=>Object.defineProperty(navigator,'onLine',{get:()=>false}));
@@ -27,15 +28,14 @@ const publicMode=process.env.MRP_PUBLIC==='1';
       await updatePrices({automatic:true});
       renderAll();showTab('otros');showOtrosTab('cedeares');
       const summary=portfolioSummary(),review=profitReviewData(summary);
-      return {release:APP_RELEASE,version:document.querySelector('.logo-version').textContent,integrity:before===identity()&&ST.hist.length===0&&ST.cedearValuations.length===0,prices:ST.otros.map(asset=>({symbol:asset.quoteSymbol,price:asset.cur,currency:asset.quoteCurrency,time:asset.priceSourceTimestamp,status:priceStatusFor(asset)})),total:summary.totalUSD,expected:consolidateCedears().reduce((sum,group)=>sum+Number(group.currentValueUSD),0),table:document.querySelector('#cedTb').innerText,reviews:review.rows.map(row=>({sym:row.item.sym,reasons:row.reasons})),weightReliable:review.weightReliable,persisted:JSON.parse(localStorage.getItem(SKEY)).otros.map(asset=>asset.cur)};
+      return {release:APP_RELEASE,version:document.querySelector('.logo-version').textContent,integrity:before===identity()&&ST.hist.length===0&&ST.cedearValuations.length===0,prices:ST.otros.map(asset=>({symbol:asset.quoteSymbol,price:asset.cur,currency:asset.quoteCurrency,time:asset.priceSourceTimestamp,status:priceStatusFor(asset)})),total:summary.totalUSD,expected:consolidateCedears().reduce((sum,group)=>sum+Number(group.currentValueUSD),0),table:document.querySelector('#cedTb').innerText,reviews:review.rows.map(row=>({sym:row.item.sym,reasons:row.reasons})),reviewPositions:review.positions.map(row=>({sym:row.item.sym,currentUSD:row.item.currentUSD,costUSD:row.item.costUSD})),thresholds:profitReviewSettings(),weightReliable:review.weightReliable,persisted:JSON.parse(localStorage.getItem(SKEY)).otros.map(asset=>asset.cur)};
     });
-    assert.equal(result.release,'2026-10-08.2');
+    assert.equal(result.release,expectedRelease);
     assert(result.integrity,'Synthetic holding identity/history changed');
     assert.equal(result.prices.length,3);
     for(const quote of result.prices){assert(quote.symbol.endsWith('.BA'));assert.equal(quote.currency,'ARS');assert(quote.price>100);assert(!['stale','freshness_unknown','pending'].includes(quote.status),'Provider timestamp is not recent: '+JSON.stringify(quote));}
     assert(Math.abs(result.total-result.expected)<0.000001,'Dashboard and CEDEAR table valuations differ');
-    assert(result.reviews.some(row=>row.sym==='AAPL'),'Fresh Apple profit review missing');
-    assert(!result.reviews.some(row=>row.sym==='TSLA'),'Tesla below gain threshold incorrectly flagged');
+    for(const position of result.reviewPositions){const gain=(position.currentUSD-position.costUSD)/position.costUSD*100;assert.equal(result.reviews.some(row=>row.sym===position.sym),gain>=result.thresholds.gainThresholdPct,'Profit review must follow the actual live return for '+position.sym);}
     assert(result.weightReliable,'Concentration remains unreliable after quotes');
     assert.deepEqual(result.persisted,result.prices.map(quote=>quote.price));
     await page.waitForTimeout(350);
