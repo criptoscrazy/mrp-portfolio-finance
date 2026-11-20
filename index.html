@@ -3584,7 +3584,7 @@ function showToast(msg, type = 'ok', dur = 2000) {
 // EXPORT / IMPORT / CLEAR
 // ═══════════════════════════════════════════
 function exportData() {
-  const blob = new Blob([JSON.stringify(ST, null, 2)], { type:'application/json' });
+  const blob = new Blob([JSON.stringify({...ST, marketPeaksBackup:exportMarketPeaks(ST)}, null, 2)], { type:'application/json' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
   a.download = `MRP_Portfolio_backup_${today()}.json`;
@@ -3602,10 +3602,11 @@ function importData(e) {
   const reader = new FileReader();
   reader.onload = ev => {
     try {
-      const parsed = JSON.parse(ev.target.result);
+      const {marketPeaksBackup, ...parsed} = JSON.parse(ev.target.result);
 
       // Validate the complete backup shape before touching the current portfolio.
-      const isValidBackup = validatePortfolioStateShape(parsed, { requireCoreArrays: true });
+      const isValidBackup = validatePortfolioStateShape(parsed, { requireCoreArrays: true }) &&
+        (marketPeaksBackup === undefined || validateMarketPeaksBackup(marketPeaksBackup,parsed));
 
       if (!isValidBackup) {
         showToast('Este archivo no parece ser un backup válido de MRP Portfolio', 'err', 4000);
@@ -3634,7 +3635,9 @@ function importData(e) {
         ? {state:upgradeCedearState(importedState),report:{alreadyMigrated:true,errors:[]}}
         : migratePortfolioV2ToV3(importedState);
       if(migration.report.errors?.length)throw new Error(migration.report.errors.join('. '));
-      replacePortfolioState(migration.state,{scheduleSync:true});
+      const metadata = marketPeaksBackup === undefined ? {} :
+        {[marketPeakStorageKey()]:JSON.stringify(marketPeaksBackup)};
+      replacePortfolioState(migration.state,{scheduleSync:true,metadata});
       renderAll();
       showToast(t('toastImported'));
     } catch(err) {
@@ -4232,25 +4235,24 @@ async function updatePrices({ automatic = false } = {}) {
     return true;
   }
 
-  async function fetchOneStockPrice(a, { etfReaderFallback=false, cedearReaderFallback=false } = {}) {
+  async function fetchOneStockPrice(a, { isCedear=false } = {}) {
     const assignQuote=(price,previousClose,currency,updatedAt,marketState)=>{
       const candidate={sym:a.sym};
       if(!setYahooMarketPrice(candidate,price,previousClose,currency,updatedAt,marketState))return false;
-      if(cedearReaderFallback){
+      if(isCedear){
         if(candidate.quoteCurrency!=='ARS'||!Number.isFinite(Number(updatedAt))||Number(updatedAt)<=0)return false;
         if(a.priceSourceTimestamp&&candidate.priceSourceTimestamp<a.priceSourceTimestamp)return false;
       }
       Object.assign(a,candidate);
       a.quotePriceUnit = typeof currency === 'string' && /^[A-Z0-9]{3,8}$/i.test(currency) ? currency : null;
-      return !cedearReaderFallback||!['stale','freshness_unknown'].includes(priceStatusFor(candidate));
+      return !isCedear||!['stale','freshness_unknown'].includes(priceStatusFor(candidate));
     };
     // Source 1 & 2: Yahoo query1/query2 chart endpoint
     for (const host of ['query1', 'query2']) {
-      for(const route of cedearReaderFallback?['standard','reader']:['standard']){
+      for(const route of ['standard','reader']){
       try {
         const url=`https://${host}.finance.yahoo.com/v8/finance/chart/${a.sym}?interval=1d&range=5d`;
-        const r = route==='reader'?await fetchYahooReaderFallback(url):await fetchWithFallback(url)
-          || (etfReaderFallback ? await fetchYahooReaderFallback(url) : null);
+        const r = route==='reader'?await fetchYahooReaderFallback(url):await fetchWithFallback(url);
         if (r && r.ok) {
           const d = await r.json();
           const m = d?.chart?.result?.[0]?.meta;
@@ -4271,8 +4273,7 @@ async function updatePrices({ automatic = false } = {}) {
     // Source 3: Yahoo Finance v7 quote (different endpoint)
     try {
       const url=`https://query1.finance.yahoo.com/v7/finance/quote?symbols=${a.sym}`;
-      const r = await fetchWithFallback(url)
-        || (etfReaderFallback ? await fetchYahooReaderFallback(url) : null);
+      const r = await fetchWithFallback(url) || await fetchYahooReaderFallback(url);
       if (r && r.ok) {
         const d = await r.json();
         const q = d?.quoteResponse?.result?.[0];
@@ -4288,7 +4289,7 @@ async function updatePrices({ automatic = false } = {}) {
         }
       }
     } catch(e) {}
-    return cedearReaderFallback&&Number.isFinite(a.cur)&&a.cur>0;
+    return isCedear&&Number.isFinite(a.cur)&&a.cur>0;
   }
 
   // Stocks and stock-like assets share the same quote pipeline. CEDEARs use
@@ -4309,10 +4310,9 @@ async function updatePrices({ automatic = false } = {}) {
   const stockResults = await Promise.all([...quoteGroups.entries()].map(async ([symbol, assets]) => {
     const quote = { sym: symbol };
     const etfAsset=assets.find(asset=>asset.type==='etf');
-    const hasEtf=Boolean(etfAsset);
     const hasCedear=assets.some(asset=>asset.type==='cedeaar');
     if(etfAsset)logVwraEtf('símbolo resuelto',{ticker:etfAsset.sym,priceSymbol:symbol});
-    const ok = await fetchOneStockPrice(quote,{etfReaderFallback:hasEtf,cedearReaderFallback:hasCedear});
+    const ok = await fetchOneStockPrice(quote,{isCedear:hasCedear});
     if (ok) {
       assets.forEach(asset => {
         if(hasCedear&&asset.priceSourceTimestamp&&quote.priceSourceTimestamp<asset.priceSourceTimestamp)return;
@@ -5291,10 +5291,32 @@ function collectMarketObservation(observations, asset) {
   observations.set(key,{time,price:Number(asset.cur),source:asset.priceSource});
 }
 function validMarketPeak(peak) {
-  return peak && [peak.price,peak.latestPrice].every(price=>Number.isFinite(price)&&price>0) &&
-    peak.price >= peak.latestPrice && [peak.firstTime,peak.latestTime,peak.maximumTime].every(providerTime) &&
+  return isPlainRecord(peak) && [peak.price,peak.latestPrice].every(price=>Number.isFinite(price)&&price>0) &&
+    peak.price >= peak.latestPrice && [peak.firstTime,peak.latestTime,peak.maximumTime].every(time=>Number.isFinite(time)&&providerTime(time)) &&
     peak.firstTime <= peak.maximumTime && peak.maximumTime <= peak.latestTime &&
-    typeof peak.source === 'string';
+    typeof peak.source === 'string' && peak.source.length>0 && peak.source.length<=80;
+}
+function marketPeakBackupPositions(state) {
+  const assets=[...(state.stocks||[]),...(state.crypto||[]),...(state.otros||[])];
+  return new Set(assets.map(asset=>JSON.stringify([asset.positionId,asset.sym])));
+}
+function isBackupMarketPeak(key, peak, positions) {
+  if (key.length>350 || !validMarketPeak(peak) || Object.keys(peak).length!==6) return false;
+  try {
+    const parts=JSON.parse(key);
+    return Array.isArray(parts) && parts.length===4 && parts.every(part=>typeof part==='string'&&part.length>0) &&
+      JSON.stringify(parts)===key && positions.has(JSON.stringify(parts.slice(0,2))) &&
+      /^[A-Z0-9.^=-]{1,30}$/i.test(parts[2]) && /^[A-Z0-9]{3,8}$/i.test(parts[3]);
+  } catch { return false; }
+}
+function exportMarketPeaks(state) {
+  const positions=marketPeakBackupPositions(state);
+  return Object.fromEntries([...readMarketPeaks()].filter(([key,peak])=>isBackupMarketPeak(key,peak,positions)));
+}
+function validateMarketPeaksBackup(backup,state) {
+  if (!isPlainRecord(backup)) return false;
+  const positions=marketPeakBackupPositions(state);
+  return Object.entries(backup).every(([key,peak])=>isBackupMarketPeak(key,peak,positions));
 }
 function recordMarketPeaks(observations) {
   if (!observations.size) return true;

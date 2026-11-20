@@ -226,6 +226,8 @@ Después de cada revisión mensual:
 
 Para restaurar, usa **Importar backup**, revisa que sea el archivo correcto y confirma el reemplazo. La aplicación acepta archivos de hasta 5 MB, valida la estructura completa antes de sustituir la cartera y neutraliza contenido HTML peligroso antes de renderizar datos importados. Un archivo incompleto o con tipos incompatibles se rechaza sin modificar la cartera actual.
 
+El JSON incluye los máximos observados en ese navegador para las posiciones exportadas. Al importarlo se restauran el precio máximo, su fecha, la fuente y la última observación junto con la cartera. En el uso habitual, el registro de máximos es local a cada navegador. Los archivos anteriores sin esta información siguen siendo compatibles.
+
 ## 13. Borrar todos los datos
 
 La opción **Borrar todo** solicita confirmación.

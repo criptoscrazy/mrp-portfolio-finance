@@ -44,6 +44,12 @@ vm.runInContext(outer.app+String.raw`
   check(drawdown.peak.maximumTime===baseTime&&drawdown.peak.source==='Yahoo Finance','Peak retains original date and provider');
   check(portfolioStatesEqual(ST,initial),'Automatic updates preserve positions, operations, costs and existing histories');
   check(readMarketPeaks().size===2&&positionDrawdown(btc()).currency==='USDT','Native crypto pricing is kept in its own denomination');
+  const backup=exportMarketPeaks(ST);
+  const key=marketPeakKey(stock());
+  check(Object.keys(backup).length===2&&validateMarketPeaksBackup(backup,ST),'Exported maxima match positions and are valid for restore');
+  check(!validateMarketPeaksBackup({[key]:{...backup[key],maximumTime:'0'}},ST),'Restore rejects invalid timestamps');
+  check(!validateMarketPeaksBackup(backup,{...ST,stocks:[]}),'Restore rejects maxima for records outside the imported portfolio');
+  check(!validateMarketPeaksBackup({[key]:{...backup[key],price:42}},ST),'Restore rejects a maximum below the latest observation');
   ST=JSON.parse(localStorage.getItem(SKEY));
   check(positionDrawdown(stock()).percent===-20,'Read persisted results in a fresh state instance');
   check(rankedDrawdowns(portfolioSummary(),20).every(row=>row.alert),'Threshold is inclusive and independent of gain rules');
