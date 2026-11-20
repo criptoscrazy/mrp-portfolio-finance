@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <!-- Legacy inline handlers remain allowed; external script origins and static bytes are restricted. -->
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'self'; object-src 'none'; form-action 'self'; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://s3.tradingview.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net; font-src 'self' data: https://fonts.gstatic.com https://cdn.jsdelivr.net; img-src 'self' data: https:; connect-src 'self' https://dddojedzyrcjqasyomso.supabase.co wss://dddojedzyrcjqasyomso.supabase.co https://query1.finance.yahoo.com https://query2.finance.yahoo.com https://api.coingecko.com https://min-api.cryptocompare.com https://data-api.binance.vision https://api.allorigins.win https://r.jina.ai https://dolarapi.com https://dolarazo.com.ar; frame-src https://www.tradingview.com https://s.tradingview.com https://*.tradingview-widget.com; worker-src 'self'">
-<meta name="mrp-release" content="2026-10-16.1">
+<meta name="mrp-release" content="2026-11-20.1">
 <title>MRP Portfolio</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -589,6 +589,20 @@ input::placeholder,textarea::placeholder,select::placeholder{color:var(--tx4);op
 .liquidity-actions{position:sticky;right:0;background:var(--bg2);white-space:nowrap;z-index:1}
 .liquidity-source{min-width:185px;max-width:240px;overflow-wrap:anywhere}
 .liquidity-fx{margin:20px 0}.liquidity-fx summary{cursor:pointer;font-size:12px;color:var(--tx2)}
+.investment-indicator{margin:12px 0 18px;padding:12px 0;border-block:1px solid var(--br)}
+.investment-indicator h3{font-size:13px;margin:0 0 8px;color:var(--tx1)}
+.investment-indicator summary,.indicator-link{cursor:pointer;color:var(--ct2);font-size:12px}
+.investment-indicator .tbl-wrap{margin-top:8px}
+.investment-indicator th,.investment-indicator td.num{white-space:nowrap}
+.indicator-summary{display:flex;align-items:center;gap:8px 18px;flex-wrap:wrap;color:var(--tx2);font-size:12px}
+.indicator-summary strong{color:var(--tx1);font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.indicator-link{padding:0;background:none;border:0;text-align:left}
+.indicator-missing{opacity:.85;font-size:10px;color:var(--tx2)}
+#dHeroPnl{overflow-wrap:anywhere}
+@media(max-width:600px){
+  .profit-review #riskDrawdowns td:last-child{display:block}
+  .profit-review #riskDrawdowns td:last-child::before{display:block}
+}
 .liquidity-modal{max-width:640px;border-radius:8px}.liquidity-modal h3{font-size:16px;margin-bottom:18px}
 .liquidity-modal .modal-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
 .liquidity-modal .modal-field label,.liquidity-funding label{font-size:10px;letter-spacing:0}
@@ -1045,7 +1059,7 @@ input::placeholder,textarea::placeholder,select::placeholder{color:var(--tx4);op
     <div>
       <div class="logo-name">MRP Portfolio</div>
       <div class="logo-sub" id="logoSub">Investment Tracker</div>
-      <div class="logo-version" title="Versión de la aplicación">v2026-10-16.1</div>
+      <div class="logo-version" title="Versión de la aplicación">v2026-11-20.1</div>
     </div>
   </div>
   <div class="topbar-right">
@@ -1259,6 +1273,7 @@ input::placeholder,textarea::placeholder,select::placeholder{color:var(--tx4);op
 
   <!-- ROW 2: Custodio summary + allocation -->
   <div class="liquidity-totals" id="dashLiquidityTotals"></div>
+  <div class="investment-indicator indicator-summary" id="dashInvestmentIndicators"></div>
   <details class="dash-quality" id="dashQuality">
     <summary><span class="quality-title" id="dQualityTitle">Estado de datos</span><span class="quality-meta" id="dQualitySummary"></span><span class="quality-meta" id="dQualityTime"></span></summary>
     <ul id="dQualityItems"></ul>
@@ -1388,7 +1403,7 @@ input::placeholder,textarea::placeholder,select::placeholder{color:var(--tx4);op
         <thead><tr>
           <th>Símbolo</th><th>Nombre</th><th>Sector</th><th>Cant.</th>
           <th>P. Compra</th><th>P. Prom. DCA</th><th>P. Actual</th><th>24h</th>
-          <th>Capital</th><th>Valor actual</th><th>G/P $</th><th>G/P %</th>
+          <th>Coste abierto</th><th>Valor actual</th><th>G/P no realizada</th><th>Rentab.</th><th>Retroceso</th>
           <th>Stop Loss</th><th>Target</th><th>Broker</th><th>Días</th><th>Notas</th><th>Acc.</th>
         </tr></thead>
         <tbody id="sTb"></tbody>
@@ -1401,6 +1416,11 @@ input::placeholder,textarea::placeholder,select::placeholder{color:var(--tx4);op
 <div class="section" id="tab-liquidity">
   <div class="liquidity-toolbar"><div class="sect-t"><i class="ti ti-wallet"></i> Liquidez</div><button class="btn-add" onclick="openLiquidityAccount()"><i class="ti ti-plus"></i> Nuevo saldo</button></div>
   <div class="liquidity-totals" id="liquidityTotals"></div>
+  <section class="investment-indicator" aria-labelledby="liquidityReserveTitle">
+    <h3 id="liquidityReserveTitle">Reserva de liquidez para inversiones</h3>
+    <div id="liquidityReserveCurrencies" class="tbl-wrap"></div>
+    <details class="liquidity-fx"><summary>Reserva por entidad / cuenta</summary><div id="liquidityReserveAccounts" class="tbl-wrap"></div></details>
+  </section>
   <div class="tbl-wrap"><table class="liquidity-table"><thead><tr><th>Entidad / producto</th><th>Moneda</th><th>Saldo actual</th><th>Disponibilidad</th><th>Valor USD</th><th>Valoración</th><th>Observaciones</th><th>Acciones</th></tr></thead><tbody id="liquidityTb"></tbody></table></div>
   <details class="liquidity-fx"><summary>Tipos de cambio · USD por unidad</summary><div class="liquidity-toolbar"><span id="liquidityFxStatus"></span><button class="btn-snap" onclick="openLiquidityFx()"><i class="ti ti-edit"></i> Registrar cotización</button></div><div class="tbl-wrap"><table><thead><tr><th>Moneda</th><th>USD por unidad</th><th>Fuente</th><th>Fecha de valoración</th><th>Estado</th></tr></thead><tbody id="liquidityFxTb"></tbody></table></div></details>
   <div class="sect-t" style="margin-top:24px"><i class="ti ti-history"></i> Movimientos recientes</div><div class="tbl-wrap"><table><thead><tr><th>Fecha</th><th>Movimiento</th><th>Origen</th><th>Destino</th><th>Importe</th><th>Comisión</th></tr></thead><tbody id="liquidityHistoryTb"></tbody></table></div>
@@ -1440,7 +1460,7 @@ input::placeholder,textarea::placeholder,select::placeholder{color:var(--tx4);op
         <thead><tr>
           <th>Símbolo</th><th>Nombre</th><th>Cant.</th>
           <th>P. Compra</th><th>P. Prom. DCA</th><th>P. Actual</th><th>24h</th>
-          <th>Capital</th><th>Valor actual</th><th>G/P $</th><th>G/P %</th>
+          <th>Coste abierto</th><th>Valor actual</th><th>G/P no realizada</th><th>Rentab.</th><th>Retroceso</th>
           <th>Custodia</th><th>Exchange/Wallet</th><th>Días</th><th>Notas</th><th>Acc.</th>
         </tr></thead>
         <tbody id="cTb"></tbody>
@@ -1690,6 +1710,7 @@ input::placeholder,textarea::placeholder,select::placeholder{color:var(--tx4);op
       <div class="profit-settings-grid">
         <div><label for="profitGainThreshold">Ganancia relevante (%)</label><input id="profitGainThreshold" type="number" min="0.01" step="any" placeholder="Sin definir"></div>
         <div><label for="profitWeightThreshold">Concentración (% de activos invertidos)</label><input id="profitWeightThreshold" type="number" min="0.01" max="100" step="any" placeholder="Sin definir"></div>
+        <div><label for="profitDrawdownThreshold">Alerta de retroceso (%)</label><input id="profitDrawdownThreshold" type="number" min="0.01" max="100" step="any" placeholder="Desactivada"></div>
       </div>
       <div class="profit-settings-checks">
         <label><input id="profitGainEnabled" type="checkbox"> Ganancia relevante</label>
@@ -1701,6 +1722,10 @@ input::placeholder,textarea::placeholder,select::placeholder{color:var(--tx4);op
     </details>
     <div class="profit-review-state" id="profitReviewState" role="status"></div>
     <div class="tbl-wrap"><table><thead><tr><th>Posición / custodio</th><th>Rentabilidad</th><th>G/P no realizada</th><th>% de activos invertidos</th><th>Motivo de revisión</th><th>Prioridad</th><th></th></tr></thead><tbody id="profitReviewTb"></tbody></table></div>
+    <div class="investment-indicator" aria-labelledby="riskDrawdownsTitle">
+      <div class="indicator-summary"><h3 id="riskDrawdownsTitle">Retroceso desde máximo registrado</h3><span>Registro de este navegador</span></div>
+      <div id="riskDrawdowns"></div>
+    </div>
   </section>
   <div class="card card-mb">
     <div class="card-head"><i class="ti ti-list-check" style="color:var(--cv3)"></i> Detalle de exposición y alertas</div>
@@ -1858,7 +1883,7 @@ input::placeholder,textarea::placeholder,select::placeholder{color:var(--tx4);op
   <div class="card" style="padding:0;overflow:hidden">
     <div class="tbl-wrap">
       <table>
-        <thead><tr><th>Fecha</th><th>Tipo</th><th>Símbolo</th><th>Cantidad</th><th>Precio individual</th><th>Comisión</th><th>Total operación</th><th>Custodio</th><th>Estado</th></tr></thead>
+        <thead><tr><th>Fecha</th><th>Tipo</th><th>Símbolo</th><th>Cantidad</th><th>Precio individual</th><th>Comisión</th><th>Total operación</th><th>G/P realizada</th><th>Custodio</th><th>Estado</th></tr></thead>
         <tbody id="hTb"></tbody>
       </table>
     </div>
@@ -2935,7 +2960,7 @@ const PALETTE = ['#7c3aed','#0891b2','#10b981','#f59e0b','#f43f5e','#ec4899','#8
 // STATE
 // ═══════════════════════════════════════════
 const SCHEMA_VERSION = 'position-v3';
-const APP_RELEASE = '2026-10-16.1';
+const APP_RELEASE = '2026-11-20.1';
 const PUBLIC_APP_URL = 'https://criptoscrazy.github.io/mrp-portfolio-finance/';
 const SKEY = 'mrp_portfolio_v3';
 const LEGACY_SKEY = 'mrp_portfolio_v2';
@@ -3034,7 +3059,7 @@ const STRING_STATE_KEYS = new Set([
   'style', 'status', 'exchange', 'signal', 'context', 'error', 'result', 'text',
   'category', 'priority', 'thesis', 'addedDate', 'manifesto', 'dailyContext',
   'etfType', 'index', 'tokType', 'bonType', 'currency', 'cond', 'url', 'link',
-  'image', 'logo', 'priceSource', 'priceUpdatedAt', 'priceSourceTimestamp', 'priceRetrievedAt', 'priceStatus', 'priceMarketState', 'quoteCurrency', 'quoteSymbol'
+  'image', 'logo', 'priceSource', 'priceUpdatedAt', 'priceSourceTimestamp', 'priceRetrievedAt', 'priceStatus', 'priceMarketState', 'quoteCurrency', 'quotePriceUnit', 'quoteSymbol'
   ,'purchaseCurrency','quantityDecimal','ratioDecimal','unitPriceDecimal','grossAmountDecimal',
   'totalCostDecimal','cclAtPurchaseDecimal','mepAtPurchaseDecimal','historicalArsEquivalentDecimal',
   'ticketNumber','informationSource','amountDecimal','lotId','concept','schemaVersion',
@@ -3330,7 +3355,7 @@ function deterministicPositionId(asset, assetType, index = 0) {
 function positionAverage(asset) {
   if(asset?.costUnknown)return null;
   const qty = Number(asset?.qty ?? asset?.nominal);
-  const openCost = Number(asset?.openCost);
+  const openCost = Number(asset?.openCost ?? NaN);
   if (Number.isFinite(qty) && qty > 0 && Number.isFinite(openCost)) {
     const average = openCost / qty;
     return asset?.assetType === 'bono' || asset?.type === 'bono' ? average * 100 : average;
@@ -4069,16 +4094,14 @@ function logVwraEtf(stage, detail={}) {
   console.info('[MRP ETF VWRA]',{stage,...detail});
 }
 
-function setCryptoMarketPrice(asset, price, changePercent, source, updatedAt = Date.now()) {
+function setCryptoMarketPrice(asset, price, changePercent, source, updatedAt) {
   const numericPrice = Number(price);
   const numericChange = Number(changePercent);
   if (!Number.isFinite(numericPrice) || numericPrice <= 0) return false;
-  const timestamp = new Date(updatedAt);
+  const timestamp = providerTime(updatedAt);
   asset.cur = numericPrice;
   asset.ch = Number.isFinite(numericChange) ? numericChange / 100 : null;
-  const sourceTimestamp = Number.isFinite(timestamp.getTime())
-    ? timestamp.toISOString()
-    : new Date().toISOString();
+  const sourceTimestamp = timestamp?.toISOString() || null;
   asset.priceSource = source;
   asset.priceUpdatedAt = sourceTimestamp;
   asset.priceSourceTimestamp = sourceTimestamp;
@@ -4090,6 +4113,7 @@ function setCryptoMarketPrice(asset, price, changePercent, source, updatedAt = D
 
 async function updatePrices({ automatic = false } = {}) {
   const generation=syncGeneration;
+  const observations = new Map();
   const btn = $('btnUpd');
   btn.classList.add('loading');
   $('refIco').classList.add('spin');
@@ -4118,6 +4142,7 @@ async function updatePrices({ automatic = false } = {}) {
             'Binance · USDT',
             d.closeTime
           )) {
+            collectMarketObservation(observations, a);
             cryptoUpdated.add(a);
             updated++;
           }
@@ -4130,7 +4155,7 @@ async function updatePrices({ automatic = false } = {}) {
     if (cgIds.length) {
       try {
         const r = await fetchWithFallback(
-          `https://api.coingecko.com/api/v3/simple/price?ids=${cgIds.join(',')}&vs_currencies=usd&include_24hr_change=true`
+        `https://api.coingecko.com/api/v3/simple/price?ids=${cgIds.join(',')}&vs_currencies=usd&include_24hr_change=true&include_last_updated_at=true`
         );
         if (r && r.ok) {
           const d = await r.json();
@@ -4141,8 +4166,9 @@ async function updatePrices({ automatic = false } = {}) {
               d[id].usd,
               d[id].usd_24h_change,
               'CoinGecko',
-              Date.now()
+              Number(d[id].last_updated_at) * 1000
             )) {
+              collectMarketObservation(observations, a);
               cryptoUpdated.add(a);
               updated++;
             }
@@ -4167,6 +4193,7 @@ async function updatePrices({ automatic = false } = {}) {
             'CryptoCompare',
             Number(info.LASTUPDATE) * 1000
           )) {
+            collectMarketObservation(observations, a);
             cryptoUpdated.add(a);
             updated++;
           }
@@ -4185,10 +4212,9 @@ async function updatePrices({ automatic = false } = {}) {
     asset.ch = Number.isFinite(numericPreviousClose) && numericPreviousClose > 0
       ? (numericPrice - numericPreviousClose) / numericPreviousClose
       : null;
-    const sourceTimestamp = Number.isFinite(Number(updatedAt))
-      ? new Date(Number(updatedAt) * 1000).toISOString()
-      : new Date().toISOString();
-    const ageMs = Math.max(0, Date.now() - new Date(sourceTimestamp).getTime());
+    const timestamp = providerTime(Number(updatedAt) * 1000);
+    const sourceTimestamp = timestamp?.toISOString() || null;
+    const ageMs = timestamp ? Date.now() - timestamp.getTime() : 0;
     const normalizedMarketState = String(marketState || '').toUpperCase();
     asset.priceSource = asset.sym.endsWith('.BA') ? 'Yahoo Finance · BYMA' : 'Yahoo Finance';
     asset.priceUpdatedAt = sourceTimestamp;
@@ -4215,6 +4241,7 @@ async function updatePrices({ automatic = false } = {}) {
         if(a.priceSourceTimestamp&&candidate.priceSourceTimestamp<a.priceSourceTimestamp)return false;
       }
       Object.assign(a,candidate);
+      a.quotePriceUnit = typeof currency === 'string' && /^[A-Z0-9]{3,8}$/i.test(currency) ? currency : null;
       return !cedearReaderFallback||!['stale','freshness_unknown'].includes(priceStatusFor(candidate));
     };
     // Source 1 & 2: Yahoo query1/query2 chart endpoint
@@ -4227,7 +4254,7 @@ async function updatePrices({ automatic = false } = {}) {
         if (r && r.ok) {
           const d = await r.json();
           const m = d?.chart?.result?.[0]?.meta;
-          if (m?.regularMarketPrice && assignQuote(
+          if (m?.regularMarketPrice && (!m.symbol || m.symbol === a.sym) && assignQuote(
             m.regularMarketPrice,
             m.chartPreviousClose ?? m.previousClose,
             m.currency,
@@ -4249,7 +4276,7 @@ async function updatePrices({ automatic = false } = {}) {
       if (r && r.ok) {
         const d = await r.json();
         const q = d?.quoteResponse?.result?.[0];
-        if (q?.regularMarketPrice && assignQuote(
+        if (q?.regularMarketPrice && (!q.symbol || q.symbol === a.sym) && assignQuote(
           q.regularMarketPrice,
           q.regularMarketPreviousClose,
           q.currency,
@@ -4289,8 +4316,9 @@ async function updatePrices({ automatic = false } = {}) {
     if (ok) {
       assets.forEach(asset => {
         if(hasCedear&&asset.priceSourceTimestamp&&quote.priceSourceTimestamp<asset.priceSourceTimestamp)return;
-        ['cur', 'ch', 'lastClose', 'priceSource', 'priceUpdatedAt', 'priceSourceTimestamp', 'priceRetrievedAt', 'priceStatus', 'priceMarketState', 'quoteCurrency', 'quoteSymbol']
+        ['cur', 'ch', 'lastClose', 'priceSource', 'priceUpdatedAt', 'priceSourceTimestamp', 'priceRetrievedAt', 'priceStatus', 'priceMarketState', 'quoteCurrency', 'quotePriceUnit', 'quoteSymbol']
           .forEach(key => { asset[key] = quote[key]; });
+        if (quote.quotePriceUnit) collectMarketObservation(observations, asset);
         if (asset.type === 'etf' && !asset.priceSymbol) asset.priceSymbol = quote.quoteSymbol;
         if(asset.type==='etf'){
           const quantity=Number(asset.qty);
@@ -4355,12 +4383,13 @@ async function updatePrices({ automatic = false } = {}) {
     });}catch(error){showToast(error.message,'err',6000);return;}
   }
   else if(!save(true,{scheduleSync:false,markChanged:false}))return;
+  const peaksSaved = recordMarketPeaks(observations);
   try { renderAll(); } catch(e) { console.error('renderAll error in updatePrices (non-fatal):', e); }
   updateMarketHours();
   const msg = failed > 0
     ? `${updated} ${t('toastUpdated')} · ${failed} sin datos`
     : `${updated} ${t('toastUpdated')}`;
-  if (!automatic) showToast(msg, failed > 0 ? 'warn' : 'ok', 3000);
+  if (!automatic) showToast(peaksSaved?msg:msg+' · No se pudo guardar el historial de máximos.',failed>0||!peaksSaved?'warn':'ok',peaksSaved?3000:4500);
   checkAlerts();
   fetchBenchmarks();
   if($('alertsList')) renderAlerts();
@@ -4814,16 +4843,17 @@ function openAssetDetails(scope, id) {
       { label:'Cantidad', value:Number(asset.qty).toLocaleString('es-AR', { maximumFractionDigits:8 }) },
       { label:'Fecha de compra', value:asset.date },
       { label:'Precio de compra', value:fmt(asset.buy) },
-      { label:'Precio promedio DCA', value:fmt(avgPrice) },
-      { label:'Precio actual', value:asset.cur != null ? fmt(asset.cur) : 'Sin cotización' },
+      { label:'Precio medio de adquisición', value:avgPrice>0?fmt(avgPrice):'Información insuficiente' },
+      { label:'Precio actual', value:asset.cur>0?quoteAmount(Number(asset.cur),marketQuoteUnit(asset)):'Información insuficiente' },
       { label:'Variación 24 h', value:asset.ch != null ? fmtPct(asset.ch * 100) : '—', tone:asset.ch == null ? null : (asset.ch >= 0 ? 'positive' : 'negative') },
-      { label:'Capital invertido', value:fmt(cap) },
-      { label:'Valor actual', value:cur != null ? fmt(cur) : '—' },
-      { label:'Ganancia / pérdida', value:pnl != null ? fmt(pnl) : '—', tone:pnl == null ? null : (pnl >= 0 ? 'positive' : 'negative') },
-      { label:'Rentabilidad', value:pp != null ? fmtPct(pp * 100) : '—', tone:pp == null ? null : (pp >= 0 ? 'positive' : 'negative') },
+      { label:'Coste abierto', value:cap==null?'Información insuficiente':fmt(cap) },
+      { label:'Valor de mercado', value:cur==null?'Información insuficiente':fmt(cur) },
+      { label:'G/P no realizada', value:pnl==null?'Información insuficiente':fmt(pnl), tone:pnl == null ? null : (pnl >= 0 ? 'positive' : 'negative') },
+      { label:'Rentabilidad no realizada', value:pp==null?'Información insuficiente':fmtPct(pp * 100), tone:pp == null ? null : (pp >= 0 ? 'positive' : 'negative') },
       { label:'Antigüedad', value:`${d} días` },
       { label:'Fuente del precio', value:asset.priceSource || '—' },
-      { label:'Cotización actualizada', value:quoteUpdatedLabel(asset) }
+      { label:'Cotización actualizada', value:quoteUpdatedLabel(asset) },
+      ...drawdownDetailFields(asset)
     ];
     if (scope === 'stock') {
       fields.push(
@@ -4845,24 +4875,22 @@ function openAssetDetails(scope, id) {
     const otherTypeNames = { etf:'ETF', cedeaar:'CEDEAR', token:'Acción tokenizada', bono:'Bono' };
     kind = otherTypeNames[asset.type] || 'Otro activo';
     if (asset.type === 'etf' || asset.type === 'token') {
-      const cap = Number.isFinite(Number(asset.openCost)) ? Number(asset.openCost) : Number(asset.qty) * Number(asset.buy);
-      const currentValue = asset.cur != null ? Number(asset.qty) * Number(asset.cur) : null;
-      const pnl = currentValue != null ? currentValue - cap : null;
-      const roi = pnl != null && cap > 0 ? pnl / cap : null;
+      const {cap,cur:currentValue,pnl,pp:roi}=calc(asset);
       fields = [
         { label:'Tipo', value:kind }, { label:'Nombre', value:asset.name },
         { label:'Cantidad', value:Number(asset.qty).toLocaleString('es-AR', { maximumFractionDigits:8 }) },
         { label:'Fecha de compra', value:asset.date },
         { label:'Precio de compra original', value:fmt(asset.buy) },
-        { label:'Precio promedio ponderado', value:fmt(positionAverage(asset)) },
-        { label:'Precio actual', value:asset.cur != null ? fmt(asset.cur) : 'Sin cotización' },
+        { label:'Precio medio de adquisición', value:cap==null?'Información insuficiente':fmt(positionAverage(asset)) },
+        { label:'Precio actual', value:asset.cur>0?quoteAmount(Number(asset.cur),marketQuoteUnit(asset)):'Información insuficiente' },
         { label:'Variación 24 h', value:asset.ch != null ? fmtPct(asset.ch * 100) : '—', tone:asset.ch == null ? null : (asset.ch >= 0 ? 'positive' : 'negative') },
-        { label:'Capital invertido', value:fmt(cap) },
-        { label:'Valor actual', value:currentValue != null ? fmt(currentValue) : '—' },
-        { label:'Ganancia / pérdida', value:pnl != null ? fmt(pnl) : '—', tone:pnl == null ? null : (pnl >= 0 ? 'positive' : 'negative') },
-        { label:'Rentabilidad', value:roi != null ? fmtPct(roi * 100) : '—', tone:roi == null ? null : (roi >= 0 ? 'positive' : 'negative') },
+        { label:'Coste abierto', value:cap==null?'Información insuficiente':fmt(cap) },
+        { label:'Valor de mercado', value:currentValue==null?'Información insuficiente':fmt(currentValue) },
+        { label:'G/P no realizada', value:pnl==null?'Información insuficiente':fmt(pnl), tone:pnl == null ? null : (pnl >= 0 ? 'positive' : 'negative') },
+        { label:'Rentabilidad no realizada', value:roi==null?'Información insuficiente':fmtPct(roi * 100), tone:roi == null ? null : (roi >= 0 ? 'positive' : 'negative') },
         { label:'Fuente del precio', value:asset.priceSource || '—' },
-        { label:'Cotización actualizada', value:quoteUpdatedLabel(asset) }
+        { label:'Cotización actualizada', value:quoteUpdatedLabel(asset) },
+        ...drawdownDetailFields(asset)
       ];
       if (asset.type === 'etf') {
         fields.push(
@@ -5166,10 +5194,8 @@ function selectAsset(a) {
 // CALC HELPERS
 // ═══════════════════════════════════════════
 function calc(a) {
-  const cap = a.costUnknown?null:Number.isFinite(Number(a.openCost)) ? Number(a.openCost) : a.qty * a.buy;
-  const cur = a.cur != null ? a.qty * a.cur : null;
-  const pnl = cur != null && cap!=null ? cur - cap : null;
-  const pp  = (pnl != null && cap > 0) ? pnl / cap : null;
+  const {costUSD:cap,currentUSD:cur,pnlUSD:pnl} = directUSDValuation(a);
+  const pp = pnl == null ? null : pnl / cap;
   const d   = days(a.date, today());
   return { cap, cur, pnl, pp, d };
 }
@@ -5206,7 +5232,9 @@ function isValuationAvailable(item) {
     !['pending','conversion_pending'].includes(item.status);
 }
 function directUSDValuation(asset, assetClass) {
-  const quantity=Number(asset?.qty), cost=asset?.costUnknown?NaN:Number.isFinite(Number(asset?.openCost)) ? Number(asset.openCost) : Number(asset?.qty) * Number(asset?.buy);
+  const quantity=Number(asset?.qty);
+  const openCost=Number(asset?.openCost ?? NaN);
+  const cost=asset?.costUnknown?NaN:Number.isFinite(openCost)?openCost:quantity*positionAverage(asset);
   const status=priceStatusFor(asset);
   const quoteCurrency=String(asset?.quoteCurrency || 'USD').toUpperCase();
   const currentRaw=Number(asset?.cur);
@@ -5221,6 +5249,119 @@ function directUSDValuation(asset, assetClass) {
     retrievedAt:asset.priceRetrievedAt||null, source:asset.priceSource||'', marketState:asset.priceMarketState||''
   };
 }
+
+function providerTime(value) {
+  const ms = Number(value);
+  return Number.isFinite(ms) && ms > 0 && ms <= Date.now() + 5 * 60000 ? new Date(ms) : null;
+}
+
+// The observation log belongs to this browser and portfolio owner, like the quote cache.
+function marketPeakStorageKey() {
+  return 'mrp_market_peaks_v1:' + encodeURIComponent(currentPortfolioOwner());
+}
+function readMarketPeaks() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(marketPeakStorageKey()) || '{}');
+    if (isPlainRecord(saved)) return new Map(Object.entries(saved));
+  } catch (error) {
+    console.warn('Market observation storage unavailable', error);
+  }
+  return new Map();
+}
+function marketQuoteUnit(asset) {
+  if (asset.priceSource === 'Binance · USDT') return 'USDT';
+  return asset.quotePriceUnit || asset.quoteCurrency || 'USD';
+}
+function marketPeakKey(asset) {
+  if (!asset.positionId || !asset.sym) return null;
+  return JSON.stringify([asset.positionId, asset.sym, asset.quoteSymbol || asset.sym, marketQuoteUnit(asset)]);
+}
+function marketPriceAsset(item) {
+  const asset = item.sourceAsset;
+  if (item.assetClass === 'CEDEARs') {
+    return {...asset,cur:asset.currentPriceARS,qty:asset.quantity,quotePriceUnit:'ARS'};
+  }
+  if (['Acciones','Cripto','ETFs','Tokenizadas'].includes(item.assetClass)) return asset;
+  return null;
+}
+function collectMarketObservation(observations, asset) {
+  const key = marketPeakKey(asset);
+  const time = Date.parse(asset.priceSourceTimestamp);
+  if (!key || !providerTime(time) || ['pending','stale','freshness_unknown'].includes(priceStatusFor(asset))) return;
+  observations.set(key,{time,price:Number(asset.cur),source:asset.priceSource});
+}
+function validMarketPeak(peak) {
+  return peak && [peak.price,peak.latestPrice].every(price=>Number.isFinite(price)&&price>0) &&
+    peak.price >= peak.latestPrice && [peak.firstTime,peak.latestTime,peak.maximumTime].every(providerTime) &&
+    peak.firstTime <= peak.maximumTime && peak.maximumTime <= peak.latestTime &&
+    typeof peak.source === 'string';
+}
+function recordMarketPeaks(observations) {
+  if (!observations.size) return true;
+  try {
+    assertOwnerStorageCurrent();
+    const peaks = readMarketPeaks();
+    let changed = false;
+    for (const item of portfolioValuations()) {
+      const asset = marketPriceAsset(item);
+      if (!asset) continue;
+      const key = marketPeakKey(asset);
+      const quote = observations.get(key);
+      if (!quote || quote.time !== Date.parse(asset.priceSourceTimestamp) || quote.price !== Number(asset.cur)) continue;
+      const peak = peaks.get(key);
+      if (validMarketPeak(peak) && quote.time <= peak.latestTime) continue;
+      const previous = validMarketPeak(peak) ? peak : null;
+      const newHigh = !previous || quote.price > peak.price;
+      peaks.set(key,{
+        firstTime: previous?.firstTime ?? quote.time,
+        latestTime: quote.time,
+        latestPrice: quote.price,
+        maximumTime: newHigh ? quote.time : peak.maximumTime,
+        price: newHigh ? quote.price : peak.price,
+        source: newHigh ? quote.source : peak.source
+      });
+      changed = true;
+    }
+    if (changed) localStorage.setItem(marketPeakStorageKey(),JSON.stringify(Object.fromEntries(peaks)));
+    return true;
+  } catch (error) {
+    console.warn('Market observations could not be saved',error);
+    return false;
+  }
+}
+function positionDrawdown(asset, peaks=readMarketPeaks()) {
+  const {cur,qty} = asset;
+  const current = Number(cur);
+  const peak = peaks.get(marketPeakKey(asset));
+  const status = priceStatusFor(asset);
+  const currency = marketQuoteUnit(asset);
+  const result = {status:'Historial insuficiente',peak:null,current,currency};
+  if (validMarketPeak(peak)) result.peak = peak;
+  if (!result.peak || peak.firstTime === peak.latestTime) return result;
+  if (status === 'stale') return {...result,status:'Cotización antigua'};
+  if (status === 'pending' || status === 'freshness_unknown') return {...result,status:'Información insuficiente'};
+  if (peak.latestTime !== Date.parse(asset.priceSourceTimestamp) || peak.latestPrice !== current) return result;
+  const perUnit = current - peak.price;
+  const estimate = perUnit * Number(qty);
+  return {...result,status:null,percent:perUnit / peak.price * 100,perUnit,
+    estimate:Number(qty)>0&&Number.isFinite(estimate)?estimate:null};
+}
+function quoteAmount(value, currency) {
+  if (!Number.isFinite(value)) return 'Información insuficiente';
+  return new Intl.NumberFormat('es-AR',{minimumFractionDigits:2,maximumSignificantDigits:12,maximumFractionDigits:12,roundingPriority:'lessPrecision'}).format(value)+' '+currency;
+}
+function drawdownDetailFields(asset) {
+  const drawdown = positionDrawdown(asset);
+  const {peak,currency} = drawdown;
+  return [
+    {label:'Retroceso desde máximo registrado',value:drawdown.status||fmtPct(drawdown.percent)},
+    {label:'Máximo de precio observado',value:peak?quoteAmount(peak.price,currency):'Historial insuficiente'},
+    {label:'Fecha y fuente del máximo',value:peak?madridDateTime(peak.maximumTime)+' · '+peak.source:'Historial insuficiente'},
+    {label:'Precio actual por unidad',value:drawdown.current>0?quoteAmount(drawdown.current,currency):'Información insuficiente'},
+    {label:'Diferencia por unidad',value:drawdown.status||quoteAmount(drawdown.perUnit,currency)},
+    {label:'Retroceso estimado sobre cantidad actual',value:drawdown.status||quoteAmount(drawdown.estimate,currency)}
+  ];
+}
 // Liquidity balances are current state; legacy history never reconstructs them.
 const LIQUIDITY_AVAILABILITY = Object.freeze({immediate:'Disponible inmediata', remunerated:'Remunerada · rescate rápido', invested:'Invertida · no disponible'});
 const LIQUIDITY_STABLECOINS = new Set(['USDT','USDC','DAI','FDUSD','TUSD','USDD','PYUSD','EURC','EURS']);
@@ -5233,6 +5374,38 @@ function liquidityLabel(account){return account?`${account.custodian}${account.p
 function liquidityAccountKey(account){return [normalizedPositionPart(account.custodian),account.currency,normalizedPositionPart(account.product),account.availability].join('|');}
 function liquidityIsAvailable(account){return ['immediate','remunerated'].includes(account?.availability);}
 function liquidityMoney(value,currency){const normalized=dec(value),digits=Math.min(8,Math.max(['USD','EUR','ARS'].includes(currency)?2:0,(normalized?.split('.')[1]||'').length));return `${formatDec(value,{digits})} ${escapeHTML(currency)}`;}
+function validReserveAmount(value) {
+  return typeof value==='string' && value.length<=80 && Number.isFinite(Number(value)) &&
+    (decCmp(value,'0')??-1)>=0;
+}
+function setLiquidityReserve(account, investment, other) {
+  const earmarked=dec(investment), committed=dec(other);
+  if (!validReserveAmount(earmarked)||!validReserveAmount(committed)||
+      decCmp(decAdd(earmarked,committed),account.balanceDecimal)>0) {
+    throw new Error('Los importes de reserva deben ser positivos o cero y su suma debe caber en el saldo.');
+  }
+  account.investmentReserveDecimal=earmarked;
+  account.otherReserveDecimal=committed;
+}
+function liquidityReserveSummary(accounts=liquidityAccounts()) {
+  const byCurrency = new Map();
+  const rows = accounts.map(account=>{
+    const total=dec(account.balanceDecimal)||'0';
+    const earmarked=dec(account.investmentReserveDecimal)||'0';
+    const requestedOther=dec(account.otherReserveDecimal)||'0';
+    // Other commitments take priority after a debit. The user's targets remain editable.
+    const committed=decCmp(total,requestedOther)<0?total:requestedOther;
+    const free=decSub(total,committed);
+    const covered=decCmp(free,earmarked)<0?free:earmarked;
+    const available=liquidityIsAvailable(account)?covered:'0';
+    const row={account,total,earmarked,committed,available};
+    const aggregate=byCurrency.get(account.currency)||{total:'0',earmarked:'0',committed:'0',available:'0'};
+    for (const key of Object.keys(aggregate)) aggregate[key]=decAdd(aggregate[key],row[key]);
+    byCurrency.set(account.currency,aggregate);
+    return row;
+  });
+  return {rows,byCurrency:new Map([...byCurrency].sort(([first],[second])=>first.localeCompare(second)))};
+}
 function validateLiquidityState(state){
   const ids=new Set(),keys=new Set();
   for(const account of state.liquidity||[]){
@@ -5241,6 +5414,9 @@ function validateLiquidityState(state){
     if(!Object.hasOwn(LIQUIDITY_AVAILABILITY,account.availability)||!['fiat','stablecoin','investment'].includes(account.assetKind))return false;
     if(account.assetKind==='investment'&&liquidityIsAvailable(account))return false;
     if(typeof account.balanceDecimal!=='string'||account.balanceDecimal.length>80||dec(account.balanceDecimal)==null||decCmp(account.balanceDecimal,'0')<0||!Number.isFinite(Number(account.balanceDecimal))||!validLiquidityDate(account.date))return false;
+    for(const field of ['investmentReserveDecimal','otherReserveDecimal']){
+      if(account[field]!==undefined&&!validReserveAmount(account[field]))return false;
+    }
     if(LIQUIDITY_STABLECOINS.has(account.currency)&&account.assetKind==='fiat')return false;
     if(account.basisKnown&&(dec(account.basisUSDDecimal)==null||decCmp(account.basisUSDDecimal,'0')<0))return false;
     const key=liquidityAccountKey(account);if(keys.has(key))return false;keys.add(key);ids.add(account.liquidityId);
@@ -5423,6 +5599,45 @@ function showLiquidityModal(title,content,handler){
   document.body.appendChild(overlay);[...overlay.querySelectorAll('input:not([readonly]):not([type="hidden"]):not([disabled]),select:not([disabled])')].find(el=>!el.closest('[hidden]'))?.focus();
 }
 function liquidityRunUI(action){try{commitLiquidityMutation(action);closeLiquidityModal();showToast('Movimiento guardado');}catch(error){if(error.saved)closeLiquidityModal();showToast(error.message,'err',6000);}}
+function openLiquidityReserve(id) {
+  const account=findLiquidity(id);if(!account)return;
+  showLiquidityModal('Reserva · '+liquidityLabel(account),
+    liquidityInput('liqReserveId',id,'type="hidden"')+
+    liquidityField('liqReserveBalance','Saldo actual · '+account.currency,liquidityInput('liqReserveBalance',account.balanceDecimal,'readonly'))+
+    liquidityField('liqReserveAvailability','Disponibilidad',liquidityInput('liqReserveAvailability',LIQUIDITY_AVAILABILITY[account.availability],'readonly'))+
+    liquidityField('liqReserveInvestment','Destinado a inversiones',liquidityInput('liqReserveInvestment',account.investmentReserveDecimal||'0','inputmode="decimal"'))+
+    liquidityField('liqReserveOther','Comprometido para otros fines',liquidityInput('liqReserveOther',account.otherReserveDecimal||'0','inputmode="decimal"')),
+    'saveLiquidityReserve');
+}
+function saveLiquidityReserve() {
+  try {
+    commitLiquidityMutation(()=>{
+      const account=findLiquidity($('liqReserveId').value);
+      if (!account) throw new Error('No se encontró la cuenta de liquidez.');
+      setLiquidityReserve(account,$('liqReserveInvestment').value,$('liqReserveOther').value);
+    });
+    closeLiquidityModal();showToast('Reserva guardada');
+  } catch (error) {
+    if(error.saved)closeLiquidityModal();
+    showToast(error.message,'err',6000);
+  }
+}
+function renderLiquidityReserve() {
+  const table=$('liquidityReserveCurrencies');
+  if(!table)return;
+  const {rows,byCurrency}=liquidityReserveSummary();
+  const cells=(row,currency)=>['total','earmarked','committed','available'].map(key=>
+    `<td class="num">${liquidityMoney(row[key],currency)}</td>`).join('');
+  const headings='<th>Total identificado</th><th>Destinado a inversión</th><th>Comprometido para otros fines</th><th>Disponible para recompras</th>';
+  table.innerHTML=byCurrency.size?
+    `<table><thead><tr><th>Moneda</th>${headings}</tr></thead><tbody>${[...byCurrency].map(([currency,row])=>
+      `<tr><th scope="row">${escapeHTML(currency)}</th>${cells(row,currency)}</tr>`).join('')}</tbody></table>`:
+    '<p class="muted">Sin saldos identificados</p>';
+  $('liquidityReserveAccounts').innerHTML=rows.length?
+    `<table><thead><tr><th>Entidad / cuenta</th>${headings}<th>Reserva</th></tr></thead><tbody>${rows.map(row=>
+      `<tr><td>${escapeHTML(liquidityLabel(row.account))}</td>${cells(row,row.account.currency)}<td><button type="button" class="btn-edit" title="Editar reserva" aria-label="Editar reserva de ${escapeHTML(liquidityLabel(row.account))}" onclick="openLiquidityReserve(${inlineArg(row.account.liquidityId)})"><i class="ti ti-pencil" aria-hidden="true"></i></button></td></tr>`).join('')}</tbody></table>`:
+    '<p class="muted">Sin cuentas para reservar</p>';
+}
 function openLiquidityAccount(id=''){
   const account=findLiquidity(id),a=account||{custodian:'',currency:'USD',balanceDecimal:'0',date:today(),assetKind:'fiat',availability:'immediate',product:'',notes:''};
   const entities=[...new Set([
@@ -5521,6 +5736,7 @@ function renderFinancialLiquidity(summary){
 }
 function renderLiquidity(){
   if(!$('liquidityTb'))return;
+  renderLiquidityReserve();
   const cash=liquiditySummary();
   $('liquidityTotals').innerHTML=liquidityTotalMarkup('Disponible inmediata',cash.immediate.value,cash.immediate.pending.length,cash.immediate.items.some(i=>i.currentUSD!=null))+
     liquidityTotalMarkup('Remunerada · rescate rápido',cash.remunerated.value,cash.remunerated.pending.length,cash.remunerated.items.some(i=>i.currentUSD!=null))+
@@ -5880,11 +6096,12 @@ function renderDash() {
   if (heroTotal) { heroTotal.textContent = fmt(tot); heroTotal.style.background='linear-gradient(135deg,var(--cv3),var(--ct2))'; heroTotal.style.webkitBackgroundClip='text'; heroTotal.style.webkitTextFillColor='transparent'; heroTotal.style.backgroundClip='text'; }
   const heroTotalSub=$('dHeroTotalSub');if(heroTotalSub)heroTotalSub.textContent=`${en?'Valued USD':'USD valorados'}${summary.pending.length?` · ${summary.pending.length} N/D`:''}`;
   renderFinancialLiquidity(summary);
+  renderDashboardInvestmentIndicators(summary);
   const pnl2=summary.pnlUSD,pp2=summary.roiUSD;
   const heroPnl = $('dHeroPnl');
   const heroPnlPct = $('dHeroPnlPct');
-  if (heroPnl) { heroPnl.textContent = summary.pnlItems.length?fmt(pnl2):'N/D'; heroPnl.style.color = pnl2>=0?'var(--cg2)':'var(--cr2)'; }
-  if (heroPnlPct) { heroPnlPct.textContent = pp2!=null?(pp2>=0?'+':'')+(pp2*100).toFixed(2)+'% ROI'+pendingLabel:'N/D: falta valoración'; heroPnlPct.style.color = pnl2>=0?'var(--cg2)':'var(--cr2)'; }
+  if (heroPnl) { heroPnl.textContent = summary.pnlItems.length?fmt(pnl2):'Información insuficiente'; heroPnl.style.color = summary.pnlItems.length?(pnl2>=0?'var(--cg2)':'var(--cr2)'):'var(--tx2)'; }
+  if (heroPnlPct) { heroPnlPct.textContent = pp2!=null?fmtPct(pp2*100)+' ROI'+pendingLabel:'—'; heroPnlPct.style.color = pnl2>=0?'var(--cg2)':'var(--cr2)'; }
   const dPos = $('dPositions');
   if (dPos) dPos.textContent = summary.items.length;
 
@@ -5954,7 +6171,9 @@ function renderPriceSource(asset) {
 
 function renderTbl(assets, tbodyId, type) {
   const tb = $(tbodyId); tb.innerHTML = '';
-  if (!assets.length) { tb.innerHTML = `<tr><td colspan="17" class="empty"><i class="ti ti-inbox"></i><p>${t('emptyStocks')}</p></td></tr>`; return; }
+  if (!assets.length) { tb.innerHTML = `<tr><td colspan="${type==='stock'?19:17}" class="empty"><i class="ti ti-inbox"></i><p>${t('emptyStocks')}</p></td></tr>`; return; }
+  const peaks=readMarketPeaks();
+  const missing='<span class="indicator-missing">Información insuficiente</span>';
   assets.forEach(a => {
     const { cap, cur, pnl, pp, d } = calc(a);
     const dca = calcDCA(a);
@@ -5963,6 +6182,7 @@ function renderTbl(assets, tbodyId, type) {
     const chC = a.ch != null ? (a.ch>=0?'var(--cg2)':'var(--cr2)') : 'var(--tx3)';
     const pnlC = pnl!=null ? (pnl>=0?'var(--cg2)':'var(--cr2)') : 'var(--tx3)';
     const ppPill = pp!=null ? `<span class="pill ${pp>=0?'pill-g':'pill-r'}">${fmtPct(pp*100)}</span>` : '—';
+    const drawdown=positionDrawdown(a,peaks);
     const custIcon = type==='crypto' ? { exchange:'ti-building-store', hot:'ti-device-mobile', cold:'ti-device-usb', defi:'ti-link' }[a.custody||'exchange'] || 'ti-building-store' : '';
     const extraCols = type === 'stock'
       ? `<td class="muted">${escapeHTML(a.sector||'—')}</td>`
@@ -5977,13 +6197,15 @@ function renderTbl(assets, tbodyId, type) {
       ${extraCols}
       <td class="num">${a.qty.toLocaleString('es-AR',{maximumFractionDigits:8})}</td>
       <td class="num">${fmt(a.buy)}</td>
-      <td class="num" style="color:var(--ca2);font-weight:700">${fmt(avgP)}</td>
-      <td class="num">${a.cur!=null?fmt(a.cur)+renderPriceSource(a):'<span style="color:var(--tx4)">—</span>'}</td>
+      <td class="num" style="color:var(--ca2);font-weight:700">${avgP>0?fmt(avgP):missing}</td>
+      <td class="num">${a.cur>0?escapeHTML(quoteAmount(Number(a.cur),marketQuoteUnit(a)))+renderPriceSource(a):missing}</td>
       <td style="color:${chC};font-weight:700">${ch}</td>
-      <td class="num muted">${fmt(cap)}</td>
-      <td class="num">${cur!=null?fmt(cur):'—'}</td>
-      <td class="num" style="color:${pnlC};font-weight:700">${pnl!=null?fmt(pnl):'—'}</td>
+      <td class="num muted">${cap==null?missing:fmt(cap)}</td>
+      <td class="num">${cur==null?missing:fmt(cur)}</td>
+      <td class="num" style="color:${pnlC};font-weight:700">${pnl==null?missing:fmt(pnl)}</td>
       <td>${ppPill}</td>
+      <td>${drawdown.status?`<span class="indicator-missing">${escapeHTML(drawdown.status)}</span>`:
+        `<button type="button" class="indicator-link" title="Retroceso desde máximo registrado" aria-label="Ver retroceso de ${escapeHTML(a.sym)}" onclick="openAssetDetails(${inlineArg(type)},${inlineArg(a.id)})">${fmtPct(drawdown.percent)}</button>`}</td>
       ${extraCols2}
       <td class="muted">${d}d</td>
       <td class="note-cell" title="${escapeHTML(a.note||'')}">${escapeHTML(a.note||'—')}</td>
@@ -6084,14 +6306,55 @@ function renderDCA() {
 // RENDER RISK
 // ═══════════════════════════════════════════
 function profitReviewSettings(state=ST) {
-  return {gainThresholdPct:30,concentrationThresholdPct:15,gainEnabled:true,concentrationEnabled:true,targetEnabled:true,partialEnabled:true,...state.profitReview};
+  return {gainThresholdPct:30,concentrationThresholdPct:15,drawdownThresholdPct:null,gainEnabled:true,concentrationEnabled:true,targetEnabled:true,partialEnabled:true,...state.profitReview};
 }
 function validateProfitReviewSettings(settings) {
   if(settings===undefined)return true;
   if(!isPlainRecord(settings))return false;
-  const thresholdKeys=['gainThresholdPct','concentrationThresholdPct'],switches=['gainEnabled','concentrationEnabled','targetEnabled','partialEnabled'];
+  const thresholdKeys=['gainThresholdPct','concentrationThresholdPct','drawdownThresholdPct'],switches=['gainEnabled','concentrationEnabled','targetEnabled','partialEnabled'];
   if(Object.keys(settings).some(key=>![...thresholdKeys,...switches].includes(key)))return false;
-  return thresholdKeys.every(key=>settings[key]===undefined||settings[key]===null||(typeof settings[key]==='number'&&Number.isFinite(settings[key])&&settings[key]>0&&(key!=='concentrationThresholdPct'||settings[key]<=100)))&&switches.every(key=>settings[key]===undefined||typeof settings[key]==='boolean');
+  return thresholdKeys.every(key=>settings[key]===undefined||settings[key]===null||(typeof settings[key]==='number'&&Number.isFinite(settings[key])&&settings[key]>0&&(key==='gainThresholdPct'||settings[key]<=100)))&&switches.every(key=>settings[key]===undefined||typeof settings[key]==='boolean');
+}
+function rankedDrawdowns(summary,threshold=profitReviewSettings().drawdownThresholdPct) {
+  const peaks=readMarketPeaks();
+  return summary.items.filter(item=>item.assetClass!=='Productos no disponibles').map(item=>{
+    const asset=marketPriceAsset(item);
+    const drawdown=asset?positionDrawdown(asset,peaks):{status:'Historial insuficiente'};
+    return {item,drawdown,alert:!drawdown.status&&threshold!=null&&-drawdown.percent>=threshold};
+  }).sort((a,b)=>(a.drawdown.percent??Infinity)-(b.drawdown.percent??Infinity));
+}
+function renderDashboardInvestmentIndicators(summary) {
+  const node=$('dashInvestmentIndicators');
+  if(!node)return;
+  const reserve=[...liquidityReserveSummary().byCurrency].filter(([,row])=>decPositive(row.available))
+    .map(([currency,row])=>liquidityMoney(row.available,currency));
+  const worst=rankedDrawdowns(summary).find(row=>row.drawdown.percent<0);
+  node.innerHTML=`<div><button type="button" class="indicator-link" onclick="showTab('liquidity')">Reserva de liquidez para inversiones</button> <strong>${reserve.length?reserve.join(' · '):'Sin fondos disponibles para recompras'}</strong></div>
+    <div><button type="button" class="indicator-link" onclick="showTab('risk')">Mayor retroceso registrado</button> <strong>${worst?escapeHTML(valuationLabel(worst.item))+' '+fmtPct(worst.drawdown.percent):'—'}</strong></div>
+    <button type="button" class="indicator-link" onclick="showTab('hist')">G/P realizada en Historial</button>`;
+}
+function renderRiskDrawdowns(summary,threshold) {
+  const node=$('riskDrawdowns');
+  if(!node)return;
+  const rows=rankedDrawdowns(summary,threshold);
+  node.innerHTML=rows.length?`<div class="tbl-wrap"><table><thead><tr>
+    <th>Posición / custodio</th><th>Retroceso (%)</th><th>Máximo observado</th><th>Fecha del máximo</th><th>Precio actual</th><th>Diferencia por unidad</th><th>Estimación sobre cantidad actual</th><th>Alerta</th>
+    </tr></thead><tbody>${rows.map(({item,drawdown:d,alert})=>{
+      const amount=value=>escapeHTML(quoteAmount(value,d.currency));
+      const cell=(value,label,cls='')=>`<td data-label="${label}" class="${cls}">${value}</td>`;
+      const position=cell(escapeHTML(valuationLabel(item)),'Posición / custodio','profit-position');
+      if (!d.peak) {
+        return `<tr>${position}<td class="profit-reasons muted" colspan="7" data-label="Retroceso">${d.status}</td></tr>`;
+      }
+      return `<tr>${position}
+        ${cell(d.status||fmtPct(d.percent),'Retroceso (%)')}
+        ${cell(d.peak?amount(d.peak.price):'—','Máximo observado')}
+        ${cell(d.peak?madridDateTime(d.peak.maximumTime):'—','Fecha del máximo')}
+        ${cell(d.current>0?amount(d.current):'—','Precio actual')}
+        ${cell(d.status?'—':amount(d.perUnit),'Diferencia por unidad')}
+        ${cell(d.status?'—':amount(d.estimate),'Estimación sobre cantidad actual','profit-reasons')}
+        ${cell(alert?'<span class="pill pill-y">Revisar retroceso</span>':'—','Alerta','drawdown-alert')}</tr>`;
+    }).join('')}</tbody></table></div>`:'<p class="muted">Sin posiciones activas</p>';
 }
 function profitReviewData(summary=portfolioSummary(),settings=profitReviewSettings()) {
   const fresh=item=>isValuationAvailable(item)&&!['stale','freshness_unknown'].includes(item.status);
@@ -6119,19 +6382,25 @@ function profitReviewData(summary=portfolioSummary(),settings=profitReviewSettin
 }
 function saveProfitReviewSettings() {
   const settings={gainThresholdPct:$('profitGainThreshold').value.trim()===''?null:Number($('profitGainThreshold').value),concentrationThresholdPct:$('profitWeightThreshold').value.trim()===''?null:Number($('profitWeightThreshold').value)};
+  const drawdownInput=$('profitDrawdownThreshold');
+  settings.drawdownThresholdPct=drawdownInput?.value.trim()?Number(drawdownInput.value):null;
   for(const [key,id] of [['gainEnabled','profitGainEnabled'],['concentrationEnabled','profitConcentrationEnabled'],['targetEnabled','profitTargetEnabled'],['partialEnabled','profitPartialEnabled']])settings[key]=$(id).checked;
-  if(!validateProfitReviewSettings(settings)){showToast('Indicá porcentajes positivos; concentración hasta 100%.','warn');return;}
+  if(!validateProfitReviewSettings(settings)){showToast('Indicá porcentajes positivos, con un máximo del 100 % para concentración y retroceso.','warn');return;}
   try{
     commitLiquidityMutation(()=>{ST.profitReview=settings;});
     $('profitReviewSettings').dataset.dirty='';$('profitReviewSettings').open=false;
     renderProfitReview();showToast('Umbrales guardados');
   }catch(error){showToast(error.message,'err',6000);}
 }
+function recordedRealizedPnl(sale) {
+  if (sale?.type!=='VENTA'||sale.operationStatus!=='confirmed'||sale.legacy||knownOperationCommission(sale)===null) return null;
+  return sale.realizedPnl!=null&&sale.realizedPnl!==''&&Number.isFinite(Number(sale.realizedPnl))?Number(sale.realizedPnl):null;
+}
 function profitReviewLastSale(positionId,state=ST) {
   const sale=(state.hist||[]).filter(entry=>entry.positionId===positionId&&entry.type==='VENTA'&&entry.operationStatus==='confirmed'&&!entry.legacy).slice().sort((a,b)=>String(b.date).localeCompare(String(a.date)))[0];
   if(!sale)return null;
   const remaining=sale.qtyBefore!=null&&sale.qtyAfter!=null&&Number(sale.qtyBefore)>0?Number(sale.qtyAfter)/Number(sale.qtyBefore)*100:null;
-  const realized=sale.realizedPnl!=null&&Number.isFinite(Number(sale.realizedPnl))&&knownOperationCommission(sale)!==null?Number(sale.realizedPnl):null;
+  const realized=recordedRealizedPnl(sale);
   return {sale,remaining,realized,currency:sale.currency||'USD',liquidityAmount:sale.liquidityId?sale.liquidityAmountDecimal:null,liquidityCurrency:sale.liquidityCurrency||null};
 }
 function openProfitReviewDetails(positionId) {
@@ -6148,6 +6417,8 @@ function openProfitReviewDetails(positionId) {
     {label:'Fecha de cotización',value:row.item.sourceTimestamp?madridDateTime(row.item.sourceTimestamp):'N/D'}
   ];
   const last=profitReviewLastSale(positionId);
+  const quoteAsset=marketPriceAsset(row.item);
+  if(quoteAsset)fields.push(...drawdownDetailFields(quoteAsset));
   if(last)fields.push(
     {label:'Última venta registrada',value:last.sale.date},
     {label:'Porcentaje que permaneció tras esa venta',value:last.remaining==null?'N/D':fmtPct(last.remaining)},
@@ -6160,9 +6431,10 @@ function openProfitReviewDetails(positionId) {
 function renderProfitReview(summary=portfolioSummary()) {
   if(!$('profitReviewTb'))return;
   const settings=profitReviewSettings(),data=profitReviewData(summary,settings),panel=$('profitReviewSettings');
-  $('profitReviewThresholds').textContent=`· Ganancia: ${settings.gainThresholdPct==null?'sin definir':settings.gainThresholdPct+' %'} · Concentración: ${settings.concentrationThresholdPct==null?'sin definir':settings.concentrationThresholdPct+' % de activos invertidos'}`;
+  $('profitReviewThresholds').textContent=`· Ganancia: ${settings.gainThresholdPct==null?'sin definir':settings.gainThresholdPct+' %'} · Concentración: ${settings.concentrationThresholdPct==null?'sin definir':settings.concentrationThresholdPct+' % de activos invertidos'} · Retroceso: ${settings.drawdownThresholdPct==null?'desactivado':settings.drawdownThresholdPct+' %'}`;
   if(!panel.open||!panel.dataset.dirty){
     $('profitGainThreshold').value=settings.gainThresholdPct??'';$('profitWeightThreshold').value=settings.concentrationThresholdPct??'';
+    if($('profitDrawdownThreshold'))$('profitDrawdownThreshold').value=settings.drawdownThresholdPct??'';
     for(const [key,id] of [['gainEnabled','profitGainEnabled'],['concentrationEnabled','profitConcentrationEnabled'],['targetEnabled','profitTargetEnabled'],['partialEnabled','profitPartialEnabled']])$(id).checked=settings[key];
   }
   const notices=[];
@@ -6180,6 +6452,7 @@ function renderProfitReview(summary=portfolioSummary()) {
     const cell=document.createElement('td'),button=document.createElement('button');button.className='btn-view';button.title='Revisar posición';button.setAttribute('aria-label',`Revisar ${valuationLabel(row.item)}`);button.innerHTML='<i class="ti ti-eye"></i>';button.addEventListener('click',()=>openProfitReviewDetails(row.positionId));cell.appendChild(button);tr.appendChild(cell);body.appendChild(tr);
   }
   if(!data.rows.length){const tr=document.createElement('tr'),cell=document.createElement('td');cell.colSpan=7;cell.className='empty';cell.textContent='Sin alertas de revisión con los datos disponibles';tr.appendChild(cell);body.appendChild(tr);}
+  renderRiskDrawdowns(summary,settings.drawdownThresholdPct);
 }
 $('profitReviewSettings')?.addEventListener('input',()=>{$('profitReviewSettings').dataset.dirty='1';});
 function renderRisk() {
@@ -6312,12 +6585,12 @@ function renderIncome() {
 // ═══════════════════════════════════════════
 function renderHist() {
   const tb = $('hTb'); tb.innerHTML = '';
-  if (!ST.hist.length) { tb.innerHTML = `<tr><td colspan="9" class="empty"><i class="ti ti-history"></i><p>${t('emptyHist')}</p></td></tr>`; return; }
+  if (!ST.hist.length) { tb.innerHTML = `<tr><td colspan="10" class="empty"><i class="ti ti-history"></i><p>${t('emptyHist')}</p></td></tr>`; return; }
   const scope=$('historyScope')?.value||'all';
   ST.hist.filter(h=>scope==='all'||(scope==='liquidity'?Boolean(h.liquidityId):h.assetType!=='liquidity')).forEach(h => {
     if(h.assetType==='liquidity'){
       const tr=document.createElement('tr'),account=findLiquidity(h.liquidityId);
-      tr.innerHTML=`<td>${escapeHTML(h.date)}</td><td><span class="pill pill-t">${escapeHTML(h.type)}</span></td><td class="sym">${escapeHTML(h.sym)}${h.notes?`<button class="btn-view" title="Detalle" onclick="openHistoryNote(${inlineArg(h.operationId||h.id)})"><i class="ti ti-note"></i></button>`:''}</td><td class="num">${formatDec(h.amountDecimal||'0',{digits:8})}</td><td>—</td><td class="num">${h.feeDecimal?liquidityMoney(h.feeDecimal,h.currency):'—'}</td><td class="num">${liquidityMoney(h.amountDecimal||'0',h.currency)}${h.destinationAmountDecimal?` → ${liquidityMoney(h.destinationAmountDecimal,h.toCurrency)}`:''}</td><td>${escapeHTML(liquidityLabel(account))}${h.toLiquidityId&&h.toLiquidityId!==h.liquidityId?` → ${escapeHTML(liquidityLabel(findLiquidity(h.toLiquidityId)))}`:''}</td><td><i class="ti ti-lock" title="Generado automáticamente"></i></td>`;tb.appendChild(tr);return;
+      tr.innerHTML=`<td>${escapeHTML(h.date)}</td><td><span class="pill pill-t">${escapeHTML(h.type)}</span></td><td class="sym">${escapeHTML(h.sym)}${h.notes?`<button class="btn-view" title="Detalle" onclick="openHistoryNote(${inlineArg(h.operationId||h.id)})"><i class="ti ti-note"></i></button>`:''}</td><td class="num">${formatDec(h.amountDecimal||'0',{digits:8})}</td><td>—</td><td class="num">${h.feeDecimal?liquidityMoney(h.feeDecimal,h.currency):'—'}</td><td class="num">${liquidityMoney(h.amountDecimal||'0',h.currency)}${h.destinationAmountDecimal?` → ${liquidityMoney(h.destinationAmountDecimal,h.toCurrency)}`:''}</td><td>—</td><td>${escapeHTML(liquidityLabel(account))}${h.toLiquidityId&&h.toLiquidityId!==h.liquidityId?` → ${escapeHTML(liquidityLabel(findLiquidity(h.toLiquidityId)))}`:''}</td><td><i class="ti ti-lock" title="Generado automáticamente"></i></td>`;tb.appendChild(tr);return;
     }
     const commission=Number(h.commission ?? h.comm ?? 0);
     const grossAmount=Number.isFinite(Number(h.grossAmount)) ? Number(h.grossAmount) : Number(h.qty)*Number(h.executionPrice ?? h.price);
@@ -6332,8 +6605,10 @@ function renderHist() {
     const operationNoteButton = String(h.notes ?? '').trim()
       ? `<button class="btn-view" style="margin-left:6px" onclick="openHistoryNote(${inlineArg(h.operationId || h.id)})" title="Ver nota de la operación" aria-label="Ver nota de la operación"><i class="ti ti-note"></i></button>`
       : '';
-    tr.innerHTML = `<td class="muted">${escapeHTML(h.date)}</td><td><span class="pill ${h.type==='COMPRA'?'pill-g':'pill-r'}">${escapeHTML(h.type)}</span></td><td class="sym" style="white-space:nowrap">${escapeHTML(h.sym)}${operationNoteButton}</td><td class="num">${h.qty}</td><td class="num">${formatHistoryMoney(h.executionPrice ?? h.price)}</td><td class="num muted">${feeText}</td><td class="num" style="font-weight:700">${totalText}</td><td class="muted">${escapeHTML(h.custodian||h.notes||'—')}</td><td>${h.legacy?'<span class="pill pill-t" title="Registro anterior conservado sin modificar posiciones">V2</span>':'<i class="ti ti-lock" title="Generado automáticamente"></i>'}</td>`;
-    if(h.liquidityId){const cell=tr.children[7];if(cell)cell.innerHTML+=`<div class="muted">Liquidez: ${escapeHTML(liquidityLabel(findLiquidity(h.liquidityId)))} · ${liquidityMoney(h.liquidityAmountDecimal,h.liquidityCurrency)}</div>`;}
+    const realized=recordedRealizedPnl(h);
+    const realizedText=h.type!=='VENTA'?'—':realized===null?'Información insuficiente':formatHistoryMoney(realized);
+    tr.innerHTML = `<td class="muted">${escapeHTML(h.date)}</td><td><span class="pill ${h.type==='COMPRA'?'pill-g':'pill-r'}">${escapeHTML(h.type)}</span></td><td class="sym" style="white-space:nowrap">${escapeHTML(h.sym)}${operationNoteButton}</td><td class="num">${h.qty}</td><td class="num">${formatHistoryMoney(h.executionPrice ?? h.price)}</td><td class="num muted">${feeText}</td><td class="num" style="font-weight:700">${totalText}</td><td class="num">${realizedText}</td><td class="muted">${escapeHTML(h.custodian||h.notes||'—')}</td><td>${h.legacy?'<span class="pill pill-t" title="Registro anterior conservado sin modificar posiciones">V2</span>':'<i class="ti ti-lock" title="Generado automáticamente"></i>'}</td>`;
+    if(h.liquidityId){const cell=tr.children[8];if(cell)cell.innerHTML+=`<div class="muted">Liquidez: ${escapeHTML(liquidityLabel(findLiquidity(h.liquidityId)))} · ${liquidityMoney(h.liquidityAmountDecimal,h.liquidityCurrency)}</div>`;}
     tb.appendChild(tr);
   });
 }
@@ -8199,6 +8474,7 @@ function showOtrosTab(tab) {
 function renderOtros() {
   if(liquidityTransactionDepth)return;
   const otros = ST.otros||[];
+  const missing='<span class="indicator-missing">Información insuficiente</span>';
   // ETFs
   const etfs = otros.filter(o=>o.type==='etf'&&o.status!=='closed'&&Number(o.qty)>0);
   const etfTb=$('etfTb');
@@ -8207,15 +8483,8 @@ function renderOtros() {
     else{
       const typeLabels={indice:'Índice',sector:'Sector',commodity:'Commodity',apalancado:'Apalancado',inverso:'Inverso',tematico:'Temático',bono_etf:'Bono ETF'};
       etfTb.innerHTML=etfs.map(e=>{
-        // Try to get price from stocks array or update
-        const stockMatch = ST.stocks.find(s=>s.sym===e.sym);
-        const cur = e.cur || stockMatch?.cur || null;
-        const ch = e.ch || stockMatch?.ch || null;
-        const cap=Number.isFinite(Number(e.openCost))?Number(e.openCost):e.qty*e.buy;
-        const curVal=cur?e.qty*cur:null;
-        const pnl=curVal!=null?curVal-cap:null;
-        const pp=pnl!=null&&cap>0?pnl/cap:null;
-        const d=days(e.date,today());
+        const {cap,cur:curVal,pnl,pp,d}=calc(e);
+        const ch=e.ch;
         const pnlC=pnl!=null?(pnl>=0?'var(--cg2)':'var(--cr2)'):'var(--tx3)';
         return `<tr>
           <td class="sym">${escapeHTML(e.sym)}</td>
@@ -8225,12 +8494,12 @@ function renderOtros() {
           <td class="muted">${escapeHTML(e.index||'—')}</td>
           <td class="num">${e.qty}</td>
           <td class="num">${fmt(e.buy)}</td>
-          <td class="num" style="color:var(--ca2);font-weight:700">${fmt(positionAverage(e))}</td>
-          <td class="num">${cur?fmt(cur)+renderPriceSource(e):'<span style="color:var(--tx4)">—</span>'}</td>
+          <td class="num" style="color:var(--ca2);font-weight:700">${cap==null?missing:fmt(positionAverage(e))}</td>
+          <td class="num">${e.cur>0?(marketQuoteUnit(e)==='USD'?fmt(e.cur):escapeHTML(quoteAmount(Number(e.cur),marketQuoteUnit(e))))+renderPriceSource(e):missing}</td>
           <td style="color:${ch!=null?(ch>=0?'var(--cg2)':'var(--cr2)'):'var(--tx3)'};font-weight:700">${ch!=null?(ch>=0?'+':''+(ch*100).toFixed(2)+'%'):'—'}</td>
-          <td class="num muted">${fmt(cap)}</td>
-          <td class="num">${curVal!=null?fmt(curVal):'—'}</td>
-          <td class="num" style="color:${pnlC};font-weight:700">${pnl!=null?fmt(pnl):'—'}</td>
+          <td class="num muted">${cap==null?missing:fmt(cap)}</td>
+          <td class="num">${curVal==null?missing:fmt(curVal)}</td>
+          <td class="num" style="color:${pnlC};font-weight:700">${pnl==null?missing:fmt(pnl)}</td>
           <td>${pp!=null?`<span class="pill ${pp>=0?'pill-g':'pill-r'}">${(pp*100).toFixed(2)}%</span>`:'—'}</td>
           <td class="muted">${e.ter?e.ter+'%':'—'}</td>
           <td class="muted">${escapeHTML(e.broker||'—')}</td>
@@ -8291,14 +8560,8 @@ function renderOtros() {
     if(!toks.length){tokTb.innerHTML='<tr><td colspan="14" class="empty"><i class="ti ti-cpu"></i><p>Sin tokenizadas. Agregá tu primera posición.</p></td></tr>';}
     else{
       tokTb.innerHTML=toks.map(tk=>{
-        const cripto=ST.crypto.find(c=>c.sym===tk.sym);
-        const cur=tk.cur||cripto?.cur||null;
-        const cap=Number.isFinite(Number(tk.openCost))?Number(tk.openCost):tk.qty*tk.buy;
-        const curVal=cur?tk.qty*cur:null;
-        const pnl=curVal!=null?curVal-cap:null;
-        const pp=pnl!=null&&cap>0?pnl/cap:null;
+        const {cap,cur:curVal,pnl,pp,d}=calc(tk);
         const pnlC=pnl!=null?(pnl>=0?'var(--cg2)':'var(--cr2)'):'var(--tx3)';
-        const d=days(tk.date,today());
         const typeLabel=tk.tokType==='custodiado'?'Custodiado 1:1':'Sintético';
         return `<tr>
           <td class="sym">${escapeHTML(tk.sym)}</td>
@@ -8306,11 +8569,11 @@ function renderOtros() {
           <td><span class="pill ${tk.tokType==='custodiado'?'pill-g':'pill-y'}">${typeLabel}</span></td>
           <td class="num">${tk.qty}</td>
           <td class="num">${fmt(tk.buy)}</td>
-          <td class="num" style="color:var(--ca2);font-weight:700">${fmt(positionAverage(tk))}</td>
-          <td class="num">${cur?fmt(cur)+renderPriceSource(tk):'<span style="color:var(--tx4)">—</span>'}</td>
-          <td class="num muted">${fmt(cap)}</td>
-          <td class="num">${curVal!=null?fmt(curVal):'—'}</td>
-          <td class="num" style="color:${pnlC};font-weight:700">${pnl!=null?fmt(pnl):'—'}</td>
+          <td class="num" style="color:var(--ca2);font-weight:700">${cap==null?missing:fmt(positionAverage(tk))}</td>
+          <td class="num">${tk.cur>0?escapeHTML(quoteAmount(Number(tk.cur),marketQuoteUnit(tk)))+renderPriceSource(tk):missing}</td>
+          <td class="num muted">${cap==null?missing:fmt(cap)}</td>
+          <td class="num">${curVal==null?missing:fmt(curVal)}</td>
+          <td class="num" style="color:${pnlC};font-weight:700">${pnl==null?missing:fmt(pnl)}</td>
           <td>${pp!=null?`<span class="pill ${pp>=0?'pill-g':'pill-r'}">${(pp*100).toFixed(2)}%</span>`:'—'}</td>
           <td class="muted">${escapeHTML(tk.exchange||'—')}</td>
           <td class="muted">${d}d</td>
@@ -9332,7 +9595,7 @@ function portfolioStatesEqual(first, second) {
     // Quotes are derived cache data and can legitimately differ by seconds
     // between devices. They must never trigger a destructive conflict choice.
     const derivedQuoteFields = [
-      'cur', 'ch', 'lastClose', 'priceSource', 'priceUpdatedAt', 'priceSourceTimestamp', 'priceRetrievedAt', 'priceStatus', 'priceMarketState', 'quoteCurrency', 'quoteSymbol'
+      'cur', 'ch', 'lastClose', 'priceSource', 'priceUpdatedAt', 'priceSourceTimestamp', 'priceRetrievedAt', 'priceStatus', 'priceMarketState', 'quoteCurrency', 'quotePriceUnit', 'quoteSymbol'
     ];
     ['stocks', 'crypto', 'otros'].forEach(collection => {
       if (!Array.isArray(sanitized[collection])) return;

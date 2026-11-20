@@ -22,6 +22,16 @@ let checks=0;const check=(condition,message)=>{assert(condition,message);checks+
       ST.crypto=[asset('btc_binance','BTC','Binance',10,150),asset('btc_exodus','BTC','Exodus',10,50)];
       ST.stocks=[{...asset('aapl','AAPL','Broker',1,150),tg:150}];ST.otros=[];ST.hist=[];ST.liquidity=[];ST.profitReview={...profitReviewSettings(),gainThresholdPct:null,concentrationThresholdPct:null};
       createLiquidityAccount({custodian:'Binance',currency:'USD',balanceDecimal:'10000',availability:'immediate',assetKind:'fiat',date:'2026-01-01'});
+      const observed = new Map();
+      const apple = ST.stocks[0];
+      apple.cur=200;
+      apple.priceSourceTimestamp=new Date(Date.now()-60000).toISOString();
+      collectMarketObservation(observed,apple);
+      recordMarketPeaks(observed);
+      apple.cur=150;
+      apple.priceSourceTimestamp=new Date().toISOString();
+      collectMarketObservation(observed,apple);
+      recordMarketPeaks(observed);
       renderAll();showTab('risk');
     });
     const preserved=await page.evaluate(()=>JSON.stringify([ST.crypto,ST.stocks,ST.otros,ST.hist,ST.snaps,ST.aSnaps,ST.liquidity,portfolioSummary()]));
@@ -30,6 +40,7 @@ let checks=0;const check=(condition,message)=>{assert(condition,message);checks+
     await page.locator('#profitReviewSettings summary').click();
     check(await page.locator('#profitGainThreshold').inputValue()===''&&await page.locator('#profitWeightThreshold').inputValue()==='','Explicit blank settings are respected');
     await page.locator('#profitGainThreshold').fill('50');await page.locator('#profitWeightThreshold').fill('40');
+    await page.locator('#profitDrawdownThreshold').fill('25');
     await page.locator('#profitReviewSettings button').click();
     check(await page.locator('#profitReviewThresholds').textContent().then(text=>text.includes('50 %')&&text.includes('40 % de activos invertidos')),'Visible criteria update after user configuration');
     check(await page.locator('#profitReviewTb tr').count()===2,'Two distinct positions require review');
@@ -38,6 +49,8 @@ let checks=0;const check=(condition,message)=>{assert(condition,message);checks+
     check(await page.locator('.profit-review').textContent().then(text=>text.includes('% de activos invertidos')&&!text.includes('Vender')),'Weight label and review-only wording');
     check(await page.evaluate(saved=>JSON.stringify([ST.crypto,ST.stocks,ST.otros,ST.hist,ST.snaps,ST.aSnaps,ST.liquidity,portfolioSummary()])===saved,preserved),'Settings do not alter holdings, history, cash or metrics');
     check(await page.locator('#riskTb tr').count()===2,'Existing consolidated concentration remains');
+    const appleDrawdown=page.locator('#riskDrawdowns tbody tr').first();
+    check(await appleDrawdown.textContent().then(text=>text.includes('AAPL')&&text.includes('-25.00%')&&text.includes('Revisar retroceso')),'Risk ranks the largest decline and displays its configured warning');
     await page.locator('#profitReviewTb .btn-view').first().click();
     check(await page.locator('#detailGrid').textContent().then(text=>text.includes('69,')||text.includes('69.')),'Details use position weight rather than consolidated instrument weight');
     await page.evaluate(()=>closeDetailModal());
@@ -55,8 +68,9 @@ let checks=0;const check=(condition,message)=>{assert(condition,message);checks+
     await page.evaluate(()=>closeDetailModal());await page.waitForTimeout(350);await page.locator('.profit-review').screenshot({path:artifactPath('mrp-profit-review-desktop.png')});
     await page.setViewportSize({width:390,height:844});
     check(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),'Risk mobile has no page overflow');
-    check(await page.locator('.profit-review .tbl-wrap').evaluate(el=>el.scrollWidth<=el.clientWidth+1),'Review items need no horizontal scroll on mobile');
+    check(await page.locator('.profit-review > .tbl-wrap').evaluate(el=>el.scrollWidth<=el.clientWidth+1),'Review items need no horizontal scroll on mobile');
     check(await page.locator('#profitReviewTb tr').first().evaluate(el=>getComputedStyle(el).display==='grid'),'Mobile rows expose all metrics in compact items');
+    check(await page.locator('#riskDrawdowns .tbl-wrap').evaluate(el=>el.scrollWidth<=el.clientWidth+1),'Drawdown metrics fit on mobile');
     await page.locator('#profitReviewSettings summary').click();
     check(await page.locator('#profitGainThreshold').isVisible()&&await page.locator('#profitWeightThreshold').isVisible(),'Mobile settings remain readable');
     await page.waitForTimeout(350);await page.locator('.profit-review').screenshot({path:artifactPath('mrp-profit-review-mobile.png')});
@@ -65,6 +79,19 @@ let checks=0;const check=(condition,message)=>{assert(condition,message);checks+
     check(await page.locator('#profitReviewTb img').count()===0&&await page.evaluate(()=>window.profitXss===undefined),'Untrusted custodians stay inert');
     await page.locator('#profitReviewSettings button').click();await page.reload();
     check(await page.evaluate(()=>ST.profitReview.gainThresholdPct===50&&ST.profitReview.concentrationThresholdPct===40),'Explicit settings survive reload');
+    await page.evaluate(()=>showTab('risk'));
+    check(await page.locator('#riskDrawdowns tbody tr').first().textContent().then(text=>text.includes('-25.00%')&&text.includes('Revisar retroceso')),'Maximum, quote and warning survive reload in the same browser');
+    await page.evaluate(()=>showTab('liquidity'));
+    await page.getByText('Reserva por entidad / cuenta',{exact:true}).click();
+    await page.getByRole('button',{name:'Editar reserva de Binance · USD'}).click();
+    await page.getByLabel('Destinado a inversiones').fill('500');
+    await page.getByLabel('Comprometido para otros fines').fill('200');
+    await page.locator('#liquidityOverlay').getByRole('button',{name:'Guardar'}).click();
+    check(await page.locator('#liquidityReserveCurrencies').textContent().then(text=>text.includes('500,00 USD')&&text.includes('200,00 USD')),'Liquidity reserve is editable per account and totals update');
+    await page.evaluate(()=>showTab('dash'));
+    check(await page.locator('#dashInvestmentIndicators').textContent().then(text=>text.includes('500,00 USD')&&text.includes('-25.00%')),'Dashboard shows available reserve and largest drawdown');
+    await page.locator('#dashInvestmentIndicators').getByRole('button',{name:'G/P realizada en Historial'}).click();
+    check(await page.locator('#hTb tr').first().locator('td').nth(7).textContent().then(text=>text.includes('98')),'History displays realized result separately from net proceeds');
     assert.deepEqual(errors,[]);console.log(`OK Gestión de beneficios UI: ${checks} comprobaciones desktop/móvil; red externa bloqueada.`);
   }finally{if(browser)await browser.close();await new Promise(resolve=>server.close(resolve));}
 })().catch(error=>{console.error(error);process.exitCode=1;});
