@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <!-- Legacy inline handlers remain allowed; external script origins and static bytes are restricted. -->
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'self'; object-src 'none'; form-action 'self'; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://s3.tradingview.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net; font-src 'self' data: https://fonts.gstatic.com https://cdn.jsdelivr.net; img-src 'self' data: https:; connect-src 'self' https://dddojedzyrcjqasyomso.supabase.co wss://dddojedzyrcjqasyomso.supabase.co https://query1.finance.yahoo.com https://query2.finance.yahoo.com https://api.coingecko.com https://min-api.cryptocompare.com https://data-api.binance.vision https://api.allorigins.win https://r.jina.ai https://dolarapi.com https://dolarazo.com.ar; frame-src https://www.tradingview.com https://s.tradingview.com https://*.tradingview-widget.com; worker-src 'self'">
-<meta name="mrp-release" content="2026-11-20.1">
+<meta name="mrp-release" content="2026-11-23.1">
 <title>MRP Portfolio</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -598,6 +598,13 @@ input::placeholder,textarea::placeholder,select::placeholder{color:var(--tx4);op
 .indicator-summary strong{color:var(--tx1);font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
 .indicator-link{padding:0;background:none;border:0;text-align:left}
 .indicator-missing{opacity:.85;font-size:10px;color:var(--tx2)}
+.price-alert{display:flex;align-items:center;gap:10px;padding:8px 10px;background:var(--bg3);border:1px solid var(--br);border-radius:8px;margin-bottom:6px}
+.price-alert.reached{background:rgba(252,211,77,.08);border-color:rgba(252,211,77,.3)}
+.price-alert-text{flex:1;min-width:0;overflow-wrap:anywhere;line-height:1.4}
+.price-alert-text strong{display:block;font-size:11px;color:var(--tx1)}
+.price-alert.reached strong{color:var(--ca2)}
+.price-alert-text div,.price-alert-text small{font-size:10px;color:var(--tx2)}
+.price-alert .btn-del{flex-shrink:0}
 #dHeroPnl{overflow-wrap:anywhere}
 @media(max-width:600px){
   .profit-review #riskDrawdowns td:last-child{display:block}
@@ -1059,7 +1066,7 @@ input::placeholder,textarea::placeholder,select::placeholder{color:var(--tx4);op
     <div>
       <div class="logo-name">MRP Portfolio</div>
       <div class="logo-sub" id="logoSub">Investment Tracker</div>
-      <div class="logo-version" title="Versión de la aplicación">v2026-11-20.1</div>
+      <div class="logo-version" title="Versión de la aplicación">v2026-11-23.1</div>
     </div>
   </div>
   <div class="topbar-right">
@@ -2960,7 +2967,7 @@ const PALETTE = ['#7c3aed','#0891b2','#10b981','#f59e0b','#f43f5e','#ec4899','#8
 // STATE
 // ═══════════════════════════════════════════
 const SCHEMA_VERSION = 'position-v3';
-const APP_RELEASE = '2026-11-20.1';
+const APP_RELEASE = '2026-11-23.1';
 const PUBLIC_APP_URL = 'https://criptoscrazy.github.io/mrp-portfolio-finance/';
 const SKEY = 'mrp_portfolio_v3';
 const LEGACY_SKEY = 'mrp_portfolio_v2';
@@ -3282,12 +3289,20 @@ function readOptionalCommission(inputId) {
   return { comm, feeStatus:comm === 0 ? 'confirmed_zero' : 'recorded' };
 }
 function positionHasUnrecordedFee(asset) {
-  return (ST.hist||[]).some(entry => entry.positionId === asset?.positionId && entry.type === 'COMPRA' &&
-    normalizedFeeStatus(entry.feeStatus, entry.commission ?? entry.comm) === 'not_recorded');
+  if(!asset?.positionId)return false;
+  for(const entry of ST.hist||[]){
+    if(entry.positionId!==asset.positionId||entry.type!=='COMPRA'||entry.operationStatus==='reversed')continue;
+    if(knownOperationCommission(entry)===null)return true;
+    if(entry.operationStatus==='confirmed'&&sameRecordedAmount(entry.qtyBefore,0))break;
+  }
+  return false;
 }
 function positionHistoryEntries(asset) {
   return (ST.hist||[]).filter(entry => entry.positionId === asset?.positionId &&
     ['COMPRA','VENTA'].includes(entry.type) && entry.operationStatus !== 'reversed');
+}
+function acquisitionFeesKnown(asset) {
+  return asset?.costFeeStatus==='fees_recorded' && !positionHasUnrecordedFee(asset);
 }
 function initialPositionPurchase(asset) {
   const purchases=positionHistoryEntries(asset).filter(entry => entry.type === 'COMPRA');
@@ -3296,10 +3311,12 @@ function initialPositionPurchase(asset) {
 }
 function knownOperationCommission(operation) {
   if (!operation) return null;
-  const commission=Number(operation.commission ?? operation.comm);
-  return normalizedFeeStatus(operation.feeStatus, commission) === 'not_recorded' || !Number.isFinite(commission)
-    ? null
-    : commission;
+  const raw=operation.commission ?? operation.comm;
+  const commission=Number(raw);
+  const status=normalizedFeeStatus(operation.feeStatus, commission);
+  if(raw==null||raw===''||!Number.isFinite(commission)||commission<0) return null;
+  if(status==='confirmed_zero') return commission===0?0:null;
+  return status==='recorded'&&commission>0?commission:null;
 }
 function planEtfInitialCommissionUpdate(asset, rawValue) {
   const raw=String(rawValue ?? '').trim();
@@ -4526,7 +4543,7 @@ function appendPositionHistory(asset, scope, type, operation, before) {
     executionTimestamp:operation.executionTimestamp || null, externalSource:operation.externalSource || '',
     notes:operation.notes || '', custodian:positionCustodian(asset, scope), qtyBefore:Number(before.qty)||0, qtyAfter,
     avgBefore:Number(before.avgBuy)||0, avgAfter, openCostBefore:Number(before.openCost)||0,
-    openCostAfter:asset.costUnknown?null:Number(asset.openCost)||0, realizedPnl:operation.realizedPnl===null?null:Number(operation.realizedPnl)||0
+    openCostAfter:asset.costUnknown?null:Number(asset.openCost)||0, realizedPnl:type==='VENTA'&&Number.isFinite(operation.realizedPnl)?operation.realizedPnl:null
   };
   ST.hist.unshift(entry);
   return entry;
@@ -4539,7 +4556,10 @@ function applyPositionOperation(asset, scope, type, operation) {
   const feeStatus=normalizedFeeStatus(operation.feeStatus,comm);
   const quantityField = scope === 'bono' ? 'nominal' : 'qty';
   const currentQty = Number(asset[quantityField]) || 0;
-  const currentOpenCost = Number.isFinite(Number(asset.openCost)) ? Number(asset.openCost) : (scope === 'bono' ? Number(asset.capUSD)||0 : currentQty * (Number(asset.avgBuy ?? asset.buy)||0));
+  const storedCost=Number(asset.openCost ?? NaN);
+  const currentOpenCost = currentQty===0 ? 0 : Number.isFinite(storedCost) ? storedCost :
+    scope==='bono' ? Number(asset.capUSD ?? NaN) : currentQty*positionAverage(asset);
+  const costKnown = currentQty===0 || (!asset.costUnknown&&Number.isFinite(currentOpenCost)&&currentOpenCost>0);
   const before = { qty:currentQty, openCost:currentOpenCost, avgBuy:positionAverage(asset) };
   const grossCost = scope === 'bono' ? qty * price / 100 : qty * price;
   operation.comm=comm; operation.feeStatus=feeStatus; operation.grossAmount=grossCost;
@@ -4547,24 +4567,28 @@ function applyPositionOperation(asset, scope, type, operation) {
     const nextQty = currentQty + qty;
     const nextCost = currentOpenCost + grossCost + comm;
     asset[quantityField] = nextQty;
-    asset.openCost = asset.costUnknown?null:nextCost;
-    asset.avgBuy = asset.costUnknown?null:scope === 'bono' ? nextCost / nextQty * 100 : nextCost / nextQty;
-    asset.costFeeStatus = asset.costFeeStatus === 'fees_incomplete' || feeStatus === 'not_recorded' || positionHasUnrecordedFee(asset) ? 'fees_incomplete' : 'fees_recorded';
-    if (scope === 'bono') asset.capUSD = nextCost;
+    asset.openCost = costKnown?nextCost:null;
+    asset.avgBuy = !costKnown?null:scope === 'bono' ? nextCost / nextQty * 100 : nextCost / nextQty;
+    if(!costKnown)asset.costUnknown=true;
+    else if(currentQty===0&&asset.costUnknown)asset.costUnknown=false;
+    asset.costFeeStatus = knownOperationCommission(operation)===null ||
+      (currentQty>0&&!acquisitionFeesKnown(asset)) ? 'fees_incomplete' : 'fees_recorded';
+    if (scope === 'bono') asset.capUSD = asset.openCost;
     asset.status = 'active';
   } else {
-    if (qty > currentQty + 1e-10) throw new Error(`No podés vender más de ${currentQty} unidades`);
+    if (currentQty<=0 || qty > currentQty + 1e-10) throw new Error(`No podés vender más de ${currentQty} unidades`);
     const average = positionAverage(asset);
-    const removedCost = scope === 'bono' ? qty * average / 100 : qty * average;
+    const removedCost = costKnown ? currentOpenCost*(Math.min(qty,currentQty)/currentQty) : null;
     const proceeds = grossCost - comm;
     const nextQty = Math.max(0, currentQty - qty);
-    const nextCost = nextQty === 0 ? 0 : Math.max(0, currentOpenCost - removedCost);
+    const nextCost = nextQty === 0 ? 0 : costKnown ? currentOpenCost-removedCost : null;
     asset[quantityField] = nextQty;
     asset.openCost = asset.costUnknown&&nextQty>0?null:nextCost;
-    asset.avgBuy = asset.costUnknown?null:nextQty === 0 ? average : (scope === 'bono' ? nextCost / nextQty * 100 : nextCost / nextQty);
+    asset.avgBuy = !costKnown?null:nextQty === 0 ? average : (scope === 'bono' ? nextCost / nextQty * 100 : nextCost / nextQty);
+    if(!costKnown&&nextQty>0)asset.costUnknown=true;
     if (scope === 'bono') asset.capUSD = nextCost;
     asset.status = nextQty === 0 ? 'closed' : 'active';
-    operation.realizedPnl = asset.costUnknown?null:proceeds - removedCost;
+    operation.realizedPnl = costKnown?proceeds-removedCost:null;
   }
   appendPositionHistory(asset, scope, type, operation, before);
   return asset;
@@ -4621,7 +4645,8 @@ $('positionOperationOverlay')?.addEventListener('click', event => { if (event.ta
 function applyCedearSale(positionId, operation) {
   const group=consolidateCedears().find(item=>item.positionId===positionId);
   const requested=dec(operation.qty),price=dec(operation.price),commission=dec(operation.comm||0);
-  if(!group||!decPositive(requested)||!decPositive(price)||!operation.date)throw new Error('Cantidad, precio y fecha no son válidos');
+  if(!group||!decPositive(requested)||!decPositive(price)||commission===null||decCmp(commission,'0')<0||
+    !CEDEAR_CURRENCIES.includes(operation.currency)||!operation.date)throw new Error('Cantidad, precio, comisión, moneda o fecha no son válidos');
   if(decCmp(requested,group.quantity)>0)throw new Error(`No podés vender más de ${formatDec(group.quantity,{digits:8})} CEDEARs`);
   if(!Array.isArray(ST.cedearSales))ST.cedearSales=[];
   let pending=requested,costRemoved='0',comparable=true;
@@ -4631,9 +4656,11 @@ function applyCedearSale(positionId, operation) {
     const values=cedearLotValues(lot),available=values.quantity;
     if(!decPositive(available))return;
     const allocated=decCmp(available,pending)<=0?available:pending;
-    const originalTotal=dec(lot.totalCostDecimal)||decMul(values.originalQuantity,values.unit);
-    const lotCost=decMul(decDiv(originalTotal,values.originalQuantity,12),allocated);
-    if(values.currency===operation.currency)costRemoved=decAdd(costRemoved,lotCost);else comparable=false;
+    const nextBasis=cedearProratedBasis(values.originalTotal,decSub(available,allocated),values.originalQuantity);
+    const lotCost=decSub(values.total,nextBasis);
+    if(values.currency===operation.currency && !values.crossCurrencyExpenses.length && decPositive(values.originalTotal) && lotCost!==null){
+      costRemoved=decAdd(costRemoved,lotCost);
+    }else comparable=false;
     ST.cedearSales.push({id:uid(),saleGroupId,positionId,lotId:lot.id,sym:group.sym,date:operation.date,quantityDecimal:allocated,price:Number(price),currency:operation.currency,costRemovedDecimal:lotCost,costCurrency:values.currency,custodian:group.broker||'sin-especificar'});
     pending=decSub(pending,allocated);
   });
@@ -4662,23 +4689,36 @@ function cedearLotSoldQuantity(lotId) {
   return decSum((ST.cedearSales||[]).filter(sale=>sale.lotId===lotId).map(sale=>sale.quantityDecimal||sale.qty));
 }
 
+function cedearProratedBasis(amount,remaining,original) {
+  if(amount===null||!decPositive(original)||remaining===null||decCmp(remaining,'0')<0)return null;
+  if(decCmp(remaining,original)===0)return amount;
+  return decDiv(decMul(amount,remaining),original,12);
+}
+function cedearFeesKnown(lot,originalGross,originalTotal) {
+  if(lot.feeStatus==='not_recorded'||!decPositive(originalGross)||!decPositive(originalTotal))return false;
+  return (lot.feeStatus==='confirmed_zero'&&decCmp(originalTotal,originalGross)===0) ||
+    decCmp(originalTotal,originalGross)>0;
+}
 function cedearLotValues(lot, { historical = false } = {}) {
   const currency=lot.purchaseCurrency||'ARS',originalQuantity=dec(lot.quantityDecimal??lot.qty),sold=historical?'0':cedearLotSoldQuantity(lot.id);
   const quantity=historical?originalQuantity:decSub(originalQuantity,sold),ratio=dec(lot.ratioDecimal??lot.ratio??1);
   const unit=dec(lot.unitPriceDecimal??lot.buyARS),originalGross=dec(lot.grossAmountDecimal)||decMul(originalQuantity,unit);
-  const originalTotal=dec(lot.totalCostDecimal)||originalGross,proportion=decPositive(originalQuantity)?decDiv(quantity,originalQuantity,12):'0';
-  const gross=historical?originalGross:decMul(originalGross,proportion),total=historical?originalTotal:decMul(originalTotal,proportion),expenses=cedearLotExpenses(lot.id);
-  const scaledExpense=expense=>historical?expense:{...expense,amountDecimal:decMul(expense.amountDecimal,proportion)};
+  const originalTotal=dec(lot.totalCostDecimal)||originalGross;
+  const prorate=amount=>cedearProratedBasis(dec(amount),quantity,originalQuantity);
+  const gross=prorate(originalGross),total=prorate(originalTotal),expenses=cedearLotExpenses(lot.id);
+  const scaledExpense=expense=>historical?expense:{...expense,amountDecimal:prorate(expense.amountDecimal)};
   const sameCurrencyExpenses=expenses.filter(expense=>expense.currency===currency&&decPositive(expense.amountDecimal)).map(scaledExpense);
-  const crossCurrencyExpenses=expenses.filter(expense=>expense.currency!==currency&&decPositive(expense.amountDecimal)).map(scaledExpense);
+  const crossCurrencyExpenses=expenses.filter(expense=>expense.currency!==currency&&decPositive(expense.amountDecimal)).map(scaledExpense)
+    .filter(expense=>decPositive(expense.amountDecimal));
   const unitemizedDifference=decSub(total,decAdd(gross,decSum(sameCurrencyExpenses.map(expense=>expense.amountDecimal))));
-  let historicalARS=dec(lot.historicalArsEquivalentDecimal);
+  let historicalARS=prorate(lot.historicalArsEquivalentDecimal);
   if(!historicalARS&&currency==='ARS')historicalARS=total;
   let historicalUSD=null;
   if(currency==='USD_MEP'||currency==='USD_CABLE')historicalUSD=total;
   else if(currency==='ARS'&&decPositive(lot.cclAtPurchaseDecimal))historicalUSD=decDiv(total,lot.cclAtPurchaseDecimal,8);
   if(crossCurrencyExpenses.length) { historicalARS=null; historicalUSD=null; }
-  return {currency,quantity,originalQuantity,ratio,unit,gross,total,expenses,sameCurrencyExpenses,crossCurrencyExpenses,
+  return {currency,quantity,originalQuantity,originalTotal,ratio,unit,gross,total,expenses,sameCurrencyExpenses,crossCurrencyExpenses,
+    feesComplete:cedearFeesKnown(lot,originalGross,originalTotal),
     unitemizedDifference:decPositive(unitemizedDifference)?unitemizedDifference:null,
     historicalARS,historicalUSD,equivalentShares:decDiv(quantity,ratio,8)};
 }
@@ -4701,16 +4741,18 @@ function consolidateCedears(lots=(ST.otros||[]).filter(item=>item.type==='cedeaa
   });
   return [...groups.values()].map(group=>{
     group.currentValueARS=group.currentPriceARS?decMul(group.quantity,group.currentPriceARS):null;
-    const lotValues=group.lots.map(cedearLotValues);
+    const lotValues=group.lots.map(lot=>cedearLotValues(lot));
+    const openLots=lotValues.filter(value=>decPositive(value.quantity));
     const arsBases=lotValues.map(value=>value.historicalARS);
-    group.historicalARS=arsBases.every(Boolean)?decSum(arsBases):null;
+    group.historicalARS=arsBases.every((basis,index)=>basis!==null||!decPositive(lotValues[index].quantity))?decSum(arsBases):null;
     group.pnlARS=group.currentValueARS&&group.historicalARS?decSub(group.currentValueARS,group.historicalARS):null;
     group.currencies=CEDEAR_CURRENCIES.filter(currency=>decPositive(group.costs[currency]));
     group.mixedCurrencies=group.currencies.length>1;
     // USD MEP is the primary analysis basis. Its real paid amount is already
     // in USD, so it never needs CCL histórico to calculate current P/L.
-    const allBoughtInUSDMEP=lotValues.length>0&&lotValues.every(value=>value.currency==='USD_MEP');
-    group.historicalUSD=allBoughtInUSDMEP?decSum(lotValues.map(value=>value.total)):null;
+    const allBoughtInUSDMEP=openLots.length>0&&openLots.every(value=>value.currency==='USD_MEP'&&value.originalTotal!==null&&!value.crossCurrencyExpenses.length);
+    group.historicalUSD=allBoughtInUSDMEP?decSum(openLots.map(value=>value.total)):null;
+    group.feesComplete=openLots.every(value=>value.feesComplete);
     const currentCCL=dec(ST.cedearCurrentCclDecimal);
     group.currentValueUSD=group.currentValueARS&&decPositive(currentCCL)?decDiv(group.currentValueARS,currentCCL,8):null;
     group.pnlUSD=group.currentValueUSD&&group.historicalUSD?decSub(group.currentValueUSD,group.historicalUSD):null;
@@ -4834,7 +4876,7 @@ function openAssetDetails(scope, id) {
     asset = (scope === 'stock' ? ST.stocks : ST.crypto).find(item => item.id === id);
     if (!asset) return;
     kind = scope === 'stock' ? 'Acción' : 'Criptomoneda';
-    const { cap, cur, pnl, pp, d } = calc(asset);
+    const { cap, cur, pnl, pp, d, result } = calc(asset);
     const dca = calcDCA(asset);
     const avgPrice = dca ? dca.avgPrice : asset.buy;
     fields = [
@@ -4850,6 +4892,7 @@ function openAssetDetails(scope, id) {
       { label:'Valor de mercado', value:cur==null?'Información insuficiente':fmt(cur) },
       { label:'G/P no realizada', value:pnl==null?'Información insuficiente':fmt(pnl), tone:pnl == null ? null : (pnl >= 0 ? 'positive' : 'negative') },
       { label:'Rentabilidad no realizada', value:pp==null?'Información insuficiente':fmtPct(pp * 100), tone:pp == null ? null : (pp >= 0 ? 'positive' : 'negative') },
+      { label:'Estado de la G/P', value:resultStatusLabel(result.status) },
       { label:'Antigüedad', value:`${d} días` },
       { label:'Fuente del precio', value:asset.priceSource || '—' },
       { label:'Cotización actualizada', value:quoteUpdatedLabel(asset) },
@@ -4875,7 +4918,7 @@ function openAssetDetails(scope, id) {
     const otherTypeNames = { etf:'ETF', cedeaar:'CEDEAR', token:'Acción tokenizada', bono:'Bono' };
     kind = otherTypeNames[asset.type] || 'Otro activo';
     if (asset.type === 'etf' || asset.type === 'token') {
-      const {cap,cur:currentValue,pnl,pp:roi}=calc(asset);
+      const {cap,cur:currentValue,pnl,pp:roi,result}=calc(asset);
       fields = [
         { label:'Tipo', value:kind }, { label:'Nombre', value:asset.name },
         { label:'Cantidad', value:Number(asset.qty).toLocaleString('es-AR', { maximumFractionDigits:8 }) },
@@ -4888,6 +4931,7 @@ function openAssetDetails(scope, id) {
         { label:'Valor de mercado', value:currentValue==null?'Información insuficiente':fmt(currentValue) },
         { label:'G/P no realizada', value:pnl==null?'Información insuficiente':fmt(pnl), tone:pnl == null ? null : (pnl >= 0 ? 'positive' : 'negative') },
         { label:'Rentabilidad no realizada', value:roi==null?'Información insuficiente':fmtPct(roi * 100), tone:roi == null ? null : (roi >= 0 ? 'positive' : 'negative') },
+        { label:'Estado de la G/P', value:resultStatusLabel(result.status) },
         { label:'Fuente del precio', value:asset.priceSource || '—' },
         { label:'Cotización actualizada', value:quoteUpdatedLabel(asset) },
         ...drawdownDetailFields(asset)
@@ -5194,10 +5238,11 @@ function selectAsset(a) {
 // CALC HELPERS
 // ═══════════════════════════════════════════
 function calc(a) {
-  const {costUSD:cap,currentUSD:cur,pnlUSD:pnl} = directUSDValuation(a);
+  const valuation=directUSDValuation(a);
+  const {costUSD:cap,currentUSD:cur,pnlUSD:pnl}=valuation;
   const pp = pnl == null ? null : pnl / cap;
   const d   = days(a.date, today());
-  return { cap, cur, pnl, pp, d };
+  return { cap, cur, pnl, pp, d, result:openResult(valuation) };
 }
 
 const PORTFOLIO_BASE_CURRENCY = 'USD';
@@ -5231,6 +5276,31 @@ function isValuationAvailable(item) {
   return Number.isFinite(item?.currentUSD) && item.currentUSD >= 0 &&
     !['pending','conversion_pending'].includes(item.status);
 }
+function valuationUsesOldData(item) {
+  return isValuationAvailable(item) && (item.conversionAgeWarning===true ||
+    ['stale','freshness_unknown'].includes(item.status));
+}
+function cedearCCLAgeWarning() {
+  const time=Date.parse(ST.cedearCurrentCclSourceTimestamp||ST.cedearCurrentCclUpdatedAt);
+  return !Number.isFinite(time)||Date.now()-time>96*60*60*1000;
+}
+function financialResult(amount,complete) {
+  return Number.isFinite(amount)
+    ? {amount,status:complete?'confirmed':'provisional'}
+    : {amount:null,status:'insufficient'};
+}
+function openResult(item) {
+  return financialResult(item.pnlUSD,item.feesComplete&&!valuationUsesOldData(item)&&!item.estimatedConversion);
+}
+function resultStatusLabel(status) {
+  const labels=LANG==='en'
+    ? {confirmed:'Confirmed',provisional:'Provisional',insufficient:'Insufficient information'}
+    : {confirmed:'Confirmado',provisional:'Provisional',insufficient:'Información insuficiente'};
+  return labels[status];
+}
+function provisionalMarkup(result) {
+  return result.status==='provisional'?' <span class="indicator-missing">· '+resultStatusLabel(result.status)+'</span>':'';
+}
 function directUSDValuation(asset, assetClass) {
   const quantity=Number(asset?.qty);
   const openCost=Number(asset?.openCost ?? NaN);
@@ -5245,7 +5315,8 @@ function directUSDValuation(asset, assetClass) {
     id:asset.id, sym:asset.sym, name:asset.name||asset.sym, assetClass, sourceAsset:asset,
     costUSD:Number.isFinite(cost)&&cost>0?cost:null, currentUSD,
     pnlUSD:currentUSD != null&&Number.isFinite(cost)&&cost>0?currentUSD-cost:null,
-    status:finalStatus, quoteCurrency, sourceTimestamp:asset.priceSourceTimestamp||asset.priceUpdatedAt||null,
+    status:finalStatus, feesComplete:acquisitionFeesKnown(asset), estimatedConversion:marketQuoteUnit(asset)!==quoteCurrency,
+    quoteCurrency, sourceTimestamp:asset.priceSourceTimestamp||asset.priceUpdatedAt||null,
     retrievedAt:asset.priceRetrievedAt||null, source:asset.priceSource||'', marketState:asset.priceMarketState||''
   };
 }
@@ -5744,16 +5815,21 @@ function financialSummary(investments=portfolioSummary()){
   const pending=investments.pending.length+cash.available.pending.length;
   return {investments,cash,pending,totalUSD:!priced&&pending?null:(investments.totalUSD||0)+cash.available.value};
 }
-function liquidityTotalMarkup(label,value,pending=0,anyKnown=true){return `<div class="liquidity-total"><span>${escapeHTML(label)}</span><strong>${pending&&!anyKnown?'N/D':fmt(value)}</strong><small>${pending?`${pending} pendiente${pending>1?'s':''} · total parcial`:'USD valorados'}</small></div>`;}
+function valuationCoverage(pending,old){
+  const en=LANG==='en';
+  return [pending?(en?`${pending} without valuation · partial total`:`${pending} sin valoración · total parcial`):'',
+    old?(en?'Includes old or undated quotes':'Incluye cotizaciones antiguas o sin fecha'):''].filter(Boolean).join(' · ');
+}
+function liquidityTotalMarkup(label,value,pending=0,anyKnown=true,old=0){return `<div class="liquidity-total"><span>${escapeHTML(label)}</span><strong>${pending&&!anyKnown?'N/D':fmt(value)}</strong><small>${valuationCoverage(pending,old)||'USD valorados'}</small></div>`;}
 function renderFinancialLiquidity(summary){
   const f=financialSummary(summary),cash=f.cash;
-  $('dashLiquidityTotals').innerHTML=liquidityTotalMarkup('Activos invertidos · valor actual',summary.totalUSD,summary.pending.length,summary.valued.length>0)+
+  $('dashLiquidityTotals').innerHTML=liquidityTotalMarkup('Activos invertidos · valoración',summary.totalUSD,summary.pending.length,summary.valued.length>0,summary.oldValuations.length)+
     liquidityTotalMarkup('Liquidez inmediata',cash.immediate.value,cash.immediate.pending.length,cash.immediate.items.some(i=>i.currentUSD!=null))+
     liquidityTotalMarkup('Liquidez remunerada',cash.remunerated.value,cash.remunerated.pending.length,cash.remunerated.items.some(i=>i.currentUSD!=null))+
     liquidityTotalMarkup('Liquidez disponible total',cash.available.value,cash.available.pending.length,cash.available.complete||cash.available.value>0)+
-    liquidityTotalMarkup('Patrimonio financiero total',f.totalUSD,f.pending,f.totalUSD!=null);
+    liquidityTotalMarkup('Patrimonio financiero total',f.totalUSD,f.pending,f.totalUSD!=null,summary.oldValuations.length);
   $('dHeroTotal').textContent=f.totalUSD==null?'N/D':fmt(f.totalUSD);
-  $('dHeroTotalSub').textContent=f.pending?`USD valorados · ${f.pending} pendiente${f.pending>1?'s':''}`:'USD valorados';
+  $('dHeroTotalSub').textContent=valuationCoverage(f.pending,summary.oldValuations.length)||(LANG==='en'?'Valued USD':'USD valorados');
   const label=$('dHeroTotal')?.previousElementSibling;if(label)label.textContent='Patrimonio financiero total';
 }
 function renderLiquidity(){
@@ -5854,7 +5930,8 @@ function portfolioValuations() {
       id:group.positionId,sym:group.sym,name:group.name,assetClass:'CEDEARs',sourceAsset:group,
       costUSD:group.historicalUSD==null?null:Number(group.historicalUSD),
       currentUSD:group.currentValueUSD==null?null:Number(group.currentValueUSD),
-      pnlUSD:group.pnlUSD==null?null:Number(group.pnlUSD),status:group.currentValueUSD==null?status:priceStatusFor({cur:group.currentPriceARS,priceStatus:group.priceStatus,priceSourceTimestamp:group.priceSourceTimestamp||group.priceUpdatedAt}),
+      pnlUSD:group.pnlUSD==null?null:Number(group.pnlUSD),feesComplete:group.feesComplete,conversionAgeWarning:cedearCCLAgeWarning(),
+      status:group.currentValueUSD==null?status:priceStatusFor({cur:group.currentPriceARS,priceStatus:group.priceStatus,priceSourceTimestamp:group.priceSourceTimestamp||group.priceUpdatedAt}),
       source:group.priceSource||'',sourceTimestamp:group.priceSourceTimestamp||group.priceUpdatedAt||null,
       retrievedAt:group.priceRetrievedAt||null,marketState:'',quoteCclSkewMs:group.quoteCclSkewMs
     });
@@ -5876,7 +5953,9 @@ function portfolioSummary(items=portfolioValuations()) {
   const pending=items.filter(item=>!isValuationAvailable(item));
   const missingCost=items.filter(item=>!Number.isFinite(item.costUSD)||item.costUSD<=0);
   const incomplete=items.filter(item=>!isValuationAvailable(item)||!Number.isFinite(item.costUSD)||item.costUSD<=0);
-  return {items,valued,pnlItems,totalUSD,costUSD,pnlUSD,roiUSD:costUSD>0?pnlUSD/costUSD:null,byClass,pending,missingCost,incomplete};
+  const oldValuations=valued.filter(valuationUsesOldData);
+  const provisional=pnlItems.filter(item=>openResult(item).status==='provisional');
+  return {items,valued,pnlItems,totalUSD,costUSD,pnlUSD,roiUSD:costUSD>0?pnlUSD/costUSD:null,byClass,pending,missingCost,incomplete,oldValuations,provisional};
 }
 
 function valuationCustodian(item) {
@@ -5904,7 +5983,10 @@ function dashboardBarOptions(items,percentage) {
       callbacks:{title:contexts=>{
         const item=items[contexts[0]?.dataIndex];
         return item?`${valuationLabel(item)} · ${item.name||item.sym}`:'';
-      },label:c=>percentage?' '+fmtPct(c.raw):' '+fmt(c.raw)}
+      },label:c=>{
+        const item=items[c.dataIndex],value=percentage?fmtPct(c.raw):fmt(c.raw);
+        return ' '+value+(item&&openResult(item).status==='provisional'?' · '+resultStatusLabel('provisional'):'');
+      }}
     }},
     scales:{
       x:{ticks:{color:axis,font:{size:11,family:'monospace'},maxTicksLimit:5,callback:v=>percentage?v+'%':fmt(v,0)},
@@ -5920,9 +6002,10 @@ function consolidatedExposure(items) {
   const groups=new Map();
   items.forEach(item=>{
     const key=valuationExposureKey(item);
-    if(!groups.has(key))groups.set(key,{...item,currentUSD:0,custodians:new Set()});
+    if(!groups.has(key))groups.set(key,{...item,currentUSD:0,custodians:new Set(),usesOldData:false});
     const group=groups.get(key);
     group.currentUSD+=item.currentUSD;
+    group.usesOldData ||= valuationUsesOldData(item);
     group.custodians.add(valuationCustodian(item));
   });
   return [...groups.values()];
@@ -5938,14 +6021,15 @@ function renderDashboardDetails(summary) {
   const en=LANG==='en';
   const stale=summary.valued.filter(item=>['stale','freshness_unknown'].includes(item.status));
   const cclNeeded=summary.items.some(item=>item.assetClass==='CEDEARs');
-  const cclTime=new Date(ST.cedearCurrentCclUpdatedAt).getTime();
-  const cclOld=cclNeeded&&(!Number.isFinite(cclTime)||Date.now()-cclTime>96*60*60*1000);
+  const cclOld=cclNeeded&&cedearCCLAgeWarning();
   const issues=[];
   summary.items.forEach(item=>{
     const reasons=[];
     if(!isValuationAvailable(item))reasons.push(en?'price or conversion missing':'sin precio o conversión');
     if(summary.missingCost.includes(item))reasons.push(en?'cost missing':'sin coste');
     if(stale.includes(item))reasons.push(en?'old quote or unknown timestamp':'cotización antigua o fecha desconocida');
+    if(item.pnlUSD!=null&&!item.feesComplete)reasons.push(en?'acquisition costs without full fee evidence':'coste de compra con comisiones sin confirmar');
+    if(item.estimatedConversion&&isValuationAvailable(item))reasons.push(en?'estimated quote currency equivalence':'equivalencia de moneda de cotización estimada');
     if(item.quoteCclSkewMs>CEDEAR_CCL_SKEW_WARNING_MS)reasons.push(en?'price and CCL at different times':'precio y CCL de horas diferentes');
     if(reasons.length)issues.push(`${valuationLabel(item)}: ${reasons.join(' · ')}`);
   });
@@ -5955,7 +6039,7 @@ function renderDashboardDetails(summary) {
   $('dQualityTime').textContent=times.length?(en?'Latest query: ':'Última consulta: ')+madridDateTime(Math.max(...times)):(en?'No query timestamp':'Sin fecha de consulta');
   $('dQualityItems').innerHTML=(issues.length?issues:[en?'All positions have price and cost; no freshness warnings.':'Todas las posiciones tienen precio y coste; sin advertencias de antigüedad.']).map(text=>`<li>${escapeHTML(text)}</li>`).join('');
   const contribution=summary.pnlItems.slice().sort((a,b)=>Math.abs(b.pnlUSD)-Math.abs(a.pnlUSD)).slice(0,6);
-  $('dContributionTb').innerHTML=contribution.length?contribution.map(item=>`<tr><td>${escapeHTML(valuationLabel(item))}</td><td>${escapeHTML(item.assetClass)}</td><td class="num">${fmt(item.currentUSD)}</td><td class="num" style="color:${item.pnlUSD>=0?'var(--cg2)':'var(--cr2)'}">${fmt(item.pnlUSD)}</td></tr>`).join(''):`<tr><td colspan="4">${en?'No positions with price and cost':'Sin posiciones con precio y coste'}</td></tr>`;
+  $('dContributionTb').innerHTML=contribution.length?contribution.map(item=>`<tr><td>${escapeHTML(valuationLabel(item))}</td><td>${escapeHTML(item.assetClass)}</td><td class="num">${fmt(item.currentUSD)}</td><td class="num" style="color:${item.pnlUSD>=0?'var(--cg2)':'var(--cr2)'}">${fmt(item.pnlUSD)}${provisionalMarkup(openResult(item))}</td></tr>`).join(''):`<tr><td colspan="4">${en?'No positions with price and cost':'Sin posiciones con precio y coste'}</td></tr>`;
   const snaps=(ST.snaps||[]).filter(s=>s.value!=null&&s.value!==''&&Number.isFinite(Number(s.value))&&typeof s.date==='string').slice().sort((a,b)=>a.date.localeCompare(b.date));
   $('dEvolutionEmpty').textContent=snaps.length<2?(en?'Two saved valuations are needed.':'Se necesitan dos valoraciones guardadas.'):'';
   $('dEvolutionChart').style.display=snaps.length<2?'none':'';
@@ -6028,14 +6112,16 @@ function renderKPIs() {
   $('kCostLabel').textContent=en?'Valued open cost':'Coste abierto valorado';
   $('kPositionsLabel').textContent=en?'Positions':'Posiciones';
   $('kV').textContent=summary.totalUSD==null?'N/D':fmt(summary.totalUSD);
-  $('kVs').textContent=(en?'Valued USD':'USD valorados')+pendingLabel;
+  $('kVs').textContent=valuationCoverage(summary.pending.length,summary.oldValuations.length)||(en?'Valued USD':'USD valorados');
   $('kPnl').textContent=pnlKnown?fmt(summary.pnlUSD):'N/D';
   $('kPnl').className='kpi-v '+(pnlKnown?(summary.pnlUSD>=0?'gradient-up':'gradient-dn'):'');
-  $('kPnlS').textContent=summary.roiUSD!=null?fmtPct(summary.roiUSD*100)+' ROI'+pendingLabel:(en?'N/D: valid valuation required':'N/D: falta valoración válida');
+  const pnlQuality=summary.provisional.length?' · '+resultStatusLabel('provisional'):'';
+  $('kPnlS').textContent=summary.roiUSD!=null?fmtPct(summary.roiUSD*100)+' ROI'+pnlQuality+pendingLabel:resultStatusLabel('insufficient');
   $('kPnlS').className='kpi-s '+(pnlKnown?(summary.pnlUSD>=0?'up':'dn'):'');
   $('kROI').textContent=summary.roiUSD!=null?fmtPct(summary.roiUSD*100):'N/D';
   $('kROI').className='kpi-v '+(summary.roiUSD==null?'':(summary.roiUSD>=0?'gradient-up':'gradient-dn'));
-  $('kROIS').textContent=incomplete?(en?'partial: pending data':'parcial por datos pendientes'):t('kpiROISub');
+  $('kROIS').textContent=incomplete?(en?'partial: pending data':'parcial por datos pendientes'):
+    summary.provisional.length?resultStatusLabel('provisional'):t('kpiROISub');
   $('kCost').textContent=pnlKnown||!summary.items.length?fmt(summary.costUSD):'N/D';
   $('kCostSub').textContent=(en?'valued positions only':'solo posiciones valoradas')+pendingLabel;
   $('kPos').textContent=summary.items.length;
@@ -6066,17 +6152,17 @@ function renderClassPnlTable(summary) {
   const unresolved = group.incomplete.length;
     const roi = group.roiUSD;
     const pnlColor = group.pnlItems.length ? (group.pnlUSD >= 0 ? 'var(--cg2)' : 'var(--cr2)') : 'var(--tx3)';
-    const status = unresolved
-      ? t('dClassPnlPartial').replace('{n}', unresolved)
-      : t('dClassPnlComplete');
-    const statusClass = unresolved ? 'pill-y' : 'pill-g';
+    const status = [unresolved?t('dClassPnlPartial').replace('{n}',unresolved):'',
+      group.provisional.length?resultStatusLabel('provisional'):'',
+      valuationCoverage(0,group.oldValuations.length)].filter(Boolean).join(' · ');
+    const statusClass = status ? 'pill-y' : 'pill-g';
     return `<tr>
-      <td class="sym"><span class="leg-dot" style="display:inline-block;background:${PALETTE[index%PALETTE.length]};margin-right:6px"></span><button class="dash-row-button" type="button" onclick="openAssetClass('${assetClass}')">${escapeHTML(assetClass)}</button></td>
+      <td class="sym"><span class="leg-dot" style="display:inline-block;background:${PALETTE[index%PALETTE.length]};margin-right:6px"></span><button class="dash-row-button" type="button" onclick="openAssetClass(${inlineArg(assetClass)})">${escapeHTML(assetClass)}</button></td>
       <td class="num">${group.pnlItems.length ? fmt(group.costUSD) : 'N/D'}</td>
       <td class="num">${group.totalUSD==null?'N/D':fmt(group.totalUSD)}</td>
       <td class="num" style="color:${pnlColor};font-weight:700">${group.pnlItems.length ? fmt(group.pnlUSD) : 'N/D'}</td>
       <td class="num" style="color:${pnlColor};font-weight:700">${roi != null ? fmtPct(roi*100) : 'N/D'}</td>
-      <td><span class="pill ${statusClass}">${escapeHTML(status)}</span></td>
+      <td><span class="pill ${statusClass}">${escapeHTML(status||t('dClassPnlComplete'))}</span></td>
       <td class="num">${group.totalUSD!=null&&summary.totalUSD>0?(group.totalUSD/summary.totalUSD*100).toFixed(1)+'%':'N/D'}</td>
     </tr>`;
   }).join('');
@@ -6123,7 +6209,7 @@ function renderDash() {
   const heroPnl = $('dHeroPnl');
   const heroPnlPct = $('dHeroPnlPct');
   if (heroPnl) { heroPnl.textContent = summary.pnlItems.length?fmt(pnl2):'Información insuficiente'; heroPnl.style.color = summary.pnlItems.length?(pnl2>=0?'var(--cg2)':'var(--cr2)'):'var(--tx2)'; }
-  if (heroPnlPct) { heroPnlPct.textContent = pp2!=null?fmtPct(pp2*100)+' ROI'+pendingLabel:'—'; heroPnlPct.style.color = pnl2>=0?'var(--cg2)':'var(--cr2)'; }
+  if (heroPnlPct) { heroPnlPct.textContent = pp2!=null?fmtPct(pp2*100)+' ROI'+(summary.provisional.length?' · '+resultStatusLabel('provisional'):'')+pendingLabel:'—'; heroPnlPct.style.color = pnl2>=0?'var(--cg2)':'var(--cr2)'; }
   const dPos = $('dPositions');
   if (dPos) dPos.textContent = summary.items.length;
 
@@ -6181,7 +6267,7 @@ function renderDash() {
 // ═══════════════════════════════════════════
 function renderPriceSource(asset) {
   const source = String(asset?.priceSource || '').trim();
-  if (!source) return '';
+  if (!source && !asset?.cur) return '';
   const status=priceStatusFor(asset),statusLabel=QUOTE_STATUS_LABELS[status]||QUOTE_STATUS_LABELS.pending;
   const sourceTime=madridDateTime(asset.priceSourceTimestamp||asset.priceUpdatedAt);
   const retrievedTime=madridDateTime(asset.priceRetrievedAt);
@@ -6197,7 +6283,7 @@ function renderTbl(assets, tbodyId, type) {
   const peaks=readMarketPeaks();
   const missing='<span class="indicator-missing">Información insuficiente</span>';
   assets.forEach(a => {
-    const { cap, cur, pnl, pp, d } = calc(a);
+    const { cap, cur, pnl, pp, d, result } = calc(a);
     const dca = calcDCA(a);
     const avgP = dca ? dca.avgPrice : a.buy;
     const ch = a.ch != null ? fmtPct(a.ch*100) : '—';
@@ -6224,7 +6310,7 @@ function renderTbl(assets, tbodyId, type) {
       <td style="color:${chC};font-weight:700">${ch}</td>
       <td class="num muted">${cap==null?missing:fmt(cap)}</td>
       <td class="num">${cur==null?missing:fmt(cur)}</td>
-      <td class="num" style="color:${pnlC};font-weight:700">${pnl==null?missing:fmt(pnl)}</td>
+      <td class="num" style="color:${pnlC};font-weight:700">${pnl==null?missing:fmt(pnl)+provisionalMarkup(result)}</td>
       <td>${ppPill}</td>
       <td>${drawdown.status?`<span class="indicator-missing">${escapeHTML(drawdown.status)}</span>`:
         `<button type="button" class="indicator-link" title="Retroceso desde máximo registrado" aria-label="Ver retroceso de ${escapeHTML(a.sym)}" onclick="openAssetDetails(${inlineArg(type)},${inlineArg(a.id)})">${fmtPct(drawdown.percent)}</button>`}</td>
@@ -6253,7 +6339,8 @@ function positionCostMeanRows() {
       const valuation=directUSDValuation(asset,type),quantity=dca.totalQty;
       return {positionId:asset.positionId||asset.id,sym:asset.sym,name:asset.name,type,
         custodian:asset.wallet||asset.broker||'',quantity,costUSD:dca.totalInv,averageUSD:dca.avgPrice,
-        currentUSD:isValuationAvailable(valuation)?valuation.currentUSD/quantity:null,count:dca.count};
+        currentUSD:isValuationAvailable(valuation)?valuation.currentUSD/quantity:null,count:dca.count,
+        result:openResult(valuation)};
     });
   const cedears=consolidateCedears().filter(group=>decPositive(group.quantity)).map(group=>{
     const openLots=group.lots.filter(lot=>decPositive(cedearLotValues(lot).quantity));
@@ -6268,7 +6355,11 @@ function positionCostMeanRows() {
     const current=group.currentValueUSD!=null?decDiv(group.currentValueUSD,group.quantity,8):null;
     return {positionId:group.positionId,sym:group.sym,name:group.name,type:'CEDEAR',custodian:group.broker,
       quantity:Number(group.quantity),costUSD:cost!=null?Number(cost):null,averageUSD:average!=null?Number(average):null,
-      currentUSD:current!=null?Number(current):null,count:group.lots.length};
+      currentUSD:current!=null?Number(current):null,count:group.lots.length,
+      result:financialResult(cost!=null&&group.pnlUSD!==null?Number(group.pnlUSD):null,
+        group.feesComplete&&!cedearCCLAgeWarning()&&!['stale','freshness_unknown'].includes(priceStatusFor({
+          cur:group.currentPriceARS,priceStatus:group.priceStatus,priceSourceTimestamp:group.priceSourceTimestamp
+        })))};
   });
   return [...direct,...cedears];
 }
@@ -6302,7 +6393,7 @@ function renderDCA() {
       <td class="num" style="color:var(--ca2);font-weight:700">${money(avgP)}</td>
       <td class="num">${money(curP)}</td>
       <td class="num">${diff!=null?(diff>=0?'+':'')+fmt(diff):'N/D'}</td>
-      <td>${estado}</td>
+      <td>${estado}${diff==null?'':provisionalMarkup(a.result)}</td>
       <td class="num">${a.count} ${t(a.count===1?'buys1':'buysN')}</td>`;
     tb.appendChild(tr);
 
@@ -6319,7 +6410,7 @@ function renderDCA() {
           </div>
         </div>
         <div style="min-width:90px;font-size:10px;color:var(--tx3)">${t('dcaCurrentLabel')}: <span style="color:${diff==null?'var(--tx3)':isUp?'var(--cg2)':'var(--cr2)'};font-weight:700">${money(curP)}</span></div>
-        <div style="min-width:70px;text-align:right">${pill}</div>
+        <div style="min-width:70px;text-align:right">${pill}${diff==null?'':provisionalMarkup(a.result)}</div>
       </div>`;
   });
 }
@@ -6414,16 +6505,65 @@ function saveProfitReviewSettings() {
     renderProfitReview();showToast('Umbrales guardados');
   }catch(error){showToast(error.message,'err',6000);}
 }
+function sameRecordedAmount(first,second) {
+  if(first==null||second==null||first===''||second==='')return false;
+  const a=Number(first),b=Number(second);
+  return Number.isFinite(a)&&Number.isFinite(b)&&Math.abs(a-b)<=Math.max(1e-8,Math.abs(a)*1e-12);
+}
+function priorAcquisitionFeesKnown(sale,state) {
+  const history=state.hist||[];
+  const index=history.indexOf(sale);
+  if(index<0||!sale.positionId||!(Number(sale.qtyBefore)>0))return false;
+  let qty=sale.qtyBefore,cost=sale.openCostBefore;
+  // The most recent records come first. Verify the chain back to this opening.
+  for(let i=index+1;i<history.length;i++){
+    const entry=history[i];
+    if(entry.positionId!==sale.positionId||entry.operationStatus==='reversed')continue;
+    if(!['COMPRA','VENTA'].includes(entry.type)||entry.legacy||entry.operationStatus!=='confirmed'||
+      entry.currency!==sale.currency||!sameRecordedAmount(entry.qtyAfter,qty)||!sameRecordedAmount(entry.openCostAfter,cost))return false;
+    if(entry.type==='COMPRA'&&knownOperationCommission(entry)===null)return false;
+    if(entry.type==='COMPRA'&&sameRecordedAmount(entry.qtyBefore,0)&&sameRecordedAmount(entry.openCostBefore,0))return true;
+    if(!(Number(entry.qtyBefore)>0)||!(Number(entry.openCostBefore)>0))return false;
+    qty=entry.qtyBefore;cost=entry.openCostBefore;
+  }
+  return false;
+}
+function cedearRealizedEvidence(sale,state) {
+  const allocations=(state.cedearSales||[]).filter(entry=>entry.saleGroupId===sale.operationId);
+  let feesComplete=true;
+  if(!allocations.length||!sameRecordedAmount(decSum(allocations.map(entry=>entry.quantityDecimal)),sale.qty))return null;
+  for(const entry of allocations){
+    const lot=(state.otros||[]).find(item=>item.id===entry.lotId&&item.type==='cedeaar');
+    if(!lot||entry.positionId!==sale.positionId||entry.costCurrency!==sale.currency||entry.currency!==sale.currency||
+      lot.purchaseCurrency!==sale.currency||!decPositive(entry.quantityDecimal)||!decPositive(entry.costRemovedDecimal)||
+      (state.cedearExpenses||[]).some(expense=>expense.lotId===lot.id&&expense.currency!==sale.currency&&decPositive(expense.amountDecimal)))return null;
+    const gross=dec(lot.grossAmountDecimal)||decMul(dec(lot.quantityDecimal??lot.qty),dec(lot.unitPriceDecimal??lot.buyARS));
+    feesComplete=feesComplete&&cedearFeesKnown(lot,gross,dec(lot.totalCostDecimal)||gross);
+  }
+  return {feesComplete,cost:Number(decSum(allocations.map(entry=>entry.costRemovedDecimal)))};
+}
+function realizedResult(sale,state=ST) {
+  const insufficient=financialResult(null,false);
+  if(sale?.type!=='VENTA'||sale.operationStatus!=='confirmed'||sale.legacy||knownOperationCommission(sale)===null||
+    sale.realizedPnl==null||sale.realizedPnl===''||sale.netProceeds==null||sale.netProceeds===''||!Number.isFinite(Number(sale.netProceeds)))return insufficient;
+  let evidence;
+  if(sale.assetType==='cedeaar'){
+    evidence=cedearRealizedEvidence(sale,state);
+  }else if(Number(sale.openCostBefore)>0&&sale.openCostAfter!=null&&sale.openCostAfter!==''&&Number(sale.openCostAfter)>=0){
+    evidence={feesComplete:priorAcquisitionFeesKnown(sale,state),cost:Number(sale.openCostBefore)-Number(sale.openCostAfter)};
+  }
+  if(!evidence||!(evidence.cost>0)||!sameRecordedAmount(Number(sale.netProceeds)-evidence.cost,sale.realizedPnl))return insufficient;
+  return financialResult(Number(sale.realizedPnl),evidence.feesComplete);
+}
 function recordedRealizedPnl(sale) {
-  if (sale?.type!=='VENTA'||sale.operationStatus!=='confirmed'||sale.legacy||knownOperationCommission(sale)===null) return null;
-  return sale.realizedPnl!=null&&sale.realizedPnl!==''&&Number.isFinite(Number(sale.realizedPnl))?Number(sale.realizedPnl):null;
+  return realizedResult(sale).amount;
 }
 function profitReviewLastSale(positionId,state=ST) {
   const sale=(state.hist||[]).filter(entry=>entry.positionId===positionId&&entry.type==='VENTA'&&entry.operationStatus==='confirmed'&&!entry.legacy).slice().sort((a,b)=>String(b.date).localeCompare(String(a.date)))[0];
   if(!sale)return null;
   const remaining=sale.qtyBefore!=null&&sale.qtyAfter!=null&&Number(sale.qtyBefore)>0?Number(sale.qtyAfter)/Number(sale.qtyBefore)*100:null;
-  const realized=recordedRealizedPnl(sale);
-  return {sale,remaining,realized,currency:sale.currency||'USD',liquidityAmount:sale.liquidityId?sale.liquidityAmountDecimal:null,liquidityCurrency:sale.liquidityCurrency||null};
+  const result=realizedResult(sale,state);
+  return {sale,remaining,realized:result.amount,result,currency:sale.currency||'USD',liquidityAmount:sale.liquidityId?sale.liquidityAmountDecimal:null,liquidityCurrency:sale.liquidityCurrency||null};
 }
 function openProfitReviewDetails(positionId) {
   const row=profitReviewData().positions.find(item=>item.positionId===positionId);if(!row)return;
@@ -6431,6 +6571,7 @@ function openProfitReviewDetails(positionId) {
     {label:'Valor actual',value:row.item.currentUSD==null?'N/D':fmt(row.item.currentUSD)},
     {label:'Coste abierto',value:row.item.costUSD==null?'N/D':fmt(row.item.costUSD)},
     {label:'G/P no realizada de la posición actual',value:row.item.pnlUSD==null?'N/D':fmt(row.item.pnlUSD)},
+    {label:'Estado de la G/P',value:resultStatusLabel(openResult(row.item).status)},
     {label:'Rentabilidad sobre coste abierto',value:row.roi==null?'N/D':fmtPct(row.roi)},
     {label:'% de activos invertidos · posición',value:row.weight==null?'N/D':fmtPct(row.weight)+(row.weightReliable?'':' · valoración parcial')},
     {label:'% de activos invertidos · instrumento entre custodios',value:row.instrumentWeight==null?'N/D':fmtPct(row.instrumentWeight)+(row.weightReliable?'':' · valoración parcial')},
@@ -6444,7 +6585,7 @@ function openProfitReviewDetails(positionId) {
   if(last)fields.push(
     {label:'Última venta registrada',value:last.sale.date},
     {label:'Porcentaje que permaneció tras esa venta',value:last.remaining==null?'N/D':fmtPct(last.remaining)},
-    {label:'Beneficio realizado en esa venta',value:last.realized==null?'N/D':liquidityMoney(last.realized,last.currency)},
+    {label:'Beneficio realizado en esa venta',value:last.realized==null?resultStatusLabel(last.result.status):liquidityMoney(last.realized,last.currency)+' · '+resultStatusLabel(last.result.status)},
     {label:'Liquidez liberada · importe neto acreditado',value:last.liquidityAmount==null?'Sin afectar Liquidez':liquidityMoney(last.liquidityAmount,last.liquidityCurrency)},
     {label:'Cuenta de Liquidez',value:last.sale.liquidityId?liquidityLabel(findLiquidity(last.sale.liquidityId)):'Sin afectar Liquidez',full:true}
   );
@@ -6464,12 +6605,13 @@ function renderProfitReview(summary=portfolioSummary()) {
   if(settings.concentrationEnabled&&settings.concentrationThresholdPct===null)notices.push('Concentración: umbral pendiente');
   if(summary.items.length&&!data.weightReliable)notices.push('Concentración pendiente: valoración incompleta o antigua');
   if(data.pending)notices.push(`${data.pending} posiciones con datos pendientes para evaluar rentabilidad`);
+  if(summary.provisional.length)notices.push(`${summary.provisional.length} resultados provisionales por comisiones, antigüedad o conversión`);
   $('profitReviewState').textContent=notices.join(' · ');
   $('profitReviewCount').textContent=`${data.rows.length} posiciones para revisar`;
   const body=$('profitReviewTb');body.replaceChildren();
   for(const row of data.rows){
     const tr=document.createElement('tr');
-    tr.innerHTML=`<td class="profit-position"><strong>${escapeHTML(row.item.sym)}</strong><span class="muted">${escapeHTML(valuationCustodian(row.item))}</span></td><td class="num">${row.roi==null?'N/D':fmtPct(row.roi)}</td><td class="num">${row.item.pnlUSD==null?'N/D':fmt(row.item.pnlUSD)}</td><td class="num">${row.weight==null?'N/D':row.weight.toFixed(2)+'%'}${row.weightReliable?'':' · parcial'}</td><td class="profit-reasons">${row.reasons.map(escapeHTML).join('<br>')}</td><td><span class="pill ${row.priority===2?'pill-y':row.priority===1?'pill-b':'pill-g'}">${['Informativa','Media','Alta'][row.priority]}</span></td>`;
+    tr.innerHTML=`<td class="profit-position"><strong>${escapeHTML(row.item.sym)}</strong><span class="muted">${escapeHTML(valuationCustodian(row.item))}</span></td><td class="num">${row.roi==null?'N/D':fmtPct(row.roi)}</td><td class="num">${row.item.pnlUSD==null?'N/D':fmt(row.item.pnlUSD)+provisionalMarkup(openResult(row.item))}</td><td class="num">${row.weight==null?'N/D':row.weight.toFixed(2)+'%'}${row.weightReliable?'':' · parcial'}</td><td class="profit-reasons">${row.reasons.map(escapeHTML).join('<br>')}</td><td><span class="pill ${row.priority===2?'pill-y':row.priority===1?'pill-b':'pill-g'}">${['Informativa','Media','Alta'][row.priority]}</span></td>`;
     [...tr.children].forEach((cell,index)=>{cell.dataset.label=['Posición / custodio','Rentabilidad','G/P no realizada','% de activos invertidos','Motivo de revisión','Prioridad'][index];});
     const cell=document.createElement('td'),button=document.createElement('button');button.className='btn-view';button.title='Revisar posición';button.setAttribute('aria-label',`Revisar ${valuationLabel(row.item)}`);button.innerHTML='<i class="ti ti-eye"></i>';button.addEventListener('click',()=>openProfitReviewDetails(row.positionId));cell.appendChild(button);tr.appendChild(cell);body.appendChild(tr);
   }
@@ -6521,7 +6663,7 @@ function renderRisk() {
     tr.innerHTML = `
       <td class="sym">${escapeHTML(item.sym)} <span class="muted" style="font-size:10px">${escapeHTML(item.name)} · ${escapeHTML([...item.custodians].join(', '))}</span></td>
       <td><span class="pill ${type==='Cripto'?'pill-y':'pill-b'}">${escapeHTML(type)}</span></td>
-      <td class="num">${fmt(v)}</td>
+      <td class="num">${fmt(v)}${item.usesOldData?`<span class="indicator-missing"> · ${valuationCoverage(0,1)}</span>`:''}</td>
       <td class="num" style="font-weight:700">${pct.toFixed(1)}%</td>
       <td><div class="risk-bar-wrap"><div class="risk-bar-bg"><div class="risk-bar-fill" style="width:${Math.min(pct*2,100)}%;background:${barColor}"></div></div><span class="risk-pct">${pct.toFixed(1)}%</span></div></td>
       <td>${alert}</td>`;
@@ -6597,7 +6739,7 @@ function renderIncome() {
   ST.income.forEach(inc => {
     const tr = document.createElement('tr');
     const typeColor = { dividendo:'pill-g', cupon:'pill-b', staking:'pill-y', interes:'pill-t', otro:'pill-r' };
-    tr.innerHTML = `<td class="muted">${inc.date}</td><td class="sym">${inc.sym}</td><td><span class="pill ${typeColor[inc.type]||'pill-b'}">${inc.type}</span></td><td class="num" style="font-weight:700;color:var(--cg2)">${fmt(inc.amt)}</td><td class="muted">${inc.platform||'—'}</td><td class="muted">${inc.note||'—'}</td><td><button class="btn-del" onclick="removeIncome('${inc.id}')"><i class="ti ti-x"></i></button></td>`;
+    tr.innerHTML = `<td class="muted">${escapeHTML(inc.date)}</td><td class="sym">${escapeHTML(inc.sym)}</td><td><span class="pill ${Object.hasOwn(typeColor,inc.type)?typeColor[inc.type]:'pill-b'}">${escapeHTML(inc.type)}</span></td><td class="num" style="font-weight:700;color:var(--cg2)">${fmt(inc.amt)}</td><td class="muted">${escapeHTML(inc.platform||'—')}</td><td class="muted">${escapeHTML(inc.note||'—')}</td><td><button class="btn-del" onclick="removeIncome(${inlineArg(inc.id)})"><i class="ti ti-x"></i></button></td>`;
     tb.appendChild(tr);
   });
 }
@@ -6615,11 +6757,14 @@ function renderHist() {
       tr.innerHTML=`<td>${escapeHTML(h.date)}</td><td><span class="pill pill-t">${escapeHTML(h.type)}</span></td><td class="sym">${escapeHTML(h.sym)}${h.notes?`<button class="btn-view" title="Detalle" onclick="openHistoryNote(${inlineArg(h.operationId||h.id)})"><i class="ti ti-note"></i></button>`:''}</td><td class="num">${formatDec(h.amountDecimal||'0',{digits:8})}</td><td>—</td><td class="num">${h.feeDecimal?liquidityMoney(h.feeDecimal,h.currency):'—'}</td><td class="num">${liquidityMoney(h.amountDecimal||'0',h.currency)}${h.destinationAmountDecimal?` → ${liquidityMoney(h.destinationAmountDecimal,h.toCurrency)}`:''}</td><td>—</td><td>${escapeHTML(liquidityLabel(account))}${h.toLiquidityId&&h.toLiquidityId!==h.liquidityId?` → ${escapeHTML(liquidityLabel(findLiquidity(h.toLiquidityId)))}`:''}</td><td><i class="ti ti-lock" title="Generado automáticamente"></i></td>`;tb.appendChild(tr);return;
     }
     const commission=Number(h.commission ?? h.comm ?? 0);
-    const grossAmount=Number.isFinite(Number(h.grossAmount)) ? Number(h.grossAmount) : Number(h.qty)*Number(h.executionPrice ?? h.price);
+    const recordedGross=Number(h.grossAmount??NaN);
+    const computedGross=Number(h.qty)*Number(h.executionPrice??h.price)/(h.assetType==='bono'?100:1);
+    const grossAmount=Number.isFinite(recordedGross)&&recordedGross>0?recordedGross:computedGross;
     const hasStoredCost=h.totalCost != null && h.totalCost !== '' && Number.isFinite(Number(h.totalCost));
     const hasStoredProceeds=h.netProceeds != null && h.netProceeds !== '' && Number.isFinite(Number(h.netProceeds));
-    const feeUnknown=h.feeStatus === 'not_recorded' || (!h.feeStatus && commission === 0);
-    const total=hasStoredCost ? Number(h.totalCost) : hasStoredProceeds ? Number(h.netProceeds) : feeUnknown ? null : (h.type === 'COMPRA' ? grossAmount+commission : grossAmount-commission);
+    const feeUnknown=knownOperationCommission(h)===null;
+    const total=hasStoredCost ? Number(h.totalCost) : hasStoredProceeds ? Number(h.netProceeds) :
+      feeUnknown||!Number.isFinite(grossAmount)||grossAmount<=0 ? null : (h.type==='COMPRA'?grossAmount+commission:grossAmount-commission);
     const tr = document.createElement('tr');
     const formatHistoryMoney=value=>h.currency?formatDec(value,{digits:2,currency:escapeHTML(h.currency.startsWith('USD_')?currencyLabel(h.currency):h.currency)}):fmt(value);
     const feeText=feeUnknown ? '<span title="Comisión no registrada">N/D</span>' : formatHistoryMoney(commission);
@@ -6627,8 +6772,9 @@ function renderHist() {
     const operationNoteButton = String(h.notes ?? '').trim()
       ? `<button class="btn-view" style="margin-left:6px" onclick="openHistoryNote(${inlineArg(h.operationId || h.id)})" title="Ver nota de la operación" aria-label="Ver nota de la operación"><i class="ti ti-note"></i></button>`
       : '';
-    const realized=recordedRealizedPnl(h);
-    const realizedText=h.type!=='VENTA'?'—':realized===null?'Información insuficiente':formatHistoryMoney(realized);
+    const realized=realizedResult(h);
+    const realizedText=h.type!=='VENTA'?'—':realized.amount===null?resultStatusLabel(realized.status):
+      formatHistoryMoney(realized.amount)+' · '+resultStatusLabel(realized.status);
     tr.innerHTML = `<td class="muted">${escapeHTML(h.date)}</td><td><span class="pill ${h.type==='COMPRA'?'pill-g':'pill-r'}">${escapeHTML(h.type)}</span></td><td class="sym" style="white-space:nowrap">${escapeHTML(h.sym)}${operationNoteButton}</td><td class="num">${h.qty}</td><td class="num">${formatHistoryMoney(h.executionPrice ?? h.price)}</td><td class="num muted">${feeText}</td><td class="num" style="font-weight:700">${totalText}</td><td class="num">${realizedText}</td><td class="muted">${escapeHTML(h.custodian||h.notes||'—')}</td><td>${h.legacy?'<span class="pill pill-t" title="Registro anterior conservado sin modificar posiciones">V2</span>':'<i class="ti ti-lock" title="Generado automáticamente"></i>'}</td>`;
     if(h.liquidityId){const cell=tr.children[8];if(cell)cell.innerHTML+=`<div class="muted">Liquidez: ${escapeHTML(liquidityLabel(findLiquidity(h.liquidityId)))} · ${liquidityMoney(h.liquidityAmountDecimal,h.liquidityCurrency)}</div>`;}
     tb.appendChild(tr);
@@ -6831,7 +6977,7 @@ function getLogoHTML(sym, type) {
   const color = type === 'crypto' ? 'var(--ca2)' : 'var(--cv3)';
   const bg = type === 'crypto' ? 'rgba(245,158,11,.2)' : 'rgba(124,58,237,.2)';
   if (type === 'crypto') {
-    const cgId = CRYPTO_LOGO_MAP[sym];
+    const cgId = Object.hasOwn(CRYPTO_LOGO_MAP,sym) ? CRYPTO_LOGO_MAP[sym] : null;
     if (cgId) {
       return `<img class="asset-logo" src="https://assets.coingecko.com/coins/images/1/thumb/${cgId}.png" 
         onerror="this.outerHTML='<span class=asset-logo-ph style=background:${bg};color:${color}>${initial}</span>'"
@@ -6848,14 +6994,14 @@ function getLogoHTML(sym, type) {
       HD:'homedepot.com', SBUX:'starbucks.com', ABBV:'abbvie.com', PFE:'pfizer.com',
       UNH:'unitedhealthgroup.com',
     };
-    const domain = domainMap[sym];
+    const domain = Object.hasOwn(domainMap,sym) ? domainMap[sym] : null;
     if (domain) {
       return `<img class="asset-logo" src="https://logo.clearbit.com/${domain}" 
         onerror="this.outerHTML='<span class=asset-logo-ph style=background:${bg};color:${color}>${initial}</span>'"
         alt="${sym}" loading="lazy">`;
     }
   }
-  return `<span class="asset-logo-ph" style="background:${bg};color:${color}">${initial}</span>`;
+  return `<span class="asset-logo-ph" style="background:${bg};color:${color}">${escapeHTML(initial)}</span>`;
 }
 
 // ═══════════════════════════════════════════
@@ -7506,9 +7652,9 @@ function renderPositions() {
         ? '<span class="pill pill-g">Abierta</span>'
         : '<span class="pill pill-r">Cerrada</span>';
       return `<tr>
-        <td class="sym">${p.sym}</td>
-        <td><span class="pill pill-b">${styleLabels[p.style]||p.style}</span></td>
-        <td><span class="${p.dir==='long'?'dir-long':'dir-short'}">${p.dir.toUpperCase()}</span></td>
+        <td class="sym">${escapeHTML(p.sym)}</td>
+        <td><span class="pill pill-b">${escapeHTML(styleLabels[p.style]||p.style)}</span></td>
+        <td><span class="${p.dir==='long'?'dir-long':'dir-short'}">${escapeHTML(String(p.dir||'').toUpperCase())}</span></td>
         <td class="num">${fmt(p.entry)}</td>
         <td class="num">${p.qty}</td>
         <td class="num" style="color:var(--cr2)">${p.sl?fmt(p.sl):'—'}</td>
@@ -7518,12 +7664,12 @@ function renderPositions() {
         <td>${pnlPct!=null?`<span class="pill ${pnlPct>=0?'pill-g':'pill-r'}">${pnlPct.toFixed(1)}%</span>`:'—'}</td>
         <td class="num" style="color:var(--ca2)">${ratioR}</td>
         <td class="num" style="color:var(--cr2)">${risk?fmt(risk):'—'}</td>
-        <td class="muted">${p.date}</td>
-        <td class="note-cell" title="${escapeHTML(p.notes||'')}">${p.notes||'—'}</td>
+        <td class="muted">${escapeHTML(p.date)}</td>
+        <td class="note-cell" title="${escapeHTML(p.notes||'')}">${escapeHTML(p.notes||'—')}</td>
         <td style="white-space:nowrap">
-          ${p.status==='open'?`<button class="btn-edit" onclick="closeTrade('${p.id}')" title="Cerrar posición"><i class="ti ti-lock"></i></button>`:''}
-          <button class="btn-edit" onclick="openTradeModal('${p.id}')" title="Editar"><i class="ti ti-pencil"></i></button>
-          <button class="btn-del" onclick="removePosition('${p.id}')" title="Eliminar"><i class="ti ti-trash"></i></button>
+          ${p.status==='open'?`<button class="btn-edit" onclick="closeTrade(${inlineArg(p.id)})" title="Cerrar posición"><i class="ti ti-lock"></i></button>`:''}
+          <button class="btn-edit" onclick="openTradeModal(${inlineArg(p.id)})" title="Editar"><i class="ti ti-pencil"></i></button>
+          <button class="btn-del" onclick="removePosition(${inlineArg(p.id)})" title="Eliminar"><i class="ti ti-trash"></i></button>
         </td></tr>`;
     }).join('');
   }
@@ -7600,16 +7746,16 @@ function renderJournal() {
     const resPill = j.result==='win'?'<span class="pill res-win">✅ Ganada</span>':j.result==='loss'?'<span class="pill res-loss">❌ Perdida</span>':'<span class="pill res-be">➖ BE</span>';
     const pnlC = j.pnl>=0?'var(--cg2)':'var(--cr2)';
     return `<tr>
-      <td class="muted">${j.date}</td>
-      <td class="sym">${j.sym}</td>
-      <td><span class="pill pill-b">${j.style}</span></td>
+      <td class="muted">${escapeHTML(j.date)}</td>
+      <td class="sym">${escapeHTML(j.sym)}</td>
+      <td><span class="pill pill-b">${escapeHTML(j.style)}</span></td>
       <td>${resPill}</td>
       <td class="num" style="color:${pnlC};font-weight:700">${fmt(j.pnl)}</td>
       <td class="num" style="color:var(--ca2)">${j.r?j.r+'R':'—'}</td>
-      <td class="muted note-cell" title="${escapeHTML(j.signal)}">${j.signal||'—'}</td>
-      <td>${j.error?`<span class="pill pill-r" style="font-size:9px">${errorLabels[j.error]||j.error}</span>`:'—'}</td>
-      <td class="note-cell muted" title="${escapeHTML(j.notes)}">${j.notes||'—'}</td>
-      <td><button class="btn-del" onclick="removeJournalEntry('${j.id}')"><i class="ti ti-x"></i></button></td>
+      <td class="muted note-cell" title="${escapeHTML(j.signal)}">${escapeHTML(j.signal||'—')}</td>
+      <td>${j.error?`<span class="pill pill-r" style="font-size:9px">${escapeHTML(errorLabels[j.error]||j.error)}</span>`:'—'}</td>
+      <td class="note-cell muted" title="${escapeHTML(j.notes)}">${escapeHTML(j.notes||'—')}</td>
+      <td><button class="btn-del" onclick="removeJournalEntry(${inlineArg(j.id)})"><i class="ti ti-x"></i></button></td>
     </tr>`;
   }).join('');
   renderErrorChart();
@@ -7657,10 +7803,10 @@ function renderChecklist() {
   if (!items.length) { el.innerHTML = '<div class="empty"><p>Agregá items al checklist abajo</p></div>'; updateCheckScore(); return; }
   el.innerHTML = items.map(item => `
     <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--br)">
-      <input type="checkbox" id="chk-${item.id}" ${item.checked?'checked':''} onchange="toggleCheck('${item.id}')"
+      <input type="checkbox" id="chk-${escapeHTML(item.id)}" ${item.checked?'checked':''} onchange="toggleCheck(${inlineArg(item.id)})"
         style="width:16px;height:16px;accent-color:var(--cg);cursor:pointer;flex-shrink:0">
-      <label for="chk-${item.id}" style="font-size:11px;color:${item.checked?'var(--cg2)':'var(--tx2)'};flex:1;cursor:pointer;transition:color .15s">${item.text}</label>
-      <button class="btn-del" onclick="removeCheckItem('${item.id}')"><i class="ti ti-x"></i></button>
+      <label for="chk-${escapeHTML(item.id)}" style="font-size:11px;color:${item.checked?'var(--cg2)':'var(--tx2)'};flex:1;cursor:pointer;transition:color .15s">${escapeHTML(item.text)}</label>
+      <button class="btn-del" onclick="removeCheckItem(${inlineArg(item.id)})"><i class="ti ti-x"></i></button>
     </div>`).join('');
   updateCheckScore();
 }
@@ -7880,8 +8026,8 @@ function renderWatchlist() {
     const tpDist = w.tp && w.entry ? Math.abs(w.tp-w.entry) : null;
     const ratioRB = slDist && tpDist ? (tpDist/slDist).toFixed(1)+'R' : '—';
     return `<tr>
-      <td class="sym">${w.sym}</td>
-      <td class="muted">${w.name}</td>
+      <td class="sym">${escapeHTML(w.sym)}</td>
+      <td class="muted">${escapeHTML(w.name)}</td>
       <td class="num" style="color:var(--cv3)">${w.entry?fmt(w.entry):'—'}</td>
       <td class="num">${curP?fmt(curP):'<span style="color:var(--tx4)">—</span>'}</td>
       <td class="num" style="color:${distC}">${dist}</td>
@@ -7889,8 +8035,8 @@ function renderWatchlist() {
       <td class="num" style="color:var(--cg2)">${w.tp?fmt(w.tp):'—'}</td>
       <td class="num" style="color:var(--ca2);font-weight:700">${ratioRB}</td>
       <td style="color:${prColors[w.priority]};font-weight:600;font-size:10px">${prIcons[w.priority]}</td>
-      <td class="note-cell muted" title="${escapeHTML(w.thesis)}">${w.thesis||'—'}</td>
-      <td><button class="btn-del" onclick="removeWatchlistItem('${w.id}')"><i class="ti ti-x"></i></button></td>
+      <td class="note-cell muted" title="${escapeHTML(w.thesis)}">${escapeHTML(w.thesis||'—')}</td>
+      <td><button class="btn-del" onclick="removeWatchlistItem(${inlineArg(w.id)})"><i class="ti ti-x"></i></button></td>
     </tr>`;
   }).join('');
 }
@@ -7962,9 +8108,9 @@ function renderPsychHistory() {
   el.innerHTML = entries.map(e => {
     const c = e.score>=8?'var(--cg2)':e.score>=6?'var(--ca2)':'var(--cr2)';
     return `<div class="psych-entry">
-      <span style="color:var(--tx3);min-width:80px">${e.date}</span>
+      <span style="color:var(--tx3);min-width:80px">${escapeHTML(e.date)}</span>
       <span style="color:${c};font-weight:700;min-width:30px">${e.score.toFixed(1)}</span>
-      <span style="flex:1;color:var(--tx3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${e.notes||'—'}</span>
+      <span style="flex:1;color:var(--tx3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapeHTML(e.notes||'—')}</span>
     </div>`;
   }).join('');
 }
@@ -8035,7 +8181,7 @@ function renderBestWorst() {
   const bot3=j.slice(-3).reverse();
   const row=(entry,i,isWin)=>`
     <div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--br)">
-      <div><span style="font-weight:700;color:${isWin?'var(--cg2)':'var(--cr2)'}">${'🥇🥈🥉'[i]||'·'} ${entry.sym}</span><span style="font-size:10px;color:var(--tx3);margin-left:6px">${entry.date}</span></div>
+      <div><span style="font-weight:700;color:${isWin?'var(--cg2)':'var(--cr2)'}">${'🥇🥈🥉'[i]||'·'} ${escapeHTML(entry.sym)}</span><span style="font-size:10px;color:var(--tx3);margin-left:6px">${escapeHTML(entry.date)}</span></div>
       <span style="font-weight:700;color:${isWin?'var(--cg2)':'var(--cr2)'}">${fmt(parseFloat(entry.pnl)||0)}</span>
     </div>`;
   el.innerHTML=`
@@ -8070,9 +8216,9 @@ function renderRules(){
   const catClasses={entry:'rule-cat-entry',exit:'rule-cat-exit',risk:'rule-cat-risk',psych:'rule-cat-psych',general:'rule-cat-general'};
   el.innerHTML=rules.map(r=>`
     <div class="rule-item">
-      <span class="rule-cat ${catClasses[r.category]||'rule-cat-general'}">${catLabels[r.category]||r.category}</span>
-      <span class="rule-text">${r.text}</span>
-      <button class="btn-del" onclick="removeRule('${r.id}')"><i class="ti ti-x"></i></button>
+      <span class="rule-cat ${Object.hasOwn(catClasses,r.category)?catClasses[r.category]:'rule-cat-general'}">${escapeHTML(catLabels[r.category]||r.category)}</span>
+      <span class="rule-text">${escapeHTML(r.text)}</span>
+      <button class="btn-del" onclick="removeRule(${inlineArg(r.id)})"><i class="ti ti-x"></i></button>
     </div>`).join('');
 }
 
@@ -8160,15 +8306,15 @@ function renderApyTable() {
     const yearly = p.capital * (p.rate / 100);
     const monthly = yearly / 12;
     return `<tr>
-      <td class="sym">${p.sym}</td>
-      <td><span class="pill ${typeColors[p.type]||'pill-b'}">${typeLabels[p.type]||p.type}</span></td>
+      <td class="sym">${escapeHTML(p.sym)}</td>
+      <td><span class="pill ${Object.hasOwn(typeColors,p.type)?typeColors[p.type]:'pill-b'}">${escapeHTML(typeLabels[p.type]||p.type)}</span></td>
       <td class="num" style="color:var(--cg2);font-weight:700">${p.rate}%</td>
       <td class="num">${fmt(p.capital)}</td>
       <td class="num" style="color:var(--cg2)">${fmt(monthly)}</td>
       <td class="num" style="color:var(--cg2)">${fmt(yearly)}</td>
-      <td class="muted">${p.platform||'—'}</td>
-      <td class="muted">${p.expiry||'Sin venc.'}</td>
-      <td><button class="btn-del" onclick="removeApyPosition('${p.id}')"><i class="ti ti-x"></i></button></td>
+      <td class="muted">${escapeHTML(p.platform||'—')}</td>
+      <td class="muted">${escapeHTML(p.expiry||'Sin venc.')}</td>
+      <td><button class="btn-del" onclick="removeApyPosition(${inlineArg(p.id)})"><i class="ti ti-x"></i></button></td>
     </tr>`;
   }).join('');
 }
@@ -8505,7 +8651,7 @@ function renderOtros() {
     else{
       const typeLabels={indice:'Índice',sector:'Sector',commodity:'Commodity',apalancado:'Apalancado',inverso:'Inverso',tematico:'Temático',bono_etf:'Bono ETF'};
       etfTb.innerHTML=etfs.map(e=>{
-        const {cap,cur:curVal,pnl,pp,d}=calc(e);
+        const {cap,cur:curVal,pnl,pp,d,result}=calc(e);
         const ch=e.ch;
         const pnlC=pnl!=null?(pnl>=0?'var(--cg2)':'var(--cr2)'):'var(--tx3)';
         return `<tr>
@@ -8521,7 +8667,7 @@ function renderOtros() {
           <td style="color:${ch!=null?(ch>=0?'var(--cg2)':'var(--cr2)'):'var(--tx3)'};font-weight:700">${ch!=null?(ch>=0?'+':''+(ch*100).toFixed(2)+'%'):'—'}</td>
           <td class="num muted">${cap==null?missing:fmt(cap)}</td>
           <td class="num">${curVal==null?missing:fmt(curVal)}</td>
-          <td class="num" style="color:${pnlC};font-weight:700">${pnl==null?missing:fmt(pnl)}</td>
+          <td class="num" style="color:${pnlC};font-weight:700">${pnl==null?missing:fmt(pnl)+provisionalMarkup(result)}</td>
           <td>${pp!=null?`<span class="pill ${pp>=0?'pill-g':'pill-r'}">${(pp*100).toFixed(2)}%</span>`:'—'}</td>
           <td class="muted">${e.ter?e.ter+'%':'—'}</td>
           <td class="muted">${escapeHTML(e.broker||'—')}</td>
@@ -8555,6 +8701,9 @@ function renderOtros() {
         const pnlUSDColor=group.pnlUSD==null?'var(--tx3)':(decCmp(group.pnlUSD,'0')>=0?'var(--cg2)':'var(--cr2)');
         const roiUSDColor=group.roiUSD==null?'var(--tx3)':(decCmp(group.roiUSD,'0')>=0?'var(--cg2)':'var(--cr2)');
         const representative=group.lots.find(lot=>lot.priceUpdatedAt===group.priceUpdatedAt)||group.lots[0];
+        const recent=!['stale','freshness_unknown'].includes(priceStatusFor(representative));
+        const arsResult=financialResult(group.pnlARS===null?null:Number(group.pnlARS),group.feesComplete&&recent);
+        const usdResult=financialResult(group.pnlUSD===null?null:Number(group.pnlUSD),group.feesComplete&&recent&&!cedearCCLAgeWarning());
         return `<tr>
           <td class="cedear-asset"><strong>${escapeHTML(group.sym)}</strong><span>${escapeHTML(group.name)}</span></td>
           <td class="cedear-actions"><div class="cedear-action-group">
@@ -8566,10 +8715,10 @@ function renderOtros() {
           <td class="num">${formatDec(group.quantity,{digits:4})}</td><td><span class="pill pill-t">${group.lots.length}</span></td>
           <td class="num" style="font-weight:700">${group.historicalUSD?formatDec(group.historicalUSD,{digits:2,currency:'USD'}):'<span title="Solo se consolida si todos los lotes fueron comprados en USD MEP">Pendiente</span>'}</td>
           <td class="num" style="font-weight:700">${group.currentValueUSD?formatDec(group.currentValueUSD,{digits:2,currency:'USD'}):'<span title="Falta cotización ARS o CCL actual">Pendiente</span>'}</td>
-          <td class="num" style="color:${pnlUSDColor};font-weight:700">${group.pnlUSD?formatDec(group.pnlUSD,{digits:2,currency:'USD'}):'Pendiente'}</td>
+          <td class="num" style="color:${pnlUSDColor};font-weight:700">${group.pnlUSD?formatDec(group.pnlUSD,{digits:2,currency:'USD'})+provisionalMarkup(usdResult):missing}</td>
           <td class="num" style="color:${roiUSDColor};font-weight:700">${group.roiUSD?`${decCmp(group.roiUSD,'0')>=0?'+':''}${formatDec(group.roiUSD,{digits:2})}%`:'Pendiente'}</td>
           <td class="num muted">${group.currentPriceARS?formatDec(group.currentPriceARS,{digits:2,currency:'ARS'})+renderPriceSource(representative):'<span style="color:var(--tx4)">Pendiente</span>'}</td>
-          <td class="num" style="color:${pnlARSColor};font-weight:700">${group.pnlARS?formatDec(group.pnlARS,{digits:2,currency:'ARS'}):'<span title="Falta equivalente histórico ARS en uno o más lotes">Pendiente</span>'}</td>
+          <td class="num" style="color:${pnlARSColor};font-weight:700">${group.pnlARS?formatDec(group.pnlARS,{digits:2,currency:'ARS'})+provisionalMarkup(arsResult):missing}</td>
           <td class="muted cedear-quote-state">${group.priceUpdatedAt?`${QUOTE_STATUS_LABELS[priceStatusFor(representative)]||QUOTE_STATUS_LABELS.pending} · ${quoteUpdatedLabel(representative)}${group.quoteCclSkewMs!=null&&group.quoteCclSkewMs>CEDEAR_CCL_SKEW_WARNING_MS?` · desfase CCL ${Math.round(group.quoteCclSkewMs/60000)} min`:''}`:'Pendiente'}</td>
         </tr>`;
       }).join('');
@@ -8582,7 +8731,7 @@ function renderOtros() {
     if(!toks.length){tokTb.innerHTML='<tr><td colspan="14" class="empty"><i class="ti ti-cpu"></i><p>Sin tokenizadas. Agregá tu primera posición.</p></td></tr>';}
     else{
       tokTb.innerHTML=toks.map(tk=>{
-        const {cap,cur:curVal,pnl,pp,d}=calc(tk);
+        const {cap,cur:curVal,pnl,pp,d,result}=calc(tk);
         const pnlC=pnl!=null?(pnl>=0?'var(--cg2)':'var(--cr2)'):'var(--tx3)';
         const typeLabel=tk.tokType==='custodiado'?'Custodiado 1:1':'Sintético';
         return `<tr>
@@ -8595,7 +8744,7 @@ function renderOtros() {
           <td class="num">${tk.cur>0?escapeHTML(quoteAmount(Number(tk.cur),marketQuoteUnit(tk)))+renderPriceSource(tk):missing}</td>
           <td class="num muted">${cap==null?missing:fmt(cap)}</td>
           <td class="num">${curVal==null?missing:fmt(curVal)}</td>
-          <td class="num" style="color:${pnlC};font-weight:700">${pnl==null?missing:fmt(pnl)}</td>
+          <td class="num" style="color:${pnlC};font-weight:700">${pnl==null?missing:fmt(pnl)+provisionalMarkup(result)}</td>
           <td>${pp!=null?`<span class="pill ${pp>=0?'pill-g':'pill-r'}">${(pp*100).toFixed(2)}%</span>`:'—'}</td>
           <td class="muted">${escapeHTML(tk.exchange||'—')}</td>
           <td class="muted">${d}d</td>
@@ -8738,22 +8887,31 @@ function renderAlerts(){
   const el=$('alertsList'); if(!el) return;
   const alerts=ST.alerts||[];
   if(!alerts.length){el.innerHTML='<div style="text-align:center;padding:16px;color:var(--tx3);font-size:11px">Sin alertas configuradas</div>';return;}
-  el.innerHTML=alerts.map(a=>{
-    const all=[...ST.stocks,...ST.crypto];
-    const asset=all.find(x=>x.sym===a.sym);
-    const curP=asset?.cur;
-    const triggered=curP!=null&&(a.cond==='above'?curP>=a.price:curP<=a.price);
+  const all=[...ST.stocks,...ST.crypto];
+  el.replaceChildren();
+  alerts.forEach(a=>{
+    const asset=all.find(x=>x.sym===a.sym),status=priceStatusFor(asset);
+    const triggered=priceAlertHit(a,asset)===true;
     const condText=a.cond==='above'?'sube sobre':'baja de';
-    return `<div style="display:flex;align-items:center;gap:10px;padding:8px 10px;background:${triggered?'rgba(252,211,77,.08)':'var(--bg3)'};border:1px solid ${triggered?'rgba(252,211,77,.3)':'var(--br)'};border-radius:8px;margin-bottom:6px">
-      ${triggered?'<span style="font-size:16px">🔔</span>':'<span style="font-size:16px">⏳</span>'}
-      <div style="flex:1">
-        <div style="font-size:11px;font-weight:700;color:${triggered?'var(--ca2)':'var(--tx1)'}">${a.sym} ${condText} ${fmt(a.price)} ${triggered?'— ¡ALCANZADO!':''}</div>
-        ${a.note?`<div style="font-size:10px;color:var(--tx3)">${a.note}</div>`:''}
-        ${curP?`<div style="font-size:10px;color:var(--tx3)">Actual: ${fmt(curP)}</div>`:''}
-      </div>
-      <button class="btn-del" onclick="removeAlert('${a.id}')"><i class="ti ti-x"></i></button>
-    </div>`;
-  }).join('');
+    const row=document.createElement('div');
+    row.className='price-alert';
+    row.classList.toggle('reached',triggered);
+    row.innerHTML='<i class="ti" aria-hidden="true"></i><div class="price-alert-text"><strong></strong><div></div><small></small></div><button type="button" class="btn-del" aria-label="Eliminar alerta"><i class="ti ti-x" aria-hidden="true"></i></button>';
+    row.firstElementChild.classList.add(triggered?'ti-bell-ringing':'ti-clock');
+    row.querySelector('strong').textContent=[a.sym,condText,fmt(a.price),triggered?'¡ALCANZADO!':''].filter(Boolean).join(' ');
+    const note=row.querySelector('.price-alert-text div');
+    note.textContent=a.note||'';note.hidden=!a.note;
+    row.querySelector('small').textContent=asset?.cur>0
+      ? fmt(asset.cur)+' · '+QUOTE_STATUS_LABELS[status] : QUOTE_STATUS_LABELS.pending;
+    row.querySelector('button').addEventListener('click',()=>removeAlert(a.id));
+    el.appendChild(row);
+  });
+}
+function priceAlertHit(alert,asset){
+  const threshold=Number(alert.price);
+  if(!['realtime','delayed','last_close'].includes(priceStatusFor(asset))||
+    !['above','below'].includes(alert.cond)||!Number.isFinite(threshold)||threshold<=0)return null;
+  return alert.cond==='above'?Number(asset.cur)>=threshold:Number(asset.cur)<=threshold;
 }
 
 function checkAlerts(){
@@ -8762,9 +8920,8 @@ function checkAlerts(){
   let triggered=[];
   alerts.forEach(a=>{
     const asset=all.find(x=>x.sym===a.sym);
-    const curP=asset?.cur;
-    if(curP==null)return;
-    const hit=a.cond==='above'?curP>=a.price:curP<=a.price;
+    const hit=priceAlertHit(a,asset);
+    if(hit===null)return;
     if(hit&&!a.triggered){a.triggered=true;triggered.push(a);}
     else if(!hit){a.triggered=false;}
   });
@@ -8903,7 +9060,7 @@ function renderTV() {
   const all = [...ST.stocks, ...ST.crypto];
   if (!tvSelectedAsset && all.length) tvSelectedAsset = all[0];
   pillsEl.innerHTML = all.map(a =>
-    `<span class="tv-pill ${tvSelectedAsset?.id===a.id?'active':''}" onclick="selectTVAsset('${a.id}')">${a.sym}</span>`
+    `<span class="tv-pill ${tvSelectedAsset?.id===a.id?'active':''}" onclick="selectTVAsset(${inlineArg(a.id)})">${escapeHTML(a.sym)}</span>`
   ).join('');
 
   // Sync theme select with app theme
@@ -8949,7 +9106,7 @@ function renderTVChart() {
   script.id = 'tv_script';
   script.src = 'https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js';
   script.async = true;
-  script.innerHTML = JSON.stringify({
+  script.textContent = JSON.stringify({
     autosize: true,
     symbol: symbol,
     interval: interval,
@@ -8978,7 +9135,7 @@ function renderTVAssetInfo() {
   const el = $('tvAssetInfo');
   if (!tvSelectedAsset) return;
   const a = tvSelectedAsset;
-  const { cap, cur, pnl, pp, d } = calc(a);
+  const { cap, cur, pnl, pp, d, result } = calc(a);
   const dca = calcDCA(a);
   const avgP = dca ? dca.avgPrice : a.buy;
   const isCrypto = !!ST.crypto.find(c => c.id === a.id);
@@ -8990,11 +9147,11 @@ function renderTVAssetInfo() {
         ${getLogoHTML(a.sym, isCrypto ? 'crypto' : 'stock')}
       </div>
       <div>
-        <div style="font-weight:700;font-size:13px;color:var(--tx1)">${a.sym}</div>
-        <div style="font-size:10px;color:var(--tx3)">${a.name} · ${isCrypto?'Cripto':'Acción'}</div>
+        <div style="font-weight:700;font-size:13px;color:var(--tx1)">${escapeHTML(a.sym)}</div>
+        <div style="font-size:10px;color:var(--tx3)">${escapeHTML(a.name)} · ${isCrypto?'Cripto':'Acción'}</div>
       </div>
       <div style="margin-left:auto">
-        <span class="pill ${isCrypto?'pill-y':'pill-b'}">${isCrypto?(a.custody||'exchange'):(a.sector||'—')}</span>
+        <span class="pill ${isCrypto?'pill-y':'pill-b'}">${escapeHTML(isCrypto?(a.custody||'exchange'):(a.sector||'—'))}</span>
       </div>
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:11px">
@@ -9004,9 +9161,9 @@ function renderTVAssetInfo() {
       <div style="padding:8px;background:var(--bg3);border-radius:8px"><div style="color:var(--tx3);font-size:9px;margin-bottom:3px">${t('tvCur')}</div><div style="font-weight:700;color:var(--ct2)">${a.cur!=null?fmt(a.cur):'—'}</div></div>
       <div style="padding:8px;background:var(--bg3);border-radius:8px"><div style="color:var(--tx3);font-size:9px;margin-bottom:3px">${t('tvCapLabel')}</div><div style="font-weight:700">${fmt(cap)}</div></div>
       <div style="padding:8px;background:var(--bg3);border-radius:8px"><div style="color:var(--tx3);font-size:9px;margin-bottom:3px">${t('tvValLabel')}</div><div style="font-weight:700">${cur!=null?fmt(cur):'—'}</div></div>
-      <div style="padding:8px;background:var(--bg3);border-radius:8px;grid-column:1/-1"><div style="color:var(--tx3);font-size:9px;margin-bottom:3px">${t('tvPnlLabel')}</div><div style="font-weight:700;font-size:14px;color:${pnlC}">${pnl!=null?fmt(pnl):'—'} ${pp!=null?'('+fmtPct(pp*100)+')':''}</div></div>
-      <div style="padding:8px;background:var(--bg3);border-radius:8px;grid-column:1/-1"><div style="color:var(--tx3);font-size:9px;margin-bottom:3px">${t('tvDaysLabel')}</div><div style="font-weight:700">${d} días — desde ${a.date}</div></div>
-      ${a.note ? `<div style="padding:8px;background:var(--bg3);border-radius:8px;grid-column:1/-1;border-left:2px solid var(--cv)"><div style="color:var(--tx3);font-size:9px;margin-bottom:3px">${t('tvNotesLabel')}</div><div style="color:var(--tx2);font-size:10px;line-height:1.6">${a.note}</div></div>` : ''}
+      <div style="padding:8px;background:var(--bg3);border-radius:8px;grid-column:1/-1"><div style="color:var(--tx3);font-size:9px;margin-bottom:3px">${t('tvPnlLabel')}</div><div style="font-weight:700;font-size:14px;color:${pnlC}">${pnl!=null?fmt(pnl)+provisionalMarkup(result):resultStatusLabel(result.status)} ${pp!=null?'('+fmtPct(pp*100)+')':''}</div></div>
+      <div style="padding:8px;background:var(--bg3);border-radius:8px;grid-column:1/-1"><div style="color:var(--tx3);font-size:9px;margin-bottom:3px">${t('tvDaysLabel')}</div><div style="font-weight:700">${d} días — desde ${escapeHTML(a.date)}</div></div>
+      ${a.note ? `<div style="padding:8px;background:var(--bg3);border-radius:8px;grid-column:1/-1;border-left:2px solid var(--cv)"><div style="color:var(--tx3);font-size:9px;margin-bottom:3px">${t('tvNotesLabel')}</div><div style="color:var(--tx2);font-size:10px;line-height:1.6">${escapeHTML(a.note)}</div></div>` : ''}
     </div>
   `;
 }
