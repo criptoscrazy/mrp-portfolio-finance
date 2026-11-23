@@ -1,5 +1,6 @@
 const {spawnSync}=require('node:child_process');
 const suites=['regression','liquidity','profit-review','investment-indicators','portfolio-financial-integrity','sync-conflict-dates','cedear-quotes-layout','keepalive','news-edge','migration-v3-dry-run','audit-integrity','database-hardening','news-ux','liquidity-visual','profit-review-visual','sync-conflict-dates-visual','cost-mean-visual','context-metrics-visual','cedear-visual','audit-browser','portfolio-integrity-visual'];
+suites.push('portfolio-ux');
 for(const suite of suites){
   console.log('\nPrueba: '+suite);
   const args=['tests/'+suite+'.cjs'];if(suite==='migration-v3-dry-run')args.push('tests/fixtures/position-v2-sample.json');

@@ -82,8 +82,8 @@ let checks=0;const check=(condition,message)=>{assert(condition,message);checks+
     await page.evaluate(()=>showTab('risk'));
     check(await page.locator('#riskDrawdowns tbody tr').first().textContent().then(text=>text.includes('-25.00%')&&text.includes('Revisar retroceso')),'Maximum, quote and warning survive reload in the same browser');
     await page.evaluate(()=>showTab('liquidity'));
-    await page.getByText('Reserva por entidad / cuenta',{exact:true}).click();
-    await page.getByRole('button',{name:'Editar reserva de Binance · USD'}).click();
+    await page.locator('#liquidityReserves > summary').click();
+    await page.locator('#liquidityTb').getByRole('button',{name:'Editar reserva · Binance · USD'}).click();
     await page.getByLabel('Destinado a inversiones').fill('500');
     await page.getByLabel('Comprometido para otros fines').fill('200');
     await page.locator('#liquidityOverlay').getByRole('button',{name:'Guardar'}).click();

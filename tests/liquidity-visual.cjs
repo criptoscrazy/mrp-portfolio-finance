@@ -61,7 +61,8 @@ let checks=0;const check=(condition,message)=>{assert(condition,message);checks+
     await page.locator('#liqFxTime').fill(dateString);await page.locator('#liquidityOverlay .btn-save').click();
     check(await page.evaluate(()=>liquiditySummary().available.value===1138),'FX conversion uses saved source and timestamp');
     await page.evaluate(()=>showTab('dash'));
-    check(await page.locator('#dashLiquidityTotals .liquidity-total').count()===5,'Dashboard has five distinct wealth/liquidity figures');
+    check(await page.locator('.dash-summary > div').count()===4,'Dashboard puts the four primary figures first');
+    check(await page.locator('#dashLiquidityTotals .liquidity-total').count()===2,'Only the non-duplicated liquidity components remain in the breakdown');
     check(await page.evaluate(()=>$('dHeroTotal').textContent===fmt(financialSummary().totalUSD)),'Hero includes available liquidity once');
     await page.waitForTimeout(350);await page.screenshot({path:artifactPath('mrp-liquidity-dashboard-desktop.png'),fullPage:true});
     await page.evaluate(()=>showTab('hist'));await page.locator('#historyScope').selectOption('liquidity');

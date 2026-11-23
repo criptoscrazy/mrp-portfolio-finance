@@ -51,7 +51,7 @@ const fixtures = {
       window.__beforeCostMean=JSON.stringify(ST);
     },fixtures);
     await page.waitForTimeout(350);
-    assert.equal(await page.locator('.tab.active span').innerText(),'Coste medio por posición');
+    assert.equal(await page.locator('.tab.active span').textContent(),'Coste medio por posición');
     const allaria=page.locator('#dcaTb tr[data-position-id="pos_cedear_aapl_allaria"]');
     assert.equal(await allaria.count(),1);
     assert((await allaria.innerText()).includes('9.042,97'));
@@ -67,6 +67,7 @@ const fixtures = {
 
     await page.setViewportSize({width:390,height:844});
     await page.screenshot({path:screenshots.mobile,fullPage:true});
+    await page.locator('.nav-group:last-child > summary').click();
     const mobile=await page.evaluate(()=>({
       viewport:innerWidth,bodyWidth:document.documentElement.scrollWidth,
       tableWidth:document.querySelector('#dcaTb').closest('.tbl-wrap').scrollWidth,
@@ -80,6 +81,7 @@ const fixtures = {
     assert(mobile.visualWidth<=mobile.visualViewport+1,`Comparison overflow: ${JSON.stringify(mobile)}`);
     assert(mobile.tabLabelWidth<=mobile.tabWidth-20,'The full tab name must fit without overlapping');
     assert(mobile.tableWidth>mobile.tableViewport,'Mobile table must scroll within its container');
+    await page.keyboard.press('Escape');
 
     await page.evaluate(()=>{
       ST.cedearCurrentCclDecimal='1500';renderAll();
@@ -96,7 +98,7 @@ const fixtures = {
     assert.equal(await page.locator('#dcaTb img, #dcaTb svg, #dcaVisual img, #dcaVisual svg').count(),0);
     assert.equal(await page.evaluate(()=>window.__xss||0),0);
     await page.evaluate(()=>{LANG='en';applyLang();renderDCA();});
-    assert.equal(await page.locator('.tab.active span').innerText(),'Average cost per position');
+    assert.equal(await page.locator('.tab.active span').textContent(),'Average cost per position');
     assert.equal(await page.locator('#dcaTitle').textContent(),'Average cost per position');
     assert.deepEqual(errors,[],'No application JavaScript errors');
     console.log(JSON.stringify({ok:true,screenshots,mobile,network:'External requests blocked; synthetic data only'}));

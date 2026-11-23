@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <!-- Legacy inline handlers remain allowed; external script origins and static bytes are restricted. -->
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'self'; object-src 'none'; form-action 'self'; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://s3.tradingview.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net; font-src 'self' data: https://fonts.gstatic.com https://cdn.jsdelivr.net; img-src 'self' data: https:; connect-src 'self' https://dddojedzyrcjqasyomso.supabase.co wss://dddojedzyrcjqasyomso.supabase.co https://query1.finance.yahoo.com https://query2.finance.yahoo.com https://api.coingecko.com https://min-api.cryptocompare.com https://data-api.binance.vision https://api.allorigins.win https://r.jina.ai https://dolarapi.com https://dolarazo.com.ar; frame-src https://www.tradingview.com https://s.tradingview.com https://*.tradingview-widget.com; worker-src 'self'">
-<meta name="mrp-release" content="2026-11-23.1">
+<meta name="mrp-release" content="2026-11-23.2">
 <title>MRP Portfolio</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -360,21 +360,6 @@ td.note-cell{max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:
 }
 #otrosSection-etf .form-row .f{min-width:0}
 #otrosSection-etf .form-row .f:has(#etfNote){grid-column:span 3}
-.etf-table{width:max-content;min-width:2160px}
-.etf-table th,.etf-table td{white-space:nowrap}
-.etf-table th:nth-child(2),.etf-table td:nth-child(2){width:120px;white-space:normal}
-.etf-table th:nth-child(3),.etf-table td:nth-child(3){width:175px;white-space:normal}
-.etf-table th:nth-child(5),.etf-table td:nth-child(5){width:120px;white-space:normal}
-.etf-table th:nth-child(9),.etf-table td:nth-child(9){min-width:145px}
-.etf-table th:nth-child(16),.etf-table td:nth-child(16){width:130px;white-space:normal}
-.etf-table th:nth-child(18),.etf-table td:nth-child(18){width:150px}
-.etf-table th:last-child,.etf-table td:last-child{
-  position:sticky;right:0;z-index:2;min-width:156px;
-  box-shadow:-10px 0 14px rgba(0,0,0,.16);
-}
-.etf-table th:last-child{background:var(--bg2)}
-.etf-table td:last-child{background:var(--bg2)}
-.etf-table tbody tr:hover td:last-child{background:rgba(124,58,237,.04)}
 
 /* ── PILLS ── */
 .pill{
@@ -817,39 +802,25 @@ input::placeholder,textarea::placeholder,select::placeholder{color:var(--tx4);op
 /* TD responsive handled in main media queries above */
 
 
-/* ── DASHBOARD HERO ── */
-.dash-hero { }
+/* ── DASHBOARD OVERVIEW ── */
 #tab-dash.active { display:flex; flex-direction:column; gap:12px; }
 #tab-dash > * { min-width:0; margin-bottom:0!important; }
-#tab-dash .dash-hero { display:block!important; order:0; }
-.dash-summary { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:20px; }
+.dash-summary { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:16px; }
 .dash-summary > div { min-width:0; }
-.dash-summary .metric-value { font-size:24px; overflow-wrap:anywhere; }
-.dash-quality { order:1; border-bottom:1px solid var(--br); padding:8px 4px 12px; }
+.dash-quality { border-bottom:1px solid var(--br); padding:8px 4px 12px; }
 .dash-quality summary { cursor:pointer; display:flex; flex-wrap:wrap; gap:8px 20px; align-items:center; }
 .dash-quality .quality-title { font-weight:600; color:var(--tx1); }
 .dash-quality .quality-meta { color:var(--tx2); font-size:11px; }
 .dash-quality ul { margin:12px 0 0; padding-left:18px; color:var(--tx2); }
 .dash-quality li { margin:6px 0; }
-#dashClassPanel { order:2; }
-#dashAllocation { order:3; }
-#dashContribution { order:4; }
-#dashCharts { order:5; }
-#dashEvolution { order:6; }
 .dash-row-button { background:none; border:0; padding:0; color:var(--cv3); cursor:pointer; font:inherit; text-align:left; }
 .dash-row-button:hover { text-decoration:underline; }
 .dash-contribution-table td.num { white-space:nowrap; }
 .dash-contribution-table td:first-child { min-width:170px; }
 .dash-summary-label { font-size:11px; color:var(--tx2); margin-bottom:6px; }
 @media(max-width:760px) { .dash-summary { grid-template-columns:repeat(2,minmax(0,1fr)); gap:16px; } }
-@media(max-width:420px) { .dash-summary .metric-value { font-size:20px; } }
 @media(max-width:768px){
   #dashAllocation{grid-template-columns:1fr!important}
-  .dash-hero{grid-template-columns:1fr!important}
-  .dash-hero>div:first-child>div:last-child{grid-template-columns:1fr 1fr!important}
-}
-@media(max-width:480px){
-  .dash-hero>div:first-child>div:last-child{grid-template-columns:1fr!important}
 }
 /* ── INCOME SUBTABS ── */
 .inc-stab{transition:all .2s;font-family:'Inter',system-ui}
@@ -1054,6 +1025,103 @@ input::placeholder,textarea::placeholder,select::placeholder{color:var(--tx4);op
   .content{padding-bottom:75px}
   .mkt-bar{display:none}
 }
+.portfolio-nav{position:relative;overflow:visible;z-index:160;align-items:stretch;gap:5px}
+.portfolio-nav .tab,.nav-trigger{font:inherit;font-size:13px;font-weight:600;letter-spacing:0;color:var(--tx2);background:transparent;border:0;cursor:pointer}
+.portfolio-nav>.tab,.nav-trigger{min-height:48px;padding:10px 14px;border-bottom:2px solid transparent}
+.nav-trigger{display:flex;gap:7px;align-items:center;list-style:none}
+.nav-trigger::-webkit-details-marker{display:none}
+.nav-trigger i{font-size:16px}
+.portfolio-nav>.tab.active,.nav-group:has(.tab.active)>.nav-trigger,.nav-group[open]>.nav-trigger{color:var(--cv3);border-color:var(--cv)}
+.portfolio-nav .tab.active::after{display:none}
+.portfolio-nav :is(button,summary):focus-visible,.position-list-toggle:focus-visible,.position-actions button:focus-visible{outline:2px solid var(--cv3);outline-offset:-2px}
+.nav-group{position:relative;min-width:0}
+.nav-panel{position:absolute;top:100%;left:0;width:280px;max-height:min(65dvh,480px);overflow:auto;padding:6px;background:var(--bg2);border:1px solid var(--br2);border-radius:8px;box-shadow:0 10px 30px rgba(0,0,0,.28)}
+.portfolio-nav .nav-panel .tab{width:100%;padding:9px 10px;min-height:38px;text-align:left;white-space:normal;border-radius:5px}
+.nav-panel .tab:is(:hover,.active),.nav-subviews button:is(:hover,[aria-current]){background:var(--bg3);color:var(--cv3)}
+.nav-label{font-size:11px;color:var(--tx2);padding:9px 10px 2px}
+.nav-subviews{display:grid;grid-template-columns:1fr 1fr;gap:4px;padding:2px 6px 6px}
+.nav-subviews button{background:var(--bg0);border:1px solid var(--br);border-radius:5px;color:var(--tx1);font:inherit;font-size:12px;min-height:38px;padding:5px 4px}
+.dash-overview{padding:15px 0 0;background:var(--bg1);border:1px solid var(--br);border-radius:8px}
+.dash-overview h1{font-size:16px;letter-spacing:0;padding:0 16px;margin:0 0 16px}
+.dash-summary{padding:0 16px 14px}
+.dash-value,.dash-summary .liquidity-total strong{font-size:21px;line-height:1.25;font-weight:750;color:var(--tx1);overflow-wrap:anywhere;white-space:normal;font-variant-numeric:tabular-nums}
+.dash-value.dash-total{font-size:24px}
+.dash-summary-label,.dash-summary .liquidity-total span{font-size:12px;color:var(--tx2);min-height:0;line-height:1.4}
+.dash-caption,.dash-summary .liquidity-total small{font-size:11px;line-height:1.4;color:var(--tx2)}
+.dash-caption{margin-top:4px}
+.dash-summary .liquidity-total{padding:0;border:0;gap:4px}
+.portfolio-disclosure{border-top:1px solid var(--br)}
+.portfolio-disclosure>summary{cursor:pointer;font-weight:650;color:var(--tx1);padding:12px 4px}
+.dash-valuation>summary{padding:10px 16px}
+.dash-valuation-grid,.dash-advanced{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.dash-valuation-grid{padding:0 16px 12px}
+.dash-valuation-grid .liquidity-totals{display:contents}
+.dash-valuation-grid .liquidity-total strong{white-space:normal;overflow-wrap:anywhere}
+.dashboard-section{padding:8px 0}
+.dash-analysis{display:grid;gap:12px}
+.dash-links{display:flex;flex-wrap:wrap;gap:8px}
+.dash-links button,.position-list-toggle{border:1px solid var(--br2);background:var(--bg2);color:var(--tx1);border-radius:6px;padding:6px 10px;min-height:34px;font:inherit;font-size:12px;cursor:pointer}
+.dash-links button:hover,.position-list-toggle:hover{border-color:var(--cv3)}
+.portfolio-band{padding:12px 0;border-top:1px solid var(--br)}
+.portfolio-band h2{font-size:15px;margin:0 0 10px}
+#liquidityReserves{margin-top:12px}
+.position-list-tools:not([hidden]){display:flex;justify-content:flex-end;padding:8px}
+.position-table{width:100%;min-width:0!important}
+.position-table-expanded{min-width:max-content!important}
+.position-table:not(.position-table-expanded) .position-extra{display:none}
+.position-table .position-identity{min-width:136px;max-width:220px;white-space:normal;overflow-wrap:anywhere}
+.position-identity small{display:block;margin-top:3px;color:var(--tx2);font-size:11px;font-weight:400}
+.position-table .position-actions{white-space:normal;padding-right:8px}
+.position-actions button{width:32px;height:32px;margin:2px;border-color:var(--br2);color:var(--tx1);font-size:15px;flex-shrink:0}
+.position-actions .btn-buy{color:var(--cg2)}
+.position-actions .btn-sell{color:var(--ca2)}
+.position-actions .btn-view{color:var(--ct2)}
+.position-table .num,.position-table .price-source{white-space:normal;overflow-wrap:anywhere}
+.position-table .note-cell{overflow-wrap:anywhere;white-space:normal}
+#tab-liquidity .liquidity-source{min-width:0}
+#liquidityTotals{margin:8px 0 14px}
+#liquidityTotals .liquidity-total span{min-height:0}
+@media(min-width:761px){
+  .position-table-expanded{border-collapse:separate;border-spacing:0}
+  .position-table-expanded .position-identity{position:sticky;left:0;width:156px;min-width:156px;max-width:156px;z-index:2;background:var(--bg2)}
+  .position-table-expanded .position-actions{position:sticky;left:156px;z-index:2;background:var(--bg2);border-right:1px solid var(--br2)}
+  .position-table-expanded thead :is(.position-identity,.position-actions){background:var(--bg3);z-index:3}
+}
+@media(max-width:760px){
+  .portfolio-nav{position:fixed;left:0;right:0;top:auto;bottom:0;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:0;padding:0 0 env(safe-area-inset-bottom);overflow:visible;scroll-snap-type:none;border:0;border-top:1px solid var(--br2);background:var(--bg1)}
+  .portfolio-nav>.tab,.portfolio-nav .nav-trigger{width:100%;min-width:0;min-height:52px;padding:4px 2px;display:flex;flex-direction:column;justify-content:center;gap:3px;border:0;border-top:2px solid transparent;border-radius:0}
+  .portfolio-nav>.tab span,.portfolio-nav .nav-trigger span{display:block;white-space:normal;font-size:11px;line-height:1.15;text-align:center}
+  .portfolio-nav .nav-panel{position:fixed;left:auto;right:8px;top:auto;bottom:calc(53px + env(safe-area-inset-bottom));width:min(290px,calc(100vw - 16px));max-height:calc(100dvh - 110px)}
+  .portfolio-nav .nav-group:first-of-type .nav-panel{left:8px;right:auto}
+  .portfolio-nav .nav-panel .tab{flex-direction:row;justify-content:flex-start;gap:8px}
+  .portfolio-nav .nav-panel .tab span{font-size:13px;text-align:left;white-space:normal}
+  .content{padding-bottom:calc(70px + env(safe-area-inset-bottom))}
+  .dash-summary{padding-left:12px;padding-right:12px}
+  .dash-value.dash-total{font-size:20px}
+  .dash-value,.dash-summary .liquidity-total strong{font-size:18px}
+  .dash-valuation-grid,.dash-advanced{grid-template-columns:repeat(2,minmax(0,1fr))}
+  :is(.position-table,.ledger-table){display:block;width:100%;min-width:0!important}
+  :is(.position-table,.ledger-table) thead{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)}
+  :is(.position-table,.ledger-table) tbody{display:block}
+  :is(.position-table,.ledger-table) tbody tr{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));padding:9px 12px;gap:8px;border-bottom:1px solid var(--br2)}
+  :is(.position-table,.ledger-table) tbody td{display:block;min-width:0;max-width:none;width:auto;position:static;padding:0;border:0;white-space:normal;text-align:left;overflow-wrap:anywhere}
+  :is(.position-table,.ledger-table) td[data-label]::before{content:attr(data-label);display:block;color:var(--tx2);font-size:11px;font-weight:500;margin-bottom:3px;white-space:normal}
+  .position-table .position-identity,.position-table .position-actions,.ledger-table tbody td:first-child,:is(.position-table,.ledger-table) .empty{grid-column:1/-1;min-width:0;max-width:none;width:auto;position:static;background:transparent}
+  .position-table .position-actions{display:flex;gap:6px;flex-wrap:wrap;align-items:center;padding:0 0 2px}
+  .position-actions .cedear-action-group{flex-wrap:wrap}
+  .position-actions button,.position-actions .cedear-action-group button{width:42px;height:42px;flex:0 0 42px;margin:0}
+  .position-table .cedear-quote-state{min-width:0;max-width:none}
+  .liquidity-total strong{white-space:normal;overflow-wrap:anywhere}
+  #liquidityTotals .liquidity-total:first-child{grid-column:1/-1}
+}
+@media(max-width:480px){
+  .topbar{padding:0 8px;gap:5px}
+  .topbar .logo,.topbar-right{gap:5px}
+  .logo-sub{display:none}
+  .topbar .logo-name,.topbar .logo-version{white-space:nowrap}
+  .topbar .btn-upd{justify-content:center;width:33px;height:34px;padding:0}
+  .topbar .upd-time{max-width:60px;overflow-wrap:anywhere}
+}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2" integrity="sha384-WgXwGL6fUsYJWNaKJgVbrJKGRQwc1vieh2oy4kw9nXqpNDz3tdSsqEYUgeHD/NuF" crossorigin="anonymous"></script>
 </head>
@@ -1066,7 +1134,7 @@ input::placeholder,textarea::placeholder,select::placeholder{color:var(--tx4);op
     <div>
       <div class="logo-name">MRP Portfolio</div>
       <div class="logo-sub" id="logoSub">Investment Tracker</div>
-      <div class="logo-version" title="Versión de la aplicación">v2026-11-23.1</div>
+      <div class="logo-version" title="Versión de la aplicación">v2026-11-23.2</div>
     </div>
   </div>
   <div class="topbar-right">
@@ -1084,7 +1152,7 @@ input::placeholder,textarea::placeholder,select::placeholder{color:var(--tx4);op
     <button class="btn-theme" id="btnTheme" onclick="toggleTheme()" title="Cambiar tema" aria-label="Cambiar entre modo oscuro y claro">
       <i class="ti ti-sun" id="themeIco"></i>
     </button>
-    <button class="btn-upd" id="btnUpd" onclick="updatePrices()">
+    <button class="btn-upd" id="btnUpd" onclick="updatePrices()" aria-label="Actualizar precios" title="Actualizar precios">
       <i class="ti ti-refresh" id="refIco"></i>
       <span id="btnTxt">Actualizar precios</span>
     </button>
@@ -1188,21 +1256,39 @@ input::placeholder,textarea::placeholder,select::placeholder{color:var(--tx4);op
 </div>
 
 <!-- TABS -->
-<nav class="tabs">
-  <div class="tab active" onclick="showTab('dash')"><i class="ti ti-layout-dashboard"></i> <span>Dashboard</span></div>
-  <div class="tab" onclick="showTab('stocks')"><i class="ti ti-chart-bar"></i> <span>Acciones</span></div>
-  <div class="tab" onclick="showTab('crypto')"><i class="ti ti-currency-bitcoin"></i> <span>Cripto</span></div>
-  <div class="tab" onclick="showTab('otros')"><i class="ti ti-building-bank"></i> <span>Otros</span></div>
-  <div class="tab" onclick="showTab('liquidity')"><i class="ti ti-wallet"></i> <span>Liquidez</span></div>
-  <div class="tab" id="costMeanTab" onclick="showTab('dca')"><i class="ti ti-calculator"></i> <span>Coste medio por posición</span></div>
-  <div class="tab" onclick="showTab('risk')"><i class="ti ti-shield"></i> <span>Riesgo</span></div>
-  <div class="tab" onclick="showTab('income')"><i class="ti ti-cash"></i> <span>Ingresos</span></div>
-  <div class="tab" onclick="showTab('hist')"><i class="ti ti-history"></i> <span>Historial</span></div>
-  <div class="tab" onclick="showTab('evol')"><i class="ti ti-chart-line"></i> <span>Evolución</span></div>
-  <div class="tab" onclick="showTab('news')"><i class="ti ti-news"></i> <span>Noticias</span></div>
-  <div class="tab" onclick="showTab('tv')"><i class="ti ti-chart-candle"></i> <span>TradingView</span></div>
-  <div class="tab td-tab" onclick="showTab('trading')"><i class="ti ti-chart-candle" style="color:var(--ca2)"></i> <span style="color:var(--ca2)">Trading Desk</span></div>
-  <div class="tab" onclick="showTab('cfg')"><i class="ti ti-settings"></i> <span>Config</span></div>
+<nav class="tabs portfolio-nav" aria-label="MRP Portfolio">
+  <button type="button" class="tab active" data-view="dash" aria-current="page" onclick="showTab('dash')"><i class="ti ti-layout-dashboard" aria-hidden="true"></i> <span data-text="navHome">Inicio</span></button>
+  <details class="nav-group">
+    <summary class="nav-trigger"><i class="ti ti-stack-2" aria-hidden="true"></i> <span data-text="navAssets">Activos</span></summary>
+    <div class="nav-panel">
+      <button type="button" class="tab" data-view="stocks" onclick="showTab('stocks')"><i class="ti ti-chart-bar" aria-hidden="true"></i> <span data-text="tabStocks">Acciones</span></button>
+      <button type="button" class="tab" data-view="crypto" onclick="showTab('crypto')"><i class="ti ti-currency-bitcoin" aria-hidden="true"></i> <span data-text="tabCrypto">Cripto</span></button>
+      <button type="button" class="tab" data-view="otros" onclick="showTab('otros')"><i class="ti ti-building-bank" aria-hidden="true"></i> <span data-text="tabOtros">Otros</span></button>
+      <div class="nav-subviews">
+        <button type="button" data-asset-subview="etf" onclick="openAssetClass('ETFs')">ETFs</button>
+        <button type="button" data-asset-subview="cedeares" onclick="openAssetClass('CEDEARs')">CEDEARs</button>
+        <button type="button" data-asset-subview="token" onclick="openAssetClass('Tokenizadas')" data-text="navToken">Tokenizadas</button>
+        <button type="button" data-asset-subview="bonos" onclick="openAssetClass('Bonos')" data-text="navBonds">Bonos</button>
+      </div>
+    </div>
+  </details>
+  <button type="button" class="tab" data-view="liquidity" onclick="showTab('liquidity')"><i class="ti ti-wallet" aria-hidden="true"></i> <span data-text="tabLiquidity">Liquidez</span></button>
+  <button type="button" class="tab" data-view="hist" onclick="showTab('hist')"><i class="ti ti-history" aria-hidden="true"></i> <span data-text="tabHist">Historial</span></button>
+  <details class="nav-group">
+    <summary class="nav-trigger"><i class="ti ti-dots" aria-hidden="true"></i> <span data-text="navMore">Más</span></summary>
+    <div class="nav-panel">
+      <div class="nav-label" data-text="navAnalysis">Análisis</div>
+      <button type="button" class="tab" id="costMeanTab" data-view="dca" onclick="showTab('dca')"><i class="ti ti-calculator" aria-hidden="true"></i> <span data-text="tabDCA">Coste medio por posición</span></button>
+      <button type="button" class="tab" data-view="risk" onclick="showTab('risk')"><i class="ti ti-shield" aria-hidden="true"></i> <span data-text="tabRisk">Riesgo</span></button>
+      <button type="button" class="tab" data-view="evol" onclick="showTab('evol')"><i class="ti ti-chart-line" aria-hidden="true"></i> <span data-text="tabEvol">Evolución</span></button>
+      <button type="button" class="tab" data-view="income" onclick="showTab('income')"><i class="ti ti-cash" aria-hidden="true"></i> <span data-text="tabIncome">Ingresos</span></button>
+      <div class="nav-label" data-text="navMarket">Mercado</div>
+      <button type="button" class="tab" data-view="news" onclick="showTab('news')"><i class="ti ti-news" aria-hidden="true"></i> <span data-text="tabNews">Noticias</span></button>
+      <button type="button" class="tab" data-view="tv" onclick="showTab('tv')"><i class="ti ti-chart-candle" aria-hidden="true"></i> <span data-text="tabTV">TradingView</span></button>
+      <button type="button" class="tab" data-view="trading" onclick="showTab('trading')"><i class="ti ti-chart-candle" aria-hidden="true"></i> <span data-text="tabTrading">Trading Desk</span></button>
+      <button type="button" class="tab" data-view="cfg" onclick="showTab('cfg')"><i class="ti ti-settings" aria-hidden="true"></i> <span data-text="tabCfg">Config</span></button>
+    </div>
+  </details>
 </nav>
 
 <main class="content">
@@ -1211,38 +1297,63 @@ input::placeholder,textarea::placeholder,select::placeholder{color:var(--tx4);op
 <div class="section active" id="tab-dash">
 
   <!-- ROW 1: Executive summary — portfolio at a glance -->
-  <div class="dash-hero">
-    <!-- Left: Main value card -->
-    <div class="card" style="padding:20px 22px;background:linear-gradient(135deg,var(--bg2) 0%,var(--bg3) 100%);border-color:var(--br2);position:relative;overflow:hidden">
-      <div style="position:absolute;top:0;right:0;width:200px;height:200px;background:radial-gradient(circle at 70% 30%,rgba(124,58,237,.08),transparent 70%);pointer-events:none"></div>
-      <div style="font-size:10px;color:var(--tx3);text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px;display:flex;align-items:center;gap:6px">
-        <i class="ti ti-wallet"></i> Resumen ejecutivo del portafolio
-      </div>
+  <section class="dash-overview" aria-labelledby="dashOverviewTitle">
+      <h1 id="dashOverviewTitle" data-text="dashOverview">Resumen de cartera</h1>
       <div class="dash-summary">
         <div>
           <div class="dash-summary-label" id="dValueLabel">Valor actual</div>
-          <div style="font-size:28px;font-weight:800;letter-spacing:-.04em;line-height:1" id="dHeroTotal">$0.00</div>
-          <div style="font-size:11px;margin-top:6px;color:var(--tx2)" id="dHeroTotalSub">USD valorados</div>
+          <div class="dash-value dash-total" id="dHeroTotal">$0.00</div>
+          <div class="dash-caption" id="dHeroTotalSub">USD valorados</div>
         </div>
+        <div>
+          <div id="dashInvested"></div>
+          <div class="dash-caption"><span id="dPositions">—</span> <span id="dPositionsSub">posiciones activas</span></div>
+        </div>
+        <div id="dashAvailable"></div>
         <div>
           <div class="dash-summary-label" id="dPnlLabel">G/P no realizada</div>
-          <div style="font-size:22px;font-weight:700;letter-spacing:-.03em;line-height:1" id="dHeroPnl">—</div>
-          <div style="font-size:10px;margin-top:6px" id="dHeroPnlPct">—</div>
-        </div>
-        <div>
-          <div class="dash-summary-label" id="dCostLabel">Coste abierto valorado</div>
-          <div style="font-size:22px;font-weight:700;letter-spacing:-.03em;line-height:1" id="dCap">—</div>
-          <div style="font-size:11px;color:var(--tx2);margin-top:6px" id="dCostSub">con precio y coste disponibles</div>
-        </div>
-        <div>
-          <div class="dash-summary-label" id="dPositionsLabel">Posiciones</div>
-          <div class="metric-value" id="dPositions">—</div>
-          <div style="font-size:11px;color:var(--tx2);margin-top:6px" id="dPositionsSub">activas en cartera</div>
+          <div class="dash-value" id="dHeroPnl">—</div>
+          <div class="dash-caption" id="dHeroPnlPct">—</div>
         </div>
       </div>
+      <details class="portfolio-disclosure dash-valuation">
+        <summary data-text="dashValuation">Detalle de valoración</summary>
+        <div class="dash-valuation-grid">
+          <div class="liquidity-total"><span id="dCostLabel">Coste abierto valorado</span><strong id="dCap">—</strong><small id="dCostSub">Con precio y coste disponibles</small></div>
+          <div class="liquidity-totals" id="dashLiquidityTotals"></div>
+        </div>
+      </details>
+  </section>
+  <details class="dash-quality" id="dashQuality">
+    <summary><span class="quality-title" id="dQualityTitle">Estado de datos</span><span class="quality-meta" id="dQualitySummary"></span><span class="quality-meta" id="dQualityTime"></span></summary>
+    <ul id="dQualityItems"></ul>
+  </details>
+  <section class="dashboard-section" id="dashClassPanel">
+    <div class="card-head"><i class="ti ti-arrows-diff" style="color:var(--cr2)"></i> <span id="dClassPnlTitle">G/P por clase de activo</span></div>
+    <div class="card-sub" id="dClassPnlSub">Pérdida o ganancia no realizada por clase, con datos valorados</div>
+    <div class="tbl-wrap">
+      <table class="class-pnl-table">
+        <thead><tr>
+          <th id="dClassPnlClassHead">Clase</th>
+          <th id="dClassPnlCostHead">Coste abierto valorado</th>
+          <th id="dClassPnlValueHead">Valor actual</th>
+          <th id="dClassPnlPnlHead">G/P no realizada</th>
+          <th id="dClassPnlRoiHead">ROI</th>
+          <th id="dClassPnlStatusHead">Estado</th><th id="dClassPnlWeightHead">Peso valorado</th>
+        </tr></thead>
+        <tbody id="dClassPnlTb"></tbody>
+      </table>
     </div>
-    <!-- Right: Quick metrics -->
-    <div hidden>
+  </section>
+  <div class="investment-indicator indicator-summary" id="dashInvestmentIndicators"></div>
+  <details class="portfolio-disclosure" id="dashMore">
+    <summary data-text="dashMore">Más análisis</summary>
+    <div class="dash-analysis">
+      <div class="dash-links">
+        <button class="btn-sec" type="button" onclick="showTab('risk')" data-text="tabRisk">Riesgo</button>
+        <button class="btn-sec" type="button" onclick="showTab('evol')" data-text="tabEvol">Evolución</button>
+      </div>
+    <div class="dash-advanced">
       <div class="metric-card accent-g" style="padding:12px">
         <div class="metric-label" style="margin-bottom:5px"><i class="ti ti-calendar-stats"></i> IRR
           <span class="tip-wrap" style="position:relative" onmouseenter="showTip('tipIRR',this)" onmouseleave="hideTip('tipIRR')"><i class="tip-icon">i</i>
@@ -1270,21 +1381,7 @@ input::placeholder,textarea::placeholder,select::placeholder{color:var(--tx4);op
         <div class="metric-value" id="dBeta" style="font-size:16px">—</div>
         <div class="metric-sub">vs S&P 500</div>
       </div>
-      <div class="metric-card" style="padding:12px">
-        <div class="metric-label" style="margin-bottom:5px"><i class="ti ti-stack-2"></i> Posiciones</div>
-        <div class="metric-value" style="font-size:16px">—</div>
-        <div class="metric-sub">activos en cartera</div>
-      </div>
     </div>
-  </div>
-
-  <!-- ROW 2: Custodio summary + allocation -->
-  <div class="liquidity-totals" id="dashLiquidityTotals"></div>
-  <div class="investment-indicator indicator-summary" id="dashInvestmentIndicators"></div>
-  <details class="dash-quality" id="dashQuality">
-    <summary><span class="quality-title" id="dQualityTitle">Estado de datos</span><span class="quality-meta" id="dQualitySummary"></span><span class="quality-meta" id="dQualityTime"></span></summary>
-    <ul id="dQualityItems"></ul>
-  </details>
 
   <div id="dashAllocation" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:12px">
     <div class="card">
@@ -1331,24 +1428,6 @@ input::placeholder,textarea::placeholder,select::placeholder{color:var(--tx4);op
     </div>
   </div>
 
-  <div class="card card-mb" id="dashClassPanel">
-    <div class="card-head"><i class="ti ti-arrows-diff" style="color:var(--cr2)"></i> <span id="dClassPnlTitle">G/P por clase de activo</span></div>
-    <div class="card-sub" id="dClassPnlSub">Pérdida o ganancia no realizada por clase, con datos valorados</div>
-    <div class="tbl-wrap">
-      <table class="class-pnl-table">
-        <thead><tr>
-          <th id="dClassPnlClassHead">Clase</th>
-          <th id="dClassPnlCostHead">Coste abierto valorado</th>
-          <th id="dClassPnlValueHead">Valor actual</th>
-          <th id="dClassPnlPnlHead">G/P no realizada</th>
-          <th id="dClassPnlRoiHead">ROI</th>
-          <th id="dClassPnlStatusHead">Estado</th><th id="dClassPnlWeightHead">Peso valorado</th>
-        </tr></thead>
-        <tbody id="dClassPnlTb"></tbody>
-      </table>
-    </div>
-  </div>
-
   <!-- ROW 3: Charts -->
   <div class="card" id="dashContribution">
     <div class="card-head" id="dContributionTitle">Principales contribuciones al resultado</div>
@@ -1374,6 +1453,8 @@ input::placeholder,textarea::placeholder,select::placeholder{color:var(--tx4);op
     <div class="cw" id="dEvolutionChart" style="height:220px"><canvas id="cDashEvolution" role="img" aria-label="Evolución del valor de cartera">Valor patrimonial.</canvas></div>
     <div class="muted" id="dEvolutionEmpty"></div>
   </div>
+  </div>
+  </details>
 
 </div>
 
@@ -1423,14 +1504,19 @@ input::placeholder,textarea::placeholder,select::placeholder{color:var(--tx4);op
 <div class="section" id="tab-liquidity">
   <div class="liquidity-toolbar"><div class="sect-t"><i class="ti ti-wallet"></i> Liquidez</div><button class="btn-add" onclick="openLiquidityAccount()"><i class="ti ti-plus"></i> Nuevo saldo</button></div>
   <div class="liquidity-totals" id="liquidityTotals"></div>
-  <section class="investment-indicator" aria-labelledby="liquidityReserveTitle">
-    <h3 id="liquidityReserveTitle">Reserva de liquidez para inversiones</h3>
+  <section class="portfolio-band" aria-labelledby="liquidityAccountsTitle">
+    <h2 id="liquidityAccountsTitle" data-text="liquidityAccounts">Saldos y reservas</h2>
+    <div class="tbl-wrap"><table class="liquidity-table"><thead><tr><th>Entidad / producto</th><th>Moneda</th><th>Saldo actual</th><th>Disponibilidad</th><th>Valor USD</th><th>Valoración</th><th>Observaciones</th><th>Acciones</th></tr></thead><tbody id="liquidityTb"></tbody></table></div>
+    <details class="portfolio-disclosure" id="liquidityReserves">
+    <summary id="liquidityReserveTitle" data-text="liquidityReserves">Reservas por moneda</summary>
     <div id="liquidityReserveCurrencies" class="tbl-wrap"></div>
-    <details class="liquidity-fx"><summary>Reserva por entidad / cuenta</summary><div id="liquidityReserveAccounts" class="tbl-wrap"></div></details>
+    <details class="liquidity-fx"><summary data-text="liquidityReserveAccounts">Desglose por cuenta</summary><div id="liquidityReserveAccounts" class="tbl-wrap"></div></details>
+    </details>
   </section>
-  <div class="tbl-wrap"><table class="liquidity-table"><thead><tr><th>Entidad / producto</th><th>Moneda</th><th>Saldo actual</th><th>Disponibilidad</th><th>Valor USD</th><th>Valoración</th><th>Observaciones</th><th>Acciones</th></tr></thead><tbody id="liquidityTb"></tbody></table></div>
+  <section class="portfolio-band" aria-labelledby="liquidityMovesTitle">
+    <h2 id="liquidityMovesTitle" data-text="liquidityMoves">Movimientos recientes</h2><div class="tbl-wrap"><table><thead><tr><th>Fecha</th><th>Movimiento</th><th>Origen</th><th>Destino</th><th>Importe</th><th>Comisión</th></tr></thead><tbody id="liquidityHistoryTb"></tbody></table></div>
+  </section>
   <details class="liquidity-fx"><summary>Tipos de cambio · USD por unidad</summary><div class="liquidity-toolbar"><span id="liquidityFxStatus"></span><button class="btn-snap" onclick="openLiquidityFx()"><i class="ti ti-edit"></i> Registrar cotización</button></div><div class="tbl-wrap"><table><thead><tr><th>Moneda</th><th>USD por unidad</th><th>Fuente</th><th>Fecha de valoración</th><th>Estado</th></tr></thead><tbody id="liquidityFxTb"></tbody></table></div></details>
-  <div class="sect-t" style="margin-top:24px"><i class="ti ti-history"></i> Movimientos recientes</div><div class="tbl-wrap"><table><thead><tr><th>Fecha</th><th>Movimiento</th><th>Origen</th><th>Destino</th><th>Importe</th><th>Comisión</th></tr></thead><tbody id="liquidityHistoryTb"></tbody></table></div>
 </div>
 
 <!-- ═══ CRIPTO ═══ -->
@@ -2967,7 +3053,7 @@ const PALETTE = ['#7c3aed','#0891b2','#10b981','#f59e0b','#f43f5e','#ec4899','#8
 // STATE
 // ═══════════════════════════════════════════
 const SCHEMA_VERSION = 'position-v3';
-const APP_RELEASE = '2026-11-23.1';
+const APP_RELEASE = '2026-11-23.2';
 const PUBLIC_APP_URL = 'https://criptoscrazy.github.io/mrp-portfolio-finance/';
 const SKEY = 'mrp_portfolio_v3';
 const LEGACY_SKEY = 'mrp_portfolio_v2';
@@ -5730,6 +5816,8 @@ function renderLiquidityReserve() {
     `<table><thead><tr><th>Entidad / cuenta</th>${headings}<th>Reserva</th></tr></thead><tbody>${rows.map(row=>
       `<tr><td>${escapeHTML(liquidityLabel(row.account))}</td>${cells(row,row.account.currency)}<td><button type="button" class="btn-edit" title="Editar reserva" aria-label="Editar reserva de ${escapeHTML(liquidityLabel(row.account))}" onclick="openLiquidityReserve(${inlineArg(row.account.liquidityId)})"><i class="ti ti-pencil" aria-hidden="true"></i></button></td></tr>`).join('')}</tbody></table>`:
     '<p class="muted">Sin cuentas para reservar</p>';
+  labelLedgerRows(table.querySelector?.('tbody'));
+  labelLedgerRows($('liquidityReserveAccounts').querySelector?.('tbody'));
 }
 function openLiquidityAccount(id=''){
   const account=findLiquidity(id),a=account||{custodian:'',currency:'USD',balanceDecimal:'0',date:today(),assetKind:'fiat',availability:'immediate',product:'',notes:''};
@@ -5823,26 +5911,29 @@ function valuationCoverage(pending,old){
 function liquidityTotalMarkup(label,value,pending=0,anyKnown=true,old=0){return `<div class="liquidity-total"><span>${escapeHTML(label)}</span><strong>${pending&&!anyKnown?'N/D':fmt(value)}</strong><small>${valuationCoverage(pending,old)||'USD valorados'}</small></div>`;}
 function renderFinancialLiquidity(summary){
   const f=financialSummary(summary),cash=f.cash;
-  $('dashLiquidityTotals').innerHTML=liquidityTotalMarkup('Activos invertidos · valoración',summary.totalUSD,summary.pending.length,summary.valued.length>0,summary.oldValuations.length)+
-    liquidityTotalMarkup('Liquidez inmediata',cash.immediate.value,cash.immediate.pending.length,cash.immediate.items.some(i=>i.currentUSD!=null))+
-    liquidityTotalMarkup('Liquidez remunerada',cash.remunerated.value,cash.remunerated.pending.length,cash.remunerated.items.some(i=>i.currentUSD!=null))+
-    liquidityTotalMarkup('Liquidez disponible total',cash.available.value,cash.available.pending.length,cash.available.complete||cash.available.value>0)+
-    liquidityTotalMarkup('Patrimonio financiero total',f.totalUSD,f.pending,f.totalUSD!=null,summary.oldValuations.length);
+  $('dashInvested').innerHTML=liquidityTotalMarkup(viewText('dashInvested'),summary.totalUSD,summary.pending.length,summary.valued.length>0,summary.oldValuations.length);
+  $('dashAvailable').innerHTML=liquidityTotalMarkup(viewText('dashAvailable'),cash.available.value,cash.available.pending.length,cash.available.complete||cash.available.value>0);
+  $('dashLiquidityTotals').innerHTML=
+    liquidityTotalMarkup(viewText('dashImmediate'),cash.immediate.value,cash.immediate.pending.length,cash.immediate.items.some(i=>i.currentUSD!=null))+
+    liquidityTotalMarkup(viewText('dashRemunerated'),cash.remunerated.value,cash.remunerated.pending.length,cash.remunerated.items.some(i=>i.currentUSD!=null));
   $('dHeroTotal').textContent=f.totalUSD==null?'N/D':fmt(f.totalUSD);
   $('dHeroTotalSub').textContent=valuationCoverage(f.pending,summary.oldValuations.length)||(LANG==='en'?'Valued USD':'USD valorados');
-  const label=$('dHeroTotal')?.previousElementSibling;if(label)label.textContent='Patrimonio financiero total';
+  $('dValueLabel').textContent=viewText('dashWealth');
 }
 function renderLiquidity(){
   if(!$('liquidityTb'))return;
   renderLiquidityReserve();
   const cash=liquiditySummary();
-  $('liquidityTotals').innerHTML=liquidityTotalMarkup('Disponible inmediata',cash.immediate.value,cash.immediate.pending.length,cash.immediate.items.some(i=>i.currentUSD!=null))+
-    liquidityTotalMarkup('Remunerada · rescate rápido',cash.remunerated.value,cash.remunerated.pending.length,cash.remunerated.items.some(i=>i.currentUSD!=null))+
-    liquidityTotalMarkup('Liquidez disponible total',cash.available.value,cash.available.pending.length,cash.available.complete||cash.available.value>0);
-  $('liquidityTb').innerHTML=cash.all.map(({account:a,quote,currentUSD})=>`<tr><td><strong>${escapeHTML(a.custodian)}</strong><div class="muted">${escapeHTML(a.product||'')}</div></td><td class="sym">${escapeHTML(a.currency)}</td><td class="num">${liquidityMoney(a.balanceDecimal,a.currency)}</td><td>${escapeHTML(LIQUIDITY_AVAILABILITY[a.availability])}</td><td class="num">${currentUSD==null?'N/D':fmt(currentUSD)}</td><td class="liquidity-source">${quote?escapeHTML(quote.source)+(quote.valuedAt?`<br>${escapeHTML(madridDateTime(quote.valuedAt))}<br>1 ${escapeHTML(a.currency)} = ${formatDec(quote.rateUSDDecimal,{digits:8})} USD`:''): 'Conversión pendiente'}${quote?.status==='stale'?'<br>Cotización antigua · pendiente':''}</td><td class="note-cell" title="${escapeHTML(a.notes||'')}">${escapeHTML(a.notes||'—')}</td><td class="liquidity-actions"><button class="btn-buy" title="Registrar movimiento" aria-label="Registrar movimiento" onclick="openLiquidityMovement(${inlineArg(a.liquidityId)})"><i class="ti ti-arrows-exchange"></i></button><button class="btn-edit" title="Detalle del saldo" aria-label="Detalle del saldo" onclick="openLiquidityAccount(${inlineArg(a.liquidityId)})"><i class="ti ti-pencil"></i></button>${a.assetKind==='stablecoin'?`<button class="btn-view" title="Pasar a Cripto" aria-label="Pasar a Cripto" onclick="openLiquidityReclassification(&quot;toCrypto&quot;,${inlineArg(a.liquidityId)})"><i class="ti ti-switch-horizontal"></i></button>`:''}</td></tr>`).join('')||'<tr><td colspan="8" class="empty">Sin saldos controlados</td></tr>';
+  $('liquidityTotals').innerHTML=liquidityTotalMarkup(viewText('dashAvailable'),cash.available.value,cash.available.pending.length,cash.available.complete||cash.available.value>0)+
+    liquidityTotalMarkup(viewText('dashImmediate'),cash.immediate.value,cash.immediate.pending.length,cash.immediate.items.some(i=>i.currentUSD!=null))+
+    liquidityTotalMarkup(viewText('liquidityQuick'),cash.remunerated.value,cash.remunerated.pending.length,cash.remunerated.items.some(i=>i.currentUSD!=null));
+  $('liquidityTb').innerHTML=cash.all.map(({account:a,quote,currentUSD})=>`<tr><td><strong>${escapeHTML(a.custodian)}</strong><div class="muted">${escapeHTML(a.product||'')}</div></td><td class="sym">${escapeHTML(a.currency)}</td><td class="num">${liquidityMoney(a.balanceDecimal,a.currency)}</td><td>${escapeHTML(LIQUIDITY_AVAILABILITY[a.availability])}</td><td class="num">${currentUSD==null?'N/D':fmt(currentUSD)}</td><td class="liquidity-source">${quote?escapeHTML(quote.source)+(quote.valuedAt?`<br>${escapeHTML(madridDateTime(quote.valuedAt))}<br>1 ${escapeHTML(a.currency)} = ${formatDec(quote.rateUSDDecimal,{digits:8})} USD`:''): 'Conversión pendiente'}${quote?.status==='stale'?'<br>Cotización antigua · pendiente':''}</td><td class="note-cell" title="${escapeHTML(a.notes||'')}">${escapeHTML(a.notes||'—')}</td><td class="liquidity-actions"><button class="btn-buy" title="Registrar movimiento" aria-label="Registrar movimiento" onclick="openLiquidityMovement(${inlineArg(a.liquidityId)})"><i class="ti ti-arrows-exchange"></i></button><button class="btn-edit" title="Detalle del saldo" aria-label="Detalle del saldo" onclick="openLiquidityAccount(${inlineArg(a.liquidityId)})"><i class="ti ti-pencil"></i></button><button type="button" class="btn-view" title="${escapeHTML(viewText('editReserve'))}" aria-label="${escapeHTML(viewText('editReserve')+' · '+liquidityLabel(a))}" onclick="openLiquidityReserve(${inlineArg(a.liquidityId)})"><i class="ti ti-target" aria-hidden="true"></i></button>${a.assetKind==='stablecoin'?`<button class="btn-view" title="Pasar a Cripto" aria-label="Pasar a Cripto" onclick="openLiquidityReclassification(&quot;toCrypto&quot;,${inlineArg(a.liquidityId)})"><i class="ti ti-switch-horizontal"></i></button>`:''}</td></tr>`).join('')||'<tr><td colspan="8" class="empty">Sin saldos controlados</td></tr>';
+  layoutPortfolioTable($('liquidityTb'));
   $('liquidityFxTb').innerHTML=[...new Set(liquidityAccounts().map(a=>a.currency))].map(currency=>{const q=liquidityFxFor(currency);return `<tr><td>${escapeHTML(currency)}</td><td class="num">${q?formatDec(q.rateUSDDecimal,{digits:8}):'N/D'}</td><td>${escapeHTML(q?.source||'—')}</td><td>${escapeHTML(q?.valuedAt?madridDateTime(q.valuedAt):q?'Moneda base':'—')}</td><td>${!q?'Pendiente':q.status==='stale'?'Antigua · pendiente':'Disponible'}</td></tr>`;}).join('');
   $('liquidityFxStatus').textContent='Sin cotización o con más de 96 horas, el equivalente queda pendiente.';
   $('liquidityHistoryTb').innerHTML=(ST.hist||[]).filter(h=>h.liquidityId).slice(0,30).map(h=>`<tr><td>${escapeHTML(h.date)}</td><td>${escapeHTML(h.type)}</td><td>${h.fromLiquidityId||!['SALDO_INICIAL','APORTE'].includes(h.type)?escapeHTML(liquidityLabel(findLiquidity(h.fromLiquidityId||h.liquidityId))):'—'}</td><td>${h.toLiquidityId?escapeHTML(liquidityLabel(findLiquidity(h.toLiquidityId))):'—'}</td><td class="num">${liquidityMoney(h.liquidityAmountDecimal||h.amountDecimal||'0',h.liquidityCurrency||h.currency)}${h.destinationAmountDecimal?` → ${liquidityMoney(h.destinationAmountDecimal,h.toCurrency)}`:''}</td><td class="num">${liquidityHistoryFee(h)}</td></tr>`).join('')||'<tr><td colspan="6" class="empty">Sin movimientos de liquidez</td></tr>';
+  labelLedgerRows($('liquidityFxTb'));
+  labelLedgerRows($('liquidityHistoryTb'));
   mountLiquidityFunding();
 }
 const LIQUIDITY_FORM_FIELDS={stock:['s','sS','sBroker'],crypto:['c','cS','cW'],etf:['etf','etfSym','etfBroker'],cedeaar:['ced','cedSym','cedBroker'],token:['tok','tokSym','tokExchange'],bono:['bon','bonSym','bonBroker']};
@@ -6166,6 +6257,7 @@ function renderClassPnlTable(summary) {
       <td class="num">${group.totalUSD!=null&&summary.totalUSD>0?(group.totalUSD/summary.totalUSD*100).toFixed(1)+'%':'N/D'}</td>
     </tr>`;
   }).join('');
+  labelLedgerRows(tb);
 }
 
 // ═══════════════════════════════════════════
@@ -6212,6 +6304,7 @@ function renderDash() {
   if (heroPnlPct) { heroPnlPct.textContent = pp2!=null?fmtPct(pp2*100)+' ROI'+(summary.provisional.length?' · '+resultStatusLabel('provisional'):'')+pendingLabel:'—'; heroPnlPct.style.color = pnl2>=0?'var(--cg2)':'var(--cr2)'; }
   const dPos = $('dPositions');
   if (dPos) dPos.textContent = summary.items.length;
+  $('dPositionsSub').textContent=viewText('dashPositions');
 
   // Custodio chart
   const custodioData = {};
@@ -6277,9 +6370,87 @@ function renderPriceSource(asset) {
   return `<div class="price-source${sourceClass}" title="${escapeHTML(fullLabel)}">${escapeHTML(shortLabel)}</div>`;
 }
 
+// The existing cells and operation buttons are reused; this only changes their presentation.
+const PORTFOLIO_LISTS = {
+  sTb:{core:[0,18,3,6,9,10,11], identity:[1,15]},
+  cTb:{core:[0,16,2,5,8,9,10], identity:[1,13]},
+  etfTb:{core:[0,18,5,8,11,12,13], identity:[2,15]},
+  cedTb:{core:[0,1,3,9,6,7,8], identity:[2]},
+  tokTb:{core:[0,14,3,6,8,9,10], identity:[1,11]},
+  bonTb:{core:[0,13,3,7,6,9], identity:[1,11]},
+  liquidityTb:{core:[0,7,2,3,4,5], identity:[]}
+};
+const portfolioListState=new WeakMap();
+function labelLedgerRows(body) {
+  const table=body?.closest?.('table');
+  if(!table)return;
+  table.classList.add('ledger-table');
+  const headers=Array.from(table.tHead.rows[0].cells);
+  for(const row of body.rows){
+    if(row.cells.length!==headers.length)continue;
+    Array.from(row.cells).slice(1).forEach((cell,i)=>{cell.dataset.label=headers[i+1].textContent.trim();});
+  }
+}
+function layoutPortfolioTable(body) {
+  const table=body?.closest?.('table'), profile=PORTFOLIO_LISTS[body?.id];
+  if(!table||!profile)return;
+  let layout=portfolioListState.get(table);
+  if(!layout){
+    const header=table.tHead.rows[0];
+    const headers=Array.from(header.cells), hidden=new Set(profile.identity);
+    const order=[...profile.core,...headers.map((_,i)=>i).filter(i=>!profile.core.includes(i)&&!hidden.has(i))];
+    const labels=headers.map(cell=>cell.textContent.trim());
+    const more=document.createElement('button'), tools=document.createElement('div');
+    const wrapper=table.parentElement;
+    table.classList.add('position-table');table.id=table.id||body.id+'-table';
+    more.type='button';more.className='position-list-toggle';more.setAttribute('aria-controls',table.id);
+    more.setAttribute('aria-expanded','false');
+    more.addEventListener('click',()=>{
+      const expanded=table.classList.toggle('position-table-expanded');
+      more.setAttribute('aria-expanded',String(expanded));
+      more.textContent=viewText(expanded?'fewerColumns':'moreColumns');
+    });
+    tools.className='position-list-tools';tools.append(more);wrapper.before(tools);
+    header.replaceChildren(...order.map((index,i)=>{
+      const cell=headers[index];
+      if(i===0)cell.classList.add('position-identity');
+      if(i===1)cell.classList.add('position-actions');
+      if(i>=profile.core.length)cell.classList.add('position-extra');
+      return cell;
+    }));
+    layout={labels,order,more,tools};
+    portfolioListState.set(table,layout);
+  }
+  table.tHead.rows[0].cells[0].textContent=body.id==='liquidityTb'?layout.labels[0]:viewText('identity');
+  table.tHead.rows[0].cells[1].textContent=viewText('operations');
+  layout.more.textContent=viewText(table.classList.contains('position-table-expanded')?'fewerColumns':'moreColumns');
+  layout.tools.hidden=!Array.from(body.rows).some(row=>row.cells.length===layout.labels.length);
+  for(const row of body.rows){
+    const cells=Array.from(row.cells);
+    if(cells.length!==layout.labels.length)continue;
+    const symbol=cells[0].firstElementChild?.textContent||cells[0].textContent.trim();
+    for(const index of profile.identity){
+      const label=cells[index].textContent.trim();
+      if(!label||label==='—')continue;
+      const part=document.createElement('small');part.textContent=label;cells[0].append(part);
+    }
+    row.replaceChildren(...layout.order.map((index,i)=>{
+      const cell=cells[index];
+      if(i===0)cell.classList.add('position-identity');
+      if(i===1){
+        cell.classList.add('position-actions');
+        cell.querySelectorAll('button[title]:not([aria-label])').forEach(button=>button.setAttribute('aria-label',button.title+' · '+symbol));
+      }
+      if(i>=2)cell.dataset.label=layout.labels[index];
+      if(i>=profile.core.length)cell.classList.add('position-extra');
+      return cell;
+    }));
+  }
+}
+
 function renderTbl(assets, tbodyId, type) {
   const tb = $(tbodyId); tb.innerHTML = '';
-  if (!assets.length) { tb.innerHTML = `<tr><td colspan="${type==='stock'?19:17}" class="empty"><i class="ti ti-inbox"></i><p>${t('emptyStocks')}</p></td></tr>`; return; }
+  if (!assets.length) { tb.innerHTML = `<tr><td colspan="${type==='stock'?19:17}" class="empty"><i class="ti ti-inbox"></i><p>${t('emptyStocks')}</p></td></tr>`; layoutPortfolioTable(tb);return; }
   const peaks=readMarketPeaks();
   const missing='<span class="indicator-missing">Información insuficiente</span>';
   assets.forEach(a => {
@@ -6326,6 +6497,7 @@ function renderTbl(assets, tbodyId, type) {
       </td>`;
     tb.appendChild(tr);
   });
+  layoutPortfolioTable(tb);
 }
 
 // ═══════════════════════════════════════════
@@ -6848,9 +7020,46 @@ function renderAEvol() {
 // ═══════════════════════════════════════════
 // TAB ROUTER
 // ═══════════════════════════════════════════
-const TABS = ['dash','stocks','crypto','otros','liquidity','dca','risk','income','hist','evol','news','tv','trading','cfg'];
+const VIEW_COPY = {
+  navHome:['Inicio','Home'], navAssets:['Activos','Assets'], navMore:['Más','More'],
+  navAnalysis:['Análisis','Analysis'], navMarket:['Mercado','Market'], navToken:['Tokenizadas','Tokenized assets'], navBonds:['Bonos','Bonds'],
+  dashOverview:['Resumen de cartera','Portfolio overview'], dashValuation:['Detalle de valoración','Valuation breakdown'],
+  dashMore:['Más análisis','More analysis'], dashWealth:['Patrimonio financiero total','Total financial wealth'],
+  dashInvested:['Activos invertidos','Invested assets'], dashAvailable:['Liquidez disponible total','Total available liquidity'],
+  dashImmediate:['Liquidez inmediata','Immediate liquidity'], dashRemunerated:['Liquidez remunerada','Interest-bearing liquidity'],
+  dashPositions:['posiciones activas','active positions'],
+  liquidityAccounts:['Saldos y reservas','Balances and reserves'], liquidityReserves:['Reservas por moneda','Reserves by currency'],
+  liquidityReserveAccounts:['Desglose por cuenta','Breakdown by account'], liquidityMoves:['Movimientos recientes','Recent movements'],
+  liquidityQuick:['Remunerada · rescate rápido','Interest-bearing · quick access'],
+  moreColumns:['Mostrar más columnas','Show more columns'], fewerColumns:['Mostrar menos columnas','Show fewer columns'],
+  editReserve:['Editar reserva','Edit reserve'],
+  identity:['Activo','Asset'], operations:['Operaciones','Actions']
+};
+function viewText(key) { return VIEW_COPY[key]?.[LANG==='en'?1:0] || t(key); }
+function closePortfolioMenus(restoreFocus=false) {
+  document.querySelectorAll('.portfolio-nav .nav-group[open]').forEach(group=>{
+    if(restoreFocus||group.contains(document.activeElement))group.querySelector('summary').focus();
+    group.open=false;
+  });
+}
+document.addEventListener('click',event=>{
+  const element=event.target;
+  if(!element?.closest)return;
+  const group=element.closest('.portfolio-nav .nav-group');
+  if(!element.closest('.portfolio-nav'))closePortfolioMenus();
+  else if(group&&element.closest('summary'))document.querySelectorAll('.portfolio-nav .nav-group[open]').forEach(other=>{if(other!==group)other.open=false;});
+  if(element.closest('.portfolio-nav [data-view], .portfolio-nav [data-asset-subview]'))window.scrollTo(0,0);
+});
+document.addEventListener('keydown',event=>{
+  if(event.key==='Escape'&&document.querySelector('.portfolio-nav .nav-group[open]'))closePortfolioMenus(true);
+});
 function showTab(n) {
-  document.querySelectorAll('.tab').forEach((t,i) => t.classList.toggle('active', TABS[i]===n));
+  document.querySelectorAll('.portfolio-nav [data-view]').forEach(button=>{
+    const active=button.dataset.view===n;
+    button.classList.toggle('active',active);
+    if(active)button.setAttribute('aria-current','page'); else button.removeAttribute('aria-current');
+  });
+  closePortfolioMenus();
   document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
   $('tab-'+n).classList.add('active');
   if (n==='dash') renderDash();
@@ -7441,10 +7650,11 @@ function applyLang() {
     updEl.textContent = t('updNone');
   }
   $('btnTxt').textContent = t('btnUpdate');
+  $('btnUpd').setAttribute('aria-label',t('btnUpdate'));
+  $('btnUpd').title=t('btnUpdate');
 
   // TABS
-  const tabKeys = ['tabDash','tabStocks','tabCrypto','tabOtros','tabLiquidity','tabDCA','tabRisk','tabIncome','tabHist','tabEvol','tabNews','tabTV','tabTrading','tabCfg'];
-  document.querySelectorAll('.tab span').forEach((el, i) => { if (tabKeys[i]) el.textContent = t(tabKeys[i]); });
+  document.querySelectorAll('[data-text]').forEach(el=>{el.textContent=viewText(el.dataset.text);});
 
   // KPIs
   renderKPIs();
@@ -8633,6 +8843,9 @@ function showOtrosTab(tab) {
   });
   const btn=$('otrosTab-'+tab);
   if(btn){btn.classList.add('active');btn.style.background='var(--bg2)';btn.style.color='var(--ct2)';btn.style.boxShadow='0 2px 6px rgba(0,0,0,.2)';}
+  document.querySelectorAll('.portfolio-nav [data-asset-subview]').forEach(link=>{
+    if(link.dataset.assetSubview===tab)link.setAttribute('aria-current','true');else link.removeAttribute('aria-current');
+  });
   ['etf','cedeares','token','bonos'].forEach(t=>{
     const el=$('otrosSection-'+t); if(el) el.style.display=t===tab?'':'none';
   });
@@ -8791,6 +9004,7 @@ function renderOtros() {
       }).join('');
     }
   }
+  [etfTb,cedTb,tokTb,bonTb].forEach(layoutPortfolioTable);
   renderCedearTimeline();
 }
 

@@ -35,6 +35,7 @@ const chartAsset=process.env.MRP_TEST_CHART_ASSET;
     await page.goto(origin,{waitUntil:'domcontentloaded'});await page.waitForTimeout(600);
     await page.evaluate(fixtures=>{ST=fixtures;LANG='es';renderAll();applyLang();},fixtures);
     const before=await page.evaluate(()=>JSON.stringify(ST));
+    await page.locator('#dashMore > summary').click();
     if(chartAsset){
       assert(await page.evaluate(()=>{
         const previous=charts.pnl;
@@ -56,7 +57,8 @@ const chartAsset=process.env.MRP_TEST_CHART_ASSET;
       ['stocks',null,'Acciones'],['crypto',null,'Cripto'],['otros','etf','ETFs'],
       ['otros','cedeares','CEDEARs'],['otros','token','Tokenizadas'],['otros','bonos','Bonos']
     ]) {
-      await page.locator(`.tab[onclick="showTab('${tab}')"]`).click();
+      await page.locator('.nav-trigger').filter({hasText:'Activos'}).click();
+      await page.locator(`.tab[data-view="${tab}"]`).click();
       if(sub)await page.locator('#otrosTab-'+sub).click();
       const metrics=await page.evaluate(assetClass=>{
         const global=portfolioSummary();
@@ -121,6 +123,7 @@ const chartAsset=process.env.MRP_TEST_CHART_ASSET;
     await page.evaluate(()=>showTab('dash'));
     await page.waitForTimeout(200);
     assert(await page.locator('#dashQuality').isVisible());
+    assert(await page.locator('#dashMore').evaluate(details=>details.open));
     assert(await page.locator('#dashContribution').isVisible());
     assert(await page.locator('#dashEvolution').isVisible());
     assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),'Dashboard móvil sin desbordamiento');

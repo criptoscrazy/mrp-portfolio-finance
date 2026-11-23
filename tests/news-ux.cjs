@@ -42,7 +42,7 @@ const html=fs.readFileSync(require('node:path').join(__dirname,'../index.html'),
     assert.equal(await page.evaluate(()=>getComputedStyle(document.querySelector('.mkt-name')).fontSize),'11px');
     for(const lang of ['es','en']){
       await page.evaluate(lang=>{LANG=lang;applyLang();},lang);
-      assert.deepEqual(await page.locator('.tab').evaluateAll(t=>t.slice(-5).map(n=>n.getAttribute('onclick'))),["showTab('evol')","showTab('news')","showTab('tv')","showTab('trading')","showTab('cfg')"]);
+      assert.deepEqual(await page.locator('.nav-group:last-child .tab').evaluateAll(t=>t.slice(-4).map(n=>n.dataset.view)),['news','tv','trading','cfg']);
     }
     await page.evaluate(()=>{LANG='es';applyLang();filterNews('all');});
     await page.screenshot({path:artifactPath('mrp-news-desktop.png'),fullPage:true});

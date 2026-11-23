@@ -60,13 +60,14 @@ const lot = (id, sym, date, quantity, unit, total, ticket, ratio = '10') => ({
       const verify=()=>page.evaluate(()=>{
         const row=document.querySelector('#cedTb tr'),asset=row.querySelector('.cedear-asset'),actions=row.querySelector('.cedear-actions');
         const a=asset.getBoundingClientRect(),c=actions.getBoundingClientRect(),buttons=[...actions.querySelectorAll('button')];
-        return {fits:a.left>=0&&c.right<=innerWidth&&Math.abs(a.right-c.left)<2,buttonsFit:buttons.every(button=>{const r=button.getBoundingClientRect();return r.left>=c.left&&r.right<=c.right&&button.scrollWidth<=button.clientWidth+1;}),labels:buttons.map(button=>button.getAttribute('aria-label')),source:getComputedStyle(row.querySelector('.price-source')).whiteSpace,iconFont:document.fonts.check('15px "tabler-icons"'),iconsVisible:buttons.every(button=>{const content=getComputedStyle(button.querySelector('i'),'::before').content;return content&&content!=='none'&&content!=='normal';})};
+        const wrap=row.closest('.tbl-wrap');
+        return {fits:a.left>=0&&c.right<=innerWidth&&(innerWidth<=760?c.top>=a.bottom&&wrap.scrollWidth<=wrap.clientWidth+1:Math.abs(a.right-c.left)<2),buttonsFit:buttons.every(button=>{const r=button.getBoundingClientRect();return r.left>=c.left&&r.right<=c.right&&button.scrollWidth<=button.clientWidth+1;}),labels:buttons.map(button=>button.getAttribute('aria-label')),source:getComputedStyle(row.querySelector('.price-source')).whiteSpace,iconFont:document.fonts.check('15px "tabler-icons"'),iconsVisible:buttons.every(button=>{const content=getComputedStyle(button.querySelector('i'),'::before').content;return content&&content!=='none'&&content!=='normal';})};
       });
       let layout=await verify();
       if(!layout.fits||!layout.buttonsFit||layout.source!=='normal'||!layout.iconFont||!layout.iconsVisible)throw new Error('Invalid CEDEAR layout: '+JSON.stringify({width,theme,...layout}));
       await page.evaluate(()=>{document.querySelector('.cedear-table').parentElement.scrollLeft=700;});
       layout=await verify();
-      if(!layout.fits||!layout.buttonsFit)throw new Error('Sticky controls lost during scroll: '+JSON.stringify({width,theme,...layout}));
+      if(!layout.fits||!layout.buttonsFit)throw new Error('Controls moved out of view: '+JSON.stringify({width,theme,...layout}));
       layoutChecks.push({width,theme,...layout});
       await page.screenshot({path:artifactPath('mrp-cedear-')+width+'-'+theme+'.png',fullPage:true});
       await page.evaluate(()=>{document.querySelector('.cedear-table').parentElement.scrollLeft=0;});
@@ -75,6 +76,7 @@ const lot = (id, sym, date, quantity, unit, total, ticket, ratio = '10') => ({
   await page.setViewportSize({width:1440,height:1100});
   await page.evaluate(()=>{if(document.documentElement.getAttribute('data-theme')!=='dark')toggleTheme();});
   await page.screenshot({ path: screenshotPath, fullPage: true });
+  await page.locator('#otrosSection-cedeares').getByRole('button',{name:'Mostrar más columnas'}).click();
   const result = await page.evaluate(() => ({
     visible: document.querySelector('#otrosSection-cedeares')?.style.display !== 'none',
     tableText: document.querySelector('#cedTb')?.innerText || '',
